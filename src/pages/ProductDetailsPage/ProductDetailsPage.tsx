@@ -14,7 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
@@ -127,8 +127,11 @@ const getProductDetailContent = (product: StoreProduct | Product): ProductDetail
   };
 };
 
-export const ProductDetailsPage = () => {
-  const { productId = '' } = useParams();
+type ProductDetailsContentProps = {
+  productId: string;
+};
+
+const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
   const { addToCart } = useCart();
   const { data = [] } = useProducts();
 
@@ -142,11 +145,6 @@ export const ProductDetailsPage = () => {
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(0);
-
-  useEffect(() => {
-    setQuantity(0);
-    setSelectedImageIndex(0);
-  }, [productId]);
 
   if (!product || !detailContent) {
     return (
@@ -485,4 +483,10 @@ export const ProductDetailsPage = () => {
       </Fab>
     </Stack>
   );
+};
+
+export const ProductDetailsPage = () => {
+  const { productId = '' } = useParams();
+
+  return <ProductDetailsContent key={productId} productId={productId} />;
 };

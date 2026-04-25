@@ -26,7 +26,7 @@ import { Link } from 'react-router-dom';
 import { storefrontColors } from '@app/providers/theme/tokens';
 import { useLogin } from '@features/auth/hooks/useLogin';
 import { routePaths } from '@routes/routePaths';
-import { loginSchema, registerSchema, type RegisterFormValues } from '@shared/validators/auth.schema';
+import { registerSchema, type RegisterFormValues } from '@shared/validators/auth.schema';
 
 type AuthDrawerMode = 'login' | 'register';
 

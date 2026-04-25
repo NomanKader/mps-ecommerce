@@ -4,10 +4,12 @@ import { HomePage } from '@pages/HomePage/HomePage';
 import { renderWithProviders } from '../test/utils';
 
 describe('HomePage', () => {
-  it('renders the hero banner and featured products heading', () => {
+  it('renders the hero banner and top offers section', () => {
     renderWithProviders(<HomePage />);
 
-    expect(screen.getByText(/launch modern multi-tenant commerce experiences/i)).toBeInTheDocument();
-    expect(screen.getByText(/featured products/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/10% cashback inspiration for a cleaner, greener grocery routine/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/top offers/i)).toBeInTheDocument();
   });
 });
