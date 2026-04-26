@@ -103,7 +103,7 @@ export const promoTiles: PromoTile[] = [
     id: 'milk',
     imageUrl:
       'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=900&q=80',
-    targetCategoryId: 'drinks',
+    targetCategoryId: 'dairy',
     targetSearch: 'milk',
     title: 'Farm fresh dairy picks',
   },
@@ -114,6 +114,7 @@ export const promoTiles: PromoTile[] = [
     imageUrl:
       'https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&w=900&q=80',
     targetCategoryId: 'quick-meals',
+    targetSearch: 'snack',
     title: 'Light bites, big flavour',
   },
   {
@@ -123,6 +124,7 @@ export const promoTiles: PromoTile[] = [
     imageUrl:
       'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=900&q=80',
     targetCategoryId: 'meat',
+    targetSearch: 'beef',
     title: 'Butcher quality at home',
   },
   {
@@ -132,6 +134,7 @@ export const promoTiles: PromoTile[] = [
     imageUrl:
       'https://images.unsplash.com/photo-1468327768560-75b778cbb551?auto=format&fit=crop&w=900&q=80',
     targetCategoryId: 'flowers',
+    targetSearch: 'flowers',
     title: 'Flowers for every table',
   },
   {
@@ -141,6 +144,7 @@ export const promoTiles: PromoTile[] = [
     imageUrl:
       'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80',
     targetCategoryId: 'care',
+    targetSearch: 'beauty',
     title: 'Self-care and beauty essentials',
   },
 ];

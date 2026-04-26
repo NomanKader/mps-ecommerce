@@ -1,28 +1,33 @@
-import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
-import { Box, Paper, Stack, Typography } from '@mui/material';
-import { Outlet } from 'react-router-dom';
+import { Box } from '@mui/material';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-export const AuthLayout = () => (
-  <Box
-    sx={{
-      alignItems: 'center',
-      background:
-        'radial-gradient(circle at top left, rgba(247,166,0,0.18), transparent 24%), linear-gradient(180deg, #f4f7f5, #e7efe9)',
-      display: 'grid',
-      minHeight: '100vh',
-      p: 3,
-    }}
-  >
-    <Paper elevation={0} sx={{ borderRadius: 6, maxWidth: 480, p: 4, width: '100%' }}>
-      <Stack spacing={2} sx={{ alignItems: 'center', mb: 4 }}>
-        <StorefrontOutlinedIcon color="primary" sx={{ fontSize: 36 }} />
-        <Typography variant="h4">Welcome back</Typography>
-        <Typography color="text.secondary" sx={{ textAlign: 'center' }} variant="body2">
-          Enterprise-ready authentication shell prepared for SaaS onboarding and tenant-aware
-          access control.
-        </Typography>
-      </Stack>
-      <Outlet />
-    </Paper>
-  </Box>
-);
+import { HomePage } from '@pages/HomePage/HomePage';
+import { routePaths } from '@routes/routePaths';
+import { PageContainer } from '@shared/components/ui/PageContainer/PageContainer';
+import { storefrontShellSx } from '@shared/styles/storefront';
+import { AuthDrawer } from '@widgets/AuthDrawer/AuthDrawer';
+import { Footer } from '@widgets/Footer/Footer';
+import { Header } from '@widgets/Header/Header';
+
+export const AuthLayout = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const initialMode = location.pathname === routePaths.auth.register ? 'register' : 'login';
+
+  return (
+    <Box sx={{ ...storefrontShellSx, minHeight: '100vh' }}>
+      <Header />
+      <PageContainer sx={{ py: { md: 4, xs: 2.5 } }}>
+        <HomePage />
+      </PageContainer>
+      <Footer />
+      <AuthDrawer
+        initialMode={initialMode}
+        onClose={() => {
+          void navigate(routePaths.home);
+        }}
+        open
+      />
+    </Box>
+  );
+};

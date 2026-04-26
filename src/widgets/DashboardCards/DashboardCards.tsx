@@ -4,27 +4,16 @@ import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import StoreOutlinedIcon from '@mui/icons-material/StoreOutlined';
 import { Card, CardContent, Grid, Stack, Typography } from '@mui/material';
 
+import { mockCustomers, mockOrders, mockProducts, mockTenant } from '@shared/lib/mockData';
+import { formatCurrency } from '@utils/formatCurrency';
+
+const revenue = mockOrders.reduce((total, order) => total + order.totalAmount, 0);
+
 const cards = [
-  {
-    icon: StoreOutlinedIcon,
-    label: 'Active Tenants',
-    value: '24',
-  },
-  {
-    icon: Inventory2OutlinedIcon,
-    label: 'Catalog Items',
-    value: '1,248',
-  },
-  {
-    icon: ShoppingBagOutlinedIcon,
-    label: 'Monthly Orders',
-    value: '8,932',
-  },
-  {
-    icon: PaidOutlinedIcon,
-    label: 'Gross Revenue',
-    value: '$128.4K',
-  },
+  { helper: `${mockTenant.name} · ${mockTenant.plan}`, icon: StoreOutlinedIcon, label: 'Tenant', value: 'MPS Demo' },
+  { helper: 'Live SKUs', icon: Inventory2OutlinedIcon, label: 'Catalog Items', value: `${mockProducts.length}` },
+  { helper: 'Demo orders', icon: ShoppingBagOutlinedIcon, label: 'Orders', value: `${mockOrders.length}` },
+  { helper: `${mockCustomers.length} customers`, icon: PaidOutlinedIcon, label: 'Revenue', value: formatCurrency(revenue) },
 ];
 
 export const DashboardCards = () => (
@@ -34,16 +23,21 @@ export const DashboardCards = () => (
 
       return (
         <Grid key={card.label} size={{ lg: 3, md: 6, xs: 12 }}>
-          <Card sx={{ borderRadius: 4 }}>
-            <CardContent>
-              <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-                <Stack spacing={1}>
+          <Card sx={{ borderRadius: 1, height: '100%', minHeight: 148 }}>
+            <CardContent sx={{ height: '100%' }}>
+              <Stack direction="row" sx={{ height: '100%', justifyContent: 'space-between' }}>
+                <Stack spacing={1} sx={{ minWidth: 0 }}>
                   <Typography color="text.secondary" variant="body2">
                     {card.label}
                   </Typography>
-                  <Typography variant="h4">{card.value}</Typography>
+                  <Typography sx={{ fontSize: { sm: '1.35rem', xs: '1.2rem' }, fontWeight: 800 }} variant="h5">
+                    {card.value}
+                  </Typography>
+                  <Typography color="text.secondary" noWrap variant="caption">
+                    {card.helper}
+                  </Typography>
                 </Stack>
-                <Icon color="primary" />
+                <Icon color="primary" sx={{ flexShrink: 0 }} />
               </Stack>
             </CardContent>
           </Card>

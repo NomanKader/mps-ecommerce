@@ -2,6 +2,7 @@ import { Alert, Stack, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
 
 import { useLogin } from '@features/auth/hooks/useLogin';
+import { demoAdminCredentials } from '@features/auth/api/authApi';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppTextField } from '@shared/components/ui/Input/AppTextField';
 import { routePaths } from '@routes/routePaths';
@@ -17,7 +18,9 @@ export const LoginPage = () => {
   return (
     <form onSubmit={(event) => void onSubmit(event)}>
       <Stack spacing={2.5}>
-        <Alert severity="info">Use the prefilled demo credentials to enter the tenant dashboard.</Alert>
+        <Alert severity="info">
+          Demo admin: {demoAdminCredentials.email} / {demoAdminCredentials.password}
+        </Alert>
         <AppTextField
           error={Boolean(errors.email)}
           helperText={errors.email?.message}

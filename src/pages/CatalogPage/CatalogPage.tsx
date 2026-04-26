@@ -21,6 +21,7 @@ const categoryLabels: Record<string, string> = {
   dairy: 'Dairy',
   drinks: 'Drinks',
   flowers: 'Flowers',
+  frozen: 'Frozen',
   fruits: 'Fruits',
   gifts: 'Gifts',
   home: 'Home',

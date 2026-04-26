@@ -7,7 +7,7 @@ import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import { Badge, Box, Button, IconButton, Stack, Toolbar, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
@@ -170,24 +170,49 @@ const categoryMenuItems: Record<string, CategoryMenuItem[]> = {
   ],
 };
 
+const getCatalogPath = (categoryId: string, title: string, search?: string) => {
+  const params = new URLSearchParams({
+    category: categoryId,
+    title,
+  });
+
+  if (search) {
+    params.set('search', search);
+  }
+
+  return `${routePaths.catalog}?${params.toString()}`;
+};
+
 export const Header = () => {
   const { totalItems } = useCart();
   const [isAuthDrawerOpen, setIsAuthDrawerOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const scrollFrameRef = useRef<number | null>(null);
   const activeCategory = storefrontCategories.find((category) => category.id === activeCategoryId);
   const activeMenuItems = activeCategoryId ? (categoryMenuItems[activeCategoryId] ?? []) : [];
 
   useEffect(() => {
     const updateScrolledState = () => {
-      setIsScrolled(window.scrollY > 80);
+      scrollFrameRef.current = null;
+      setIsScrolled(window.scrollY > 0);
+    };
+
+    const handleScroll = () => {
+      if (scrollFrameRef.current === null) {
+        scrollFrameRef.current = window.requestAnimationFrame(updateScrolledState);
+      }
     };
 
     updateScrolledState();
-    window.addEventListener('scroll', updateScrolledState, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
-      window.removeEventListener('scroll', updateScrolledState);
+      window.removeEventListener('scroll', handleScroll);
+
+      if (scrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+      }
     };
   }, []);
 
@@ -369,7 +394,7 @@ export const Header = () => {
         >
           {storefrontCategories.map((category) => (
             <Box
-              component="button"
+              component={Link}
               key={category.id}
               onFocus={() => setActiveCategoryId(category.id)}
               onMouseEnter={() => setActiveCategoryId(category.id)}
@@ -390,13 +415,19 @@ export const Header = () => {
                 px: isScrolled ? 1.4 : 1.1,
                 py: isScrolled ? 0.45 : 1,
                 textAlign: 'center',
+                textDecoration: 'none',
                 transition: 'min-height 180ms ease, min-width 180ms ease, padding 180ms ease, gap 180ms ease',
+                '&:hover': {
+                  boxShadow: `0 10px 22px ${alpha(category.color, 0.28)}`,
+                  filter: 'brightness(1.06)',
+                  transform: 'translateY(-2px)',
+                },
                 '&:focus-visible': {
                   outline: `3px solid ${alpha(storefrontColors.navy, 0.28)}`,
                   outlineOffset: 2,
                 },
-              }}
-              type="button"
+                }}
+              to={getCatalogPath(category.id, category.label)}
             >
               <Typography sx={{ display: isScrolled ? 'none' : 'block', fontSize: '2rem', lineHeight: 1 }} variant="body1">
                 {category.icon}
@@ -464,19 +495,42 @@ export const Header = () => {
             >
               {activeMenuItems.map((item) => (
                 <Box
+                  component={Link}
                   key={item.label}
+                  onClick={() => setActiveCategoryId(null)}
                   sx={{
                     alignItems: 'center',
                     color: storefrontColors.slate,
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 1,
+                    p: 1,
+                    borderRadius: 1.25,
                     minWidth: 0,
+                    textDecoration: 'none',
                     textAlign: 'center',
+                    transition: 'background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease',
+                    '&:hover': {
+                      backgroundColor: alpha(storefrontColors.navy, 0.06),
+                      boxShadow: `0 10px 22px ${alpha('#102b5d', 0.08)}`,
+                      transform: 'translateY(-3px)',
+                    },
+                    '&:hover .category-menu-icon': {
+                      transform: 'scale(1.12)',
+                    },
+                    '&:hover .category-menu-label': {
+                      color: storefrontColors.navy,
+                    },
+                    '&:focus-visible': {
+                      outline: `3px solid ${alpha(storefrontColors.navy, 0.24)}`,
+                      outlineOffset: 2,
+                    },
                   }}
+                  to={getCatalogPath(activeCategory.id, `${activeCategory.label}: ${item.label}`, item.label)}
                 >
                   <Box
                     aria-hidden="true"
+                    className="category-menu-icon"
                     sx={{
                       alignItems: 'center',
                       display: 'flex',
@@ -484,17 +538,20 @@ export const Header = () => {
                       height: 56,
                       justifyContent: 'center',
                       lineHeight: 1,
+                      transition: 'transform 160ms ease',
                       width: 72,
                     }}
                   >
                     {item.icon}
                   </Box>
                   <Typography
+                    className="category-menu-label"
                     sx={{
                       color: '#555a64',
                       fontSize: { md: '0.95rem', xs: '0.84rem' },
                       fontWeight: 700,
                       lineHeight: 1.25,
+                      transition: 'color 160ms ease',
                     }}
                     variant="body2"
                   >

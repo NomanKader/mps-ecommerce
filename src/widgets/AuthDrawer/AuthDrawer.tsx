@@ -20,7 +20,7 @@ import { alpha } from '@mui/material/styles';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { useState, type ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
@@ -141,6 +141,12 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
   });
 
   const heading = mode === 'login' ? 'SIGN IN' : 'Create your Kibsons account';
+
+  useEffect(() => {
+    if (open) {
+      setMode(initialMode);
+    }
+  }, [initialMode, open]);
 
   return (
     <Drawer
