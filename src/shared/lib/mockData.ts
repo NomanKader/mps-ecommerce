@@ -2,6 +2,7 @@ import type { Category } from '@entities/category/types/category.types';
 import type { Product } from '@entities/product/types/product.types';
 import type { Order } from '@entities/order/types/order.types';
 import type { Tenant } from '@entities/tenant/types/tenant.types';
+import { storefrontCategories, storefrontCategoryMenuItems } from '@features/home/data/homePage.data';
 
 export const mockTenant: Tenant = {
   id: 'tenant-demo',
@@ -16,13 +17,39 @@ export const mockTenant: Tenant = {
   },
 };
 
-export const mockCategories: Category[] = [
-  { id: 'cat-1', name: 'Fresh Produce', slug: 'fresh-produce', itemCount: 42 },
-  { id: 'cat-2', name: 'Bakery', slug: 'bakery', itemCount: 18 },
-  { id: 'cat-3', name: 'Pantry', slug: 'pantry', itemCount: 67 },
-  { id: 'cat-4', name: 'Dairy & Eggs', slug: 'dairy-eggs', itemCount: 31 },
-  { id: 'cat-5', name: 'Beverages', slug: 'beverages', itemCount: 54 },
-];
+const demoCategoryItemCounts: Record<string, number> = {
+  bakery: 18,
+  care: 44,
+  dairy: 31,
+  drinks: 54,
+  flowers: 22,
+  frozen: 49,
+  fruits: 42,
+  gifts: 16,
+  home: 38,
+  kids: 27,
+  meat: 33,
+  pantry: 67,
+  pets: 19,
+  'quick-meals': 36,
+  seafood: 24,
+  vegetables: 58,
+};
+
+export const mockCategories: Category[] = storefrontCategories.map((category) => ({
+  color: category.color,
+  icon: category.icon,
+  id: category.id,
+  itemCount: demoCategoryItemCounts[category.id] ?? 0,
+  name: category.label,
+  slug: category.id,
+  subcategories: (storefrontCategoryMenuItems[category.id] ?? []).map((subcategory) => ({
+    icon: subcategory.icon,
+    id: `${category.id}-${subcategory.label.toLowerCase().replaceAll('&', 'and').replaceAll(' ', '-')}`,
+    name: subcategory.label,
+    slug: subcategory.label.toLowerCase().replaceAll('&', 'and').replaceAll(' ', '-'),
+  })),
+}));
 
 export const mockProducts: Product[] = [
   {
@@ -33,7 +60,7 @@ export const mockProducts: Product[] = [
     description: 'Crisp imported apples curated for premium storefront merchandising.',
     price: 8.5,
     currency: 'USD',
-    categoryId: 'cat-1',
+    categoryId: 'fruits',
     inventory: 120,
     imageUrl: '',
     tenantId: 'tenant-demo',
@@ -48,7 +75,7 @@ export const mockProducts: Product[] = [
     description: 'A bakery staple ready for catalogue, promotion, and availability rules.',
     price: 5.25,
     currency: 'USD',
-    categoryId: 'cat-2',
+    categoryId: 'bakery',
     inventory: 37,
     imageUrl: '',
     tenantId: 'tenant-demo',
@@ -63,7 +90,7 @@ export const mockProducts: Product[] = [
     description: 'Structured for pricing, stock, promotions, and future tenant overrides.',
     price: 12.99,
     currency: 'USD',
-    categoryId: 'cat-3',
+    categoryId: 'pantry',
     inventory: 74,
     imageUrl: '',
     tenantId: 'tenant-demo',
@@ -78,7 +105,7 @@ export const mockProducts: Product[] = [
     description: 'Daily chilled dairy item with replenishment and expiration tracking.',
     price: 4.25,
     currency: 'USD',
-    categoryId: 'cat-4',
+    categoryId: 'dairy',
     inventory: 18,
     imageUrl: '',
     tenantId: 'tenant-demo',
@@ -93,7 +120,7 @@ export const mockProducts: Product[] = [
     description: 'Premium beverage for homepage features and breakfast bundles.',
     price: 6.75,
     currency: 'USD',
-    categoryId: 'cat-5',
+    categoryId: 'drinks',
     inventory: 58,
     imageUrl: '',
     tenantId: 'tenant-demo',
@@ -104,54 +131,84 @@ export const mockProducts: Product[] = [
 
 export const mockOrders: Order[] = [
   {
+    customerEmail: 'ayesha@example.com',
     id: 'ord-1',
     orderNumber: 'MPS-1001',
     customerName: 'Ayesha Rahman',
+    customerPhone: '+95 9 421 100 101',
+    deliveryAddress: 'No. 25, Inya Road, Kamayut',
+    paymentMethod: 'Card',
     totalAmount: 86.4,
     currency: 'USD',
     status: 'processing',
     createdAt: '2026-04-18T10:30:00Z',
     itemCount: 6,
+    region: 'Yangon',
+    township: 'Kamayut',
   },
   {
+    customerEmail: 'jared@example.com',
     id: 'ord-2',
     orderNumber: 'MPS-1002',
     customerName: 'Jared Walsh',
+    customerPhone: '+95 9 421 100 102',
+    deliveryAddress: 'Building 4, Strand Road, Kyauktada',
+    paymentMethod: 'Cash on delivery',
     totalAmount: 42.15,
     currency: 'USD',
     status: 'delivered',
     createdAt: '2026-04-19T08:15:00Z',
     itemCount: 3,
+    region: 'Yangon',
+    township: 'Kyauktada',
   },
   {
+    customerEmail: 'minthu@example.com',
     id: 'ord-3',
     orderNumber: 'MPS-1003',
     customerName: 'Min Thu',
+    customerPhone: '+95 9 421 100 103',
+    deliveryAddress: '63rd Street, Chanayethazan',
+    paymentMethod: 'KBZPay',
     totalAmount: 128.9,
     currency: 'USD',
     status: 'shipped',
     createdAt: '2026-04-20T14:45:00Z',
     itemCount: 9,
+    region: 'Mandalay',
+    township: 'Chanayethazan',
   },
   {
+    customerEmail: 'leah@example.com',
     id: 'ord-4',
     orderNumber: 'MPS-1004',
     customerName: 'Leah Carter',
+    customerPhone: '+95 9 421 100 104',
+    deliveryAddress: 'Bogyoke Road, Taunggyi',
+    paymentMethod: 'Cash on delivery',
     totalAmount: 23.8,
     currency: 'USD',
     status: 'pending',
     createdAt: '2026-04-21T09:20:00Z',
     itemCount: 2,
+    region: 'Shan',
+    township: 'Taunggyi',
   },
   {
+    customerEmail: 'omar@example.com',
     id: 'ord-5',
     orderNumber: 'MPS-1005',
     customerName: 'Omar Saleh',
+    customerPhone: '+95 9 421 100 105',
+    deliveryAddress: 'Lower Main Road, Mawlamyine',
+    paymentMethod: 'AYA Pay',
     totalAmount: 64.35,
     currency: 'USD',
     status: 'cancelled',
     createdAt: '2026-04-22T16:10:00Z',
     itemCount: 5,
+    region: 'Mon',
+    township: 'Mawlamyine',
   },
 ];
 
@@ -216,6 +273,7 @@ export type DemoPromotion = {
   id: string;
   name: string;
   redemptions: number;
+  startsAt: string;
   status: 'Active' | 'Scheduled' | 'Paused';
 };
 
@@ -227,6 +285,7 @@ export const mockPromotions: DemoPromotion[] = [
     id: 'promo-1',
     name: 'Fresh basket booster',
     redemptions: 86,
+    startsAt: '2026-04-10T00:00:00Z',
     status: 'Active',
   },
   {
@@ -236,6 +295,7 @@ export const mockPromotions: DemoPromotion[] = [
     id: 'promo-2',
     name: 'Weekend bakery bundle',
     redemptions: 31,
+    startsAt: '2026-04-25T00:00:00Z',
     status: 'Scheduled',
   },
   {
@@ -245,6 +305,7 @@ export const mockPromotions: DemoPromotion[] = [
     id: 'promo-3',
     name: 'VIP delivery reward',
     redemptions: 142,
+    startsAt: '2026-04-01T00:00:00Z',
     status: 'Active',
   },
 ];

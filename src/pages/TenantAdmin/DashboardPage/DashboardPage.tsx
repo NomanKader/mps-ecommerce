@@ -21,7 +21,7 @@ const lowStockProducts = mockProducts.filter((product) => product.inventory <= 4
 export const DashboardPage = () => (
   <Stack spacing={3}>
     <PageSection
-      description="Operational snapshot for the demo grocery tenant, with live admin navigation into products, orders, customers, promotions, and settings."
+      description="Operational snapshot for the demo grocery tenant, with live admin navigation into products, orders, customers, promotions, and delivery fees."
       title="Admin Dashboard"
     >
       <DashboardCards />

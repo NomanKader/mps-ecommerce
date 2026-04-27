@@ -5,6 +5,11 @@ export type StoreCategory = {
   label: string;
 };
 
+export type StoreCategoryMenuItem = {
+  icon: string;
+  label: string;
+};
+
 export type FeatureHighlight = {
   color: string;
   icon: string;

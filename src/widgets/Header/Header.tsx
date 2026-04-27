@@ -14,161 +14,9 @@ import { storefrontColors } from '@app/providers/theme/tokens';
 import logoImage from '@assets/images/kibs_flag_logo_en.png';
 import { AuthDrawer } from '@widgets/AuthDrawer/AuthDrawer';
 import { routePaths } from '@routes/routePaths';
-import { storefrontCategories } from '@features/home/data/homePage.data';
+import { storefrontCategories, storefrontCategoryMenuItems } from '@features/home/data/homePage.data';
 import { useCart } from '@features/cart/hooks/useCart';
 import { storefrontIconButtonSx } from '@shared/styles/storefront';
-
-type CategoryMenuItem = {
-  icon: string;
-  label: string;
-};
-
-const categoryMenuItems: Record<string, CategoryMenuItem[]> = {
-  bakery: [
-    { icon: '🍞', label: 'Bread' },
-    { icon: '🥯', label: 'Bagels' },
-    { icon: '🥐', label: 'Croissants' },
-    { icon: '🧁', label: 'Cakes' },
-    { icon: '🍪', label: 'Cookies' },
-    { icon: '🥖', label: 'Rolls' },
-  ],
-  care: [
-    { icon: '🧴', label: 'Body Care' },
-    { icon: '🧼', label: 'Soap' },
-    { icon: '🪥', label: 'Dental Care' },
-    { icon: '🧻', label: 'Paper Goods' },
-    { icon: '🧽', label: 'Cleaning' },
-    { icon: '🧖', label: 'Beauty' },
-  ],
-  dairy: [
-    { icon: '🥛', label: 'Milk' },
-    { icon: '🧀', label: 'Cheese' },
-    { icon: '🧈', label: 'Butter' },
-    { icon: '🍦', label: 'Yoghurt' },
-    { icon: '🥚', label: 'Eggs' },
-    { icon: '🍮', label: 'Desserts' },
-  ],
-  drinks: [
-    { icon: '🥤', label: 'Soft Drinks' },
-    { icon: '🧃', label: 'Juices' },
-    { icon: '💧', label: 'Water' },
-    { icon: '☕', label: 'Coffee' },
-    { icon: '🍵', label: 'Tea' },
-    { icon: '🧊', label: 'Ice' },
-  ],
-  flowers: [
-    { icon: '💐', label: 'Bouquets' },
-    { icon: '🌹', label: 'Roses' },
-    { icon: '🌷', label: 'Tulips' },
-    { icon: '🪴', label: 'Plants' },
-    { icon: '🌻', label: 'Sunflowers' },
-    { icon: '🎀', label: 'Arrangements' },
-  ],
-  frozen: [
-    { icon: '🍱', label: 'Frozen Ready Meals' },
-    { icon: '🍓', label: 'Frozen Fruit' },
-    { icon: '🥦', label: 'Frozen Vegetables' },
-    { icon: '🐟', label: 'Frozen Seafood' },
-    { icon: '🍗', label: 'Frozen Chicken & Meat' },
-    { icon: '🍟', label: 'Frozen Chips' },
-    { icon: '🥐', label: 'Frozen Bakery' },
-    { icon: '🍨', label: 'Ice Cream & Desserts' },
-    { icon: '🍕', label: 'Frozen Pizza' },
-    { icon: '🥟', label: 'Frozen Appetizers' },
-  ],
-  fruits: [
-    { icon: '🍎', label: 'Apples & Pears' },
-    { icon: '🍌', label: 'Bananas' },
-    { icon: '🍇', label: 'Berries & Grapes' },
-    { icon: '🍊', label: 'Citrus' },
-    { icon: '🥭', label: 'Tropical Fruit' },
-    { icon: '🍉', label: 'Melons' },
-  ],
-  gifts: [
-    { icon: '🎁', label: 'Gift Boxes' },
-    { icon: '💳', label: 'E-Gift Cards' },
-    { icon: '🍫', label: 'Chocolate Gifts' },
-    { icon: '💐', label: 'Flower Gifts' },
-    { icon: '🧺', label: 'Hampers' },
-    { icon: '🎀', label: 'Custom Gifts' },
-  ],
-  home: [
-    { icon: '🧻', label: 'Kitchen Rolls' },
-    { icon: '🧽', label: 'Cleaning' },
-    { icon: '🕯️', label: 'Home Fragrance' },
-    { icon: '🧺', label: 'Laundry' },
-    { icon: '🍽️', label: 'Tableware' },
-    { icon: '🔋', label: 'Household' },
-  ],
-  kids: [
-    { icon: '🍼', label: 'Baby Food' },
-    { icon: '🥣', label: 'Kids Breakfast' },
-    { icon: '🧃', label: 'Lunchbox Drinks' },
-    { icon: '🍪', label: 'Kids Snacks' },
-    { icon: '🧸', label: 'Toys' },
-    { icon: '🧼', label: 'Baby Care' },
-  ],
-  meat: [
-    { icon: '🥩', label: 'Beef' },
-    { icon: '🍗', label: 'Chicken' },
-    { icon: '🍖', label: 'Lamb' },
-    { icon: '🥓', label: 'Cold Cuts' },
-    { icon: '🌭', label: 'Sausages' },
-    { icon: '🍔', label: 'Burgers' },
-  ],
-  pantry: [
-    { icon: '🥣', label: 'Breakfast Cereals' },
-    { icon: '🥫', label: 'Cans, Jars & Packets' },
-    { icon: '🍫', label: 'Chocolates & Sweets' },
-    { icon: '🧂', label: 'Condiments & Dressings' },
-    { icon: '🍪', label: 'Crackers & Biscuits' },
-    { icon: '🥨', label: 'Crisps & Snacks' },
-    { icon: '🫒', label: 'Oil & Vinegar' },
-    { icon: '🍝', label: 'Pasta & Noodles' },
-    { icon: '🍚', label: 'Rice & Grains' },
-    { icon: '🌶️', label: 'Spices & Seasonings' },
-    { icon: '🍯', label: 'Honey, Jams & Spreads' },
-    { icon: '🌰', label: 'Nuts, Seeds & Dried Fruits' },
-  ],
-  pets: [
-    { icon: '🐶', label: 'Dog Food' },
-    { icon: '🐱', label: 'Cat Food' },
-    { icon: '🦴', label: 'Treats' },
-    { icon: '🧸', label: 'Pet Toys' },
-    { icon: '🧼', label: 'Pet Care' },
-    { icon: '🐾', label: 'Accessories' },
-  ],
-  'quick-meals': [
-    { icon: '🥟', label: 'Appetizers' },
-    { icon: '🍜', label: 'Asian' },
-    { icon: '🥣', label: 'Breakfast' },
-    { icon: '🍰', label: 'Desserts' },
-    { icon: '🥘', label: 'European' },
-    { icon: '🍱', label: 'Freshly Prepared' },
-    { icon: '🥪', label: 'Grab & Go' },
-    { icon: '🍲', label: 'Heat & Eat' },
-    { icon: '🍕', label: 'Italian' },
-    { icon: '🧒', label: 'Kids Meals' },
-    { icon: '🥖', label: 'Sides' },
-    { icon: '🥗', label: 'Soups & Salads' },
-  ],
-  seafood: [
-    { icon: '🐟', label: 'Fresh Fish' },
-    { icon: '🦐', label: 'Prawns' },
-    { icon: '🦀', label: 'Crab' },
-    { icon: '🦞', label: 'Lobster' },
-    { icon: '🍣', label: 'Sushi' },
-    { icon: '🥫', label: 'Smoked & Canned' },
-  ],
-  vegetables: [
-    { icon: '🥬', label: 'Leafy Greens' },
-    { icon: '🥕', label: 'Root Vegetables' },
-    { icon: '🍅', label: 'Tomatoes' },
-    { icon: '🥦', label: 'Broccoli & Cauliflower' },
-    { icon: '🥒', label: 'Cucumbers' },
-    { icon: '🌶️', label: 'Peppers & Chillies' },
-  ],
-};
 
 const getCatalogPath = (categoryId: string, title: string, search?: string) => {
   const params = new URLSearchParams({
@@ -190,7 +38,7 @@ export const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollFrameRef = useRef<number | null>(null);
   const activeCategory = storefrontCategories.find((category) => category.id === activeCategoryId);
-  const activeMenuItems = activeCategoryId ? (categoryMenuItems[activeCategoryId] ?? []) : [];
+  const activeMenuItems = activeCategoryId ? (storefrontCategoryMenuItems[activeCategoryId] ?? []) : [];
 
   useEffect(() => {
     const updateScrolledState = () => {

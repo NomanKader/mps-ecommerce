@@ -1,19 +1,20 @@
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import PauseCircleOutlineRoundedIcon from '@mui/icons-material/PauseCircleOutlineRounded';
-import PlayCircleOutlineRoundedIcon from '@mui/icons-material/PlayCircleOutlineRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
   Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  MenuItem,
+  Grid,
+  InputAdornment,
   Stack,
   TextField,
+  Typography,
 } from '@mui/material';
 import { GridActionsCellItem, type GridColDef } from '@mui/x-data-grid';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
@@ -21,37 +22,70 @@ import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
 import { type DemoPromotion, mockPromotions } from '@shared/lib/mockData';
 import { formatDate } from '@utils/formatDate';
 
-type PromotionForm = Pick<DemoPromotion, 'code' | 'discount' | 'name' | 'status'>;
+type PromotionForm = Pick<DemoPromotion, 'code' | 'discount' | 'endsAt' | 'name' | 'startsAt'>;
 
 const emptyForm: PromotionForm = {
   code: '',
   discount: '',
+  endsAt: '2026-06-30',
   name: '',
-  status: 'Scheduled',
+  startsAt: '2026-04-27',
+};
+
+const toDateInputValue = (date: string) => date.slice(0, 10);
+
+const getPromotionStatus = (promotion: DemoPromotion): DemoPromotion['status'] => {
+  const today = '2026-04-27';
+  const startsAt = toDateInputValue(promotion.startsAt);
+  const endsAt = toDateInputValue(promotion.endsAt);
+
+  if (today < startsAt) {
+    return 'Scheduled';
+  }
+
+  if (today > endsAt) {
+    return 'Paused';
+  }
+
+  return 'Active';
 };
 
 export const PromotionsPage = () => {
   const [promotions, setPromotions] = useState<DemoPromotion[]>(mockPromotions);
   const [form, setForm] = useState<PromotionForm>(emptyForm);
   const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const filteredPromotions = useMemo(
+    () =>
+      promotions.filter((promotion) => {
+        const normalizedSearch = search.trim().toLowerCase();
+        const searchableValue = [
+          promotion.name,
+          promotion.code,
+          promotion.discount,
+          getPromotionStatus(promotion),
+          formatDate(promotion.startsAt),
+          formatDate(promotion.endsAt),
+        ]
+          .join(' ')
+          .toLowerCase();
+
+        return normalizedSearch ? searchableValue.includes(normalizedSearch) : true;
+      }),
+    [promotions, search],
+  );
 
   const columns: GridColDef<DemoPromotion>[] = [
     { field: 'name', flex: 1, headerName: 'Campaign', minWidth: 200 },
     { field: 'code', headerName: 'Code', width: 130 },
     { field: 'discount', flex: 1, headerName: 'Discount', minWidth: 220 },
     {
-      field: 'status',
-      headerName: 'Status',
-      renderCell: (params) => (
-        <Chip
-          color={params.value === 'Active' ? 'success' : params.value === 'Paused' ? 'default' : 'info'}
-          label={params.value}
-          size="small"
-        />
-      ),
-      width: 130,
+      field: 'startsAt',
+      headerName: 'Starts',
+      valueFormatter: (value: string) => formatDate(value),
+      width: 140,
     },
-    { field: 'redemptions', headerName: 'Uses', type: 'number', width: 100 },
     {
       field: 'endsAt',
       headerName: 'Ends',
@@ -59,22 +93,25 @@ export const PromotionsPage = () => {
       width: 140,
     },
     {
+      field: 'status',
+      headerName: 'Status',
+      renderCell: (params) => {
+        const status = getPromotionStatus(params.row);
+
+        return (
+          <Chip
+            color={status === 'Active' ? 'success' : status === 'Paused' ? 'default' : 'info'}
+            label={status}
+            size="small"
+          />
+        );
+      },
+      width: 130,
+    },
+    { field: 'redemptions', headerName: 'Uses', type: 'number', width: 100 },
+    {
       field: 'actions',
       getActions: ({ row }) => [
-        <GridActionsCellItem
-          icon={row.status === 'Active' ? <PauseCircleOutlineRoundedIcon /> : <PlayCircleOutlineRoundedIcon />}
-          key="toggle"
-          label={row.status === 'Active' ? 'Pause' : 'Activate'}
-          onClick={() =>
-            setPromotions((current) =>
-              current.map((promotion) =>
-                promotion.id === row.id
-                  ? { ...promotion, status: promotion.status === 'Active' ? 'Paused' : 'Active' }
-                  : promotion,
-              ),
-            )
-          }
-        />,
         <GridActionsCellItem
           icon={<DeleteOutlineRoundedIcon />}
           key="delete"
@@ -83,7 +120,7 @@ export const PromotionsPage = () => {
         />,
       ],
       type: 'actions',
-      width: 110,
+      width: 80,
     },
   ];
 
@@ -92,22 +129,22 @@ export const PromotionsPage = () => {
     const code = form.code.trim().toUpperCase();
     const discount = form.discount.trim();
 
-    if (!name || !code || !discount) {
+    if (!name || !code || !discount || !form.startsAt || !form.endsAt) {
       return;
     }
 
-    setPromotions((current) => [
-      {
-        code,
-        discount,
-        endsAt: '2026-06-30T23:59:00Z',
-        id: `promo-${Date.now()}`,
-        name,
-        redemptions: 0,
-        status: form.status,
-      },
-      ...current,
-    ]);
+    const promotionPayload: DemoPromotion = {
+      code,
+      discount,
+      endsAt: `${form.endsAt}T23:59:00Z`,
+      id: `promo-${Date.now()}`,
+      name,
+      redemptions: 0,
+      startsAt: `${form.startsAt}T00:00:00Z`,
+      status: 'Scheduled',
+    };
+
+    setPromotions((current) => [{ ...promotionPayload, status: getPromotionStatus(promotionPayload) }, ...current]);
     setForm(emptyForm);
     setIsPromotionDialogOpen(false);
   };
@@ -125,9 +162,43 @@ export const PromotionsPage = () => {
           Add promotion
         </AppButton>
       }
-      description="Create demo campaigns, activate or pause promotions, and remove outdated offers."
+      description="Create demo campaigns, manage promotion dates, and remove outdated offers."
       title="Promotions"
     >
+      <Stack
+        direction={{ lg: 'row', xs: 'column' }}
+        spacing={2}
+        sx={{
+          alignItems: { lg: 'center', xs: 'stretch' },
+          bgcolor: 'background.paper',
+          border: 1,
+          borderColor: 'divider',
+          borderRadius: 1,
+          mb: 2,
+          p: 2,
+        }}
+      >
+        <TextField
+          label="Search promotions"
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Campaign, code, discount, or date"
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchRoundedIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ minWidth: { lg: 360 } }}
+          value={search}
+        />
+        <Typography color="text.secondary" sx={{ ml: { lg: 'auto' } }} variant="body2">
+          Showing {filteredPromotions.length} of {promotions.length}
+        </Typography>
+      </Stack>
+
       <AppDataTable
         columns={columns}
         initialState={{
@@ -135,7 +206,7 @@ export const PromotionsPage = () => {
             paginationModel: { page: 0, pageSize: 10 },
           },
         }}
-        rows={promotions}
+        rows={filteredPromotions}
       />
 
       <Dialog
@@ -163,20 +234,28 @@ export const PromotionsPage = () => {
               onChange={(event) => setForm((current) => ({ ...current, discount: event.target.value }))}
               value={form.discount}
             />
-            <TextField
-              label="Status"
-              onChange={(event) =>
-                setForm((current) => ({ ...current, status: event.target.value as DemoPromotion['status'] }))
-              }
-              select
-              value={form.status}
-            >
-              {(['Scheduled', 'Active', 'Paused'] satisfies DemoPromotion['status'][]).map((status) => (
-                <MenuItem key={status} value={status}>
-                  {status}
-                </MenuItem>
-              ))}
-            </TextField>
+            <Grid container spacing={2}>
+              <Grid size={{ sm: 6, xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Promotion start date"
+                  onChange={(event) => setForm((current) => ({ ...current, startsAt: event.target.value }))}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  type="date"
+                  value={form.startsAt}
+                />
+              </Grid>
+              <Grid size={{ sm: 6, xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Promotion end date"
+                  onChange={(event) => setForm((current) => ({ ...current, endsAt: event.target.value }))}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  type="date"
+                  value={form.endsAt}
+                />
+              </Grid>
+            </Grid>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>

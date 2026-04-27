@@ -18,10 +18,10 @@ import { ProductDetailsPage } from '@pages/ProductDetailsPage/ProductDetailsPage
 import { CategoriesPage } from '@pages/TenantAdmin/CategoriesPage/CategoriesPage';
 import { CustomersPage } from '@pages/TenantAdmin/CustomersPage/CustomersPage';
 import { DashboardPage } from '@pages/TenantAdmin/DashboardPage/DashboardPage';
+import { DeliveryFeesPage } from '@pages/TenantAdmin/DeliveryFeesPage/DeliveryFeesPage';
 import { OrdersManagementPage } from '@pages/TenantAdmin/OrdersManagementPage/OrdersManagementPage';
 import { ProductsPage } from '@pages/TenantAdmin/ProductsPage/ProductsPage';
 import { PromotionsPage } from '@pages/TenantAdmin/PromotionsPage/PromotionsPage';
-import { SettingsPage } from '@pages/TenantAdmin/SettingsPage/SettingsPage';
 import { ProtectedRoute } from '@routes/ProtectedRoute';
 import { PublicRoute } from '@routes/PublicRoute';
 import { routePaths } from '@routes/routePaths';
@@ -100,7 +100,7 @@ export const router = createBrowserRouter([
               { element: <OrdersManagementPage />, path: routePaths.tenantAdmin.orders },
               { element: <CustomersPage />, path: routePaths.tenantAdmin.customers },
               { element: <PromotionsPage />, path: routePaths.tenantAdmin.promotions },
-              { element: <SettingsPage />, path: routePaths.tenantAdmin.settings },
+              { element: <DeliveryFeesPage />, path: routePaths.tenantAdmin.deliveryFees },
             ],
           },
         ],

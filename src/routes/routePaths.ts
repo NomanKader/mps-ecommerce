@@ -40,9 +40,9 @@ export const routePaths = {
     categories: '/admin/categories',
     customers: '/admin/customers',
     dashboard: '/admin/dashboard',
+    deliveryFees: '/admin/delivery-fees',
     orders: '/admin/orders',
     products: '/admin/products',
     promotions: '/admin/promotions',
-    settings: '/admin/settings',
   },
 } as const;
