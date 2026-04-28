@@ -81,12 +81,12 @@ export const darkTheme = createTheme({
     ...lightTheme.palette,
     mode: 'dark',
     background: {
-      default: '#0f1714',
-      paper: '#16211d',
+      default: '#1e100d',
+      paper: '#2b1712',
     },
     text: {
-      primary: '#f4f7f5',
-      secondary: '#bdc9c4',
+      primary: '#fff8f2',
+      secondary: '#f6c9ba',
     },
   },
 });

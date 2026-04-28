@@ -140,7 +140,7 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
     setMode('login');
   });
 
-  const heading = mode === 'login' ? 'SIGN IN' : 'Create your Kibsons account';
+  const heading = mode === 'login' ? 'SIGN IN' : "Create your AV's Store account";
 
   useEffect(() => {
     if (open) {

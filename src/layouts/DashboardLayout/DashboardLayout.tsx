@@ -13,7 +13,7 @@ import { routePaths } from '@routes/routePaths';
 import type { RootState } from '@store/index';
 import { useAppDispatch } from '@store/hooks';
 import { clearSession } from '@store/slices/auth.slice';
-import logoImage from '@assets/images/kibs_flag_logo_en.png';
+import logoImage from '@assets/images/logo.png';
 
 export const DashboardLayout = () => {
   const dispatch = useAppDispatch();
@@ -56,10 +56,10 @@ export const DashboardLayout = () => {
                 <MenuRoundedIcon />
               </IconButton>
               <Box
-                alt="MPS Commerce"
+                alt="AV's Store"
                 component="img"
                 src={logoImage}
-                sx={{ display: { md: 'none', xs: 'block' }, height: 32, maxWidth: 116, objectFit: 'contain' }}
+                sx={{ display: { md: 'none', xs: 'block' }, height: 44, maxWidth: 76, objectFit: 'contain' }}
               />
               <Box sx={{ display: { sm: 'block', xs: 'none' }, minWidth: 0 }}>
                 <Typography noWrap variant="h6">

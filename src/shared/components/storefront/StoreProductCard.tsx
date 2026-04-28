@@ -201,7 +201,7 @@ export const StoreProductCard = ({ disableNavigation = false, onAddToCart, produ
         transition: 'border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease',
         '&:hover': {
           borderColor: alpha(storefrontColors.navy, 0.9),
-          boxShadow: `0 16px 28px ${alpha('#102b5d', 0.09)}`,
+          boxShadow: `0 16px 28px ${alpha('#9f1714', 0.09)}`,
           transform: 'translateY(-2px)',
         },
       }}

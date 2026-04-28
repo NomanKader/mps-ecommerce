@@ -6,13 +6,13 @@ import { storefrontCategories, storefrontCategoryMenuItems } from '@features/hom
 
 export const mockTenant: Tenant = {
   id: 'tenant-demo',
-  name: 'MPS Demo Grocer',
+  name: "AV's Store Demo",
   slug: 'demo-tenant',
   plan: 'growth',
   status: 'active',
   branding: {
-    primaryColor: '#1f6f5f',
-    secondaryColor: '#f7a600',
+    primaryColor: '#e43224',
+    secondaryColor: '#ffd326',
     logoUrl: '',
   },
 };
@@ -133,7 +133,7 @@ export const mockOrders: Order[] = [
   {
     customerEmail: 'ayesha@example.com',
     id: 'ord-1',
-    orderNumber: 'MPS-1001',
+    orderNumber: 'AVS-1001',
     customerName: 'Ayesha Rahman',
     customerPhone: '+95 9 421 100 101',
     deliveryAddress: 'No. 25, Inya Road, Kamayut',
@@ -149,7 +149,7 @@ export const mockOrders: Order[] = [
   {
     customerEmail: 'jared@example.com',
     id: 'ord-2',
-    orderNumber: 'MPS-1002',
+    orderNumber: 'AVS-1002',
     customerName: 'Jared Walsh',
     customerPhone: '+95 9 421 100 102',
     deliveryAddress: 'Building 4, Strand Road, Kyauktada',
@@ -165,7 +165,7 @@ export const mockOrders: Order[] = [
   {
     customerEmail: 'minthu@example.com',
     id: 'ord-3',
-    orderNumber: 'MPS-1003',
+    orderNumber: 'AVS-1003',
     customerName: 'Min Thu',
     customerPhone: '+95 9 421 100 103',
     deliveryAddress: '63rd Street, Chanayethazan',
@@ -181,7 +181,7 @@ export const mockOrders: Order[] = [
   {
     customerEmail: 'leah@example.com',
     id: 'ord-4',
-    orderNumber: 'MPS-1004',
+    orderNumber: 'AVS-1004',
     customerName: 'Leah Carter',
     customerPhone: '+95 9 421 100 104',
     deliveryAddress: 'Bogyoke Road, Taunggyi',
@@ -197,7 +197,7 @@ export const mockOrders: Order[] = [
   {
     customerEmail: 'omar@example.com',
     id: 'ord-5',
-    orderNumber: 'MPS-1005',
+    orderNumber: 'AVS-1005',
     customerName: 'Omar Saleh',
     customerPhone: '+95 9 421 100 105',
     deliveryAddress: 'Lower Main Road, Mawlamyine',

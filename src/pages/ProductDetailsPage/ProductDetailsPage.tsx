@@ -40,7 +40,7 @@ const productDetailOverrides: Record<string, ProductDetailContent> = {
   'home-offer-2': {
     description: [
       'Parsnips from the United Kingdom, presented as 4 to 5 whole roots per kilogram. They have a naturally sweet, earthy profile that works especially well for roasting, soups, mash, and mixed vegetable trays.',
-      'This selection is positioned as an everyday produce staple with consistent sizing, a smooth pale skin tone, and a flavour that deepens when cooked. The layout below mirrors the supplied Kibsons-inspired product detail experience with gallery, pricing, description, and related picks.',
+      "This selection is positioned as an everyday produce staple with consistent sizing, a smooth pale skin tone, and a flavour that deepens when cooked. The layout below mirrors the supplied AV's Store-inspired product detail experience with gallery, pricing, description, and related picks.",
     ],
     gallery: [
       'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=1200&q=80',

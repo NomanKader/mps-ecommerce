@@ -1,5 +1,5 @@
 {
-  "name": "mps-ecommerce",
+  "name": "avs-store",
   "private": true,
   "version": "0.1.0",
   "description": "Multi-tenant SaaS e-commerce frontend foundation built with React, TypeScript, Vite, MUI, Redux Toolkit, and React Query.",

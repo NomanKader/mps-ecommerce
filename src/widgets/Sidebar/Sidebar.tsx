@@ -2,7 +2,7 @@ import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Stack, T
 import { NavLink } from 'react-router-dom';
 
 import { dashboardNavigation } from '@config/navigation.config';
-import logoImage from '@assets/images/kibs_flag_logo_en.png';
+import logoImage from '@assets/images/logo.png';
 
 const drawerWidth = 280;
 
@@ -15,10 +15,10 @@ const sidebarContent = (
   <Stack sx={{ height: '100%' }}>
     <Stack spacing={1} sx={{ alignItems: 'flex-start', px: 3, py: 2.5 }}>
       <Box
-        alt="MPS Commerce"
+        alt="AV's Store"
         component="img"
         src={logoImage}
-        sx={{ display: 'block', height: 44, maxWidth: '100%', objectFit: 'contain' }}
+        sx={{ display: 'block', height: 76, maxWidth: '100%', objectFit: 'contain' }}
       />
       <Typography color="text.secondary" variant="caption">
         Admin Console

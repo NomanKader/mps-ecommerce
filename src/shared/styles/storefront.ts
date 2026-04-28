@@ -11,7 +11,7 @@ export const storefrontPanelSx: SxProps<Theme> = {
   backgroundColor: storefrontColors.surface,
   border: `1px solid ${storefrontColors.border}`,
   borderRadius: 3,
-  boxShadow: `0 18px 40px ${alpha('#102b5d', 0.08)}`,
+  boxShadow: `0 18px 40px ${alpha('#9f1714', 0.08)}`,
 };
 
 export const storefrontMutedPanelSx: SxProps<Theme> = {

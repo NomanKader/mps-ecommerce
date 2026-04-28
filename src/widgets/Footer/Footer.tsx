@@ -79,10 +79,10 @@ export const Footer = () => (
               </Box>
             </Stack>
             <Typography sx={{ fontWeight: 800, textDecoration: 'underline' }} variant="body1">
-              800KIBSONS
+              800AVS
             </Typography>
             <Typography sx={{ mt: 0.5 }} variant="body1">
-              customercare@kibsons.com
+              support@avsstoreonline.com
             </Typography>
           </Grid>
         </Grid>
@@ -94,7 +94,7 @@ export const Footer = () => (
           spacing={2}
           sx={{ color: '#d6def0', justifyContent: 'space-between' }}
         >
-          <Typography variant="body2">Copyright © 2026 Kibsons International LLC. All rights reserved.</Typography>
+          <Typography variant="body2">Copyright © 2026 AV's Store. All rights reserved.</Typography>
           <Stack direction="row" spacing={3} sx={{ flexWrap: 'wrap' }}>
             <Typography variant="body2">Locate Us</Typography>
             <Typography variant="body2">Become a supplier</Typography>

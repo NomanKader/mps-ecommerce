@@ -47,7 +47,7 @@ export const DashboardPage = () => (
                   <XAxis dataKey="day" />
                   <YAxis tickFormatter={(value: number) => `$${value / 1000}k`} />
                   <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
-                  <Bar dataKey="sales" fill="#1f6f5f" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="sales" fill="#e43224" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </Box>

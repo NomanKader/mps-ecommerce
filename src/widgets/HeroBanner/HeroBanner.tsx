@@ -9,7 +9,7 @@ export const HeroBanner = () => (
   <Paper
     sx={{
       background:
-        'radial-gradient(circle at top left, rgba(247,166,0,0.25), transparent 32%), linear-gradient(135deg, #17352d, #1f6f5f)',
+        'radial-gradient(circle at top left, rgba(255,211,38,0.3), transparent 32%), linear-gradient(135deg, #b71916, #e43224)',
       borderRadius: 6,
       color: '#fff',
       overflow: 'hidden',

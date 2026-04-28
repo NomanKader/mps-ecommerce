@@ -19,9 +19,9 @@ export const authApi = {
       accessToken: `demo-token-${payload.email}`,
       user: {
         email: payload.email,
-        firstName: 'MPS',
+        firstName: "AV's",
         id: 'usr-1',
-        lastName: 'Admin',
+        lastName: 'Store Admin',
         role: 'tenant_admin',
         tenantId: 'tenant-demo',
       },

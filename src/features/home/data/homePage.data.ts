@@ -177,17 +177,17 @@ export const storefrontCategoryMenuItems: Record<string, StoreCategoryMenuItem[]
 };
 
 export const featuredCategoryHighlights: FeatureHighlight[] = [
-  { color: '#21448b', icon: '🆕', id: 'new', label: 'New', surfaceColor: '#edf2ff' },
+  { color: '#e43224', icon: '🆕', id: 'new', label: 'New', surfaceColor: '#fff2b8' },
   { color: '#b9263d', icon: '🏷️', id: 'promotion', label: 'Promotion', surfaceColor: '#fff0f3' },
   { color: '#8cc84a', icon: '🍓', id: 'imperfect', label: 'Imperfect', surfaceColor: '#f4fbe8' },
   { color: '#7e7b74', icon: '📦', id: 'bulk', label: 'Buy Bulk', surfaceColor: '#f0efeb' },
   { color: '#62c5f0', icon: '❄️', id: 'frozen', label: 'Frozen', surfaceColor: '#eefaff' },
   { color: '#1fa44d', icon: '🌿', id: 'organic', label: 'Organic', surfaceColor: '#ebf8ef' },
-  { color: '#21448b', icon: '🌾', id: 'gluten-free', label: 'Gluten-free', surfaceColor: '#edf2ff' },
-  { color: '#21448b', icon: '🍬', id: 'no-sugar', label: 'No Added Sugar', surfaceColor: '#edf2ff' },
+  { color: '#e43224', icon: '🌾', id: 'gluten-free', label: 'Gluten-free', surfaceColor: '#fff2b8' },
+  { color: '#e43224', icon: '🍬', id: 'no-sugar', label: 'No Added Sugar', surfaceColor: '#fff2b8' },
   { color: '#21af44', icon: '🥗', id: 'vegan', label: 'Vegan', surfaceColor: '#ebf8ef' },
   { color: '#7a3db8', icon: '🥣', id: 'keto', label: 'Keto', surfaceColor: '#f4edff' },
-  { color: '#21448b', icon: '👨‍🍳', id: 'recipes', label: 'Recipes', surfaceColor: '#edf2ff' },
+  { color: '#e43224', icon: '👨‍🍳', id: 'recipes', label: 'Recipes', surfaceColor: '#fff2b8' },
   { color: '#d2aa2d', icon: '🎀', id: 'gift-cards', label: 'E-Gift Cards', surfaceColor: '#fff9e8' },
 ];
 
@@ -652,7 +652,7 @@ export const topBlooms: StoreProduct[] = [
     unit: 'bundle',
   },
   {
-    badges: [{ color: '#21448b', label: 'New' }],
+    badges: [{ color: '#e43224', label: 'New' }],
     categoryId: 'flowers',
     currency: 'USD',
     description: '32 Stems',
@@ -690,7 +690,7 @@ export const topBlooms: StoreProduct[] = [
     unit: 'bouquet',
   },
   {
-    badges: [{ color: '#21448b', label: 'New' }],
+    badges: [{ color: '#e43224', label: 'New' }],
     categoryId: 'flowers',
     currency: 'USD',
     description: 'Mix Flowers Bouquet',
@@ -709,7 +709,7 @@ export const topBlooms: StoreProduct[] = [
     unit: 'bouquet',
   },
   {
-    badges: [{ color: '#21448b', label: 'New' }],
+    badges: [{ color: '#e43224', label: 'New' }],
     categoryId: 'flowers',
     currency: 'USD',
     description: 'Mix Flowers Bouquet',
@@ -732,5 +732,5 @@ export const topBlooms: StoreProduct[] = [
 export const footerLinkGroups: FooterLinkGroup[] = [
   { id: 'account', links: ['My Account', 'My Addresses', 'My Orders', 'FAQs'], title: 'Account Details' },
   { id: 'brand', links: ['Our Story', 'Our Vision', 'Our Quality', 'Media'], title: 'Sustainable Shopping' },
-  { id: 'care', links: ['Kibsons Cares', 'Kitchen', 'Privacy Policy', 'Terms & Conditions'], title: 'Support' },
+  { id: 'care', links: ["AV's Store Cares", 'Kitchen', 'Privacy Policy', 'Terms & Conditions'], title: 'Support' },
 ];

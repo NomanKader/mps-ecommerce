@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
-import logoImage from '@assets/images/kibs_flag_logo_en.png';
+import logoImage from '@assets/images/logo.png';
 import { AuthDrawer } from '@widgets/AuthDrawer/AuthDrawer';
 import { routePaths } from '@routes/routePaths';
 import { storefrontCategories, storefrontCategoryMenuItems } from '@features/home/data/homePage.data';
@@ -113,7 +113,7 @@ export const Header = () => {
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               <PhoneInTalkOutlinedIcon sx={{ fontSize: 18 }} />
               <Typography sx={{ fontWeight: 800 }} variant="body2">
-                800 KIBSONS
+                800 AVS
               </Typography>
             </Stack>
             <Stack
@@ -154,10 +154,10 @@ export const Header = () => {
       >
         <Box component={Link} sx={{ display: 'inline-flex', flexShrink: 0 }} to={routePaths.home}>
           <Box
-            alt="Kibsons International"
+            alt="AV's Store"
             component="img"
             src={logoImage}
-            sx={{ display: 'block', height: { md: 68, xs: 46 }, objectFit: 'contain' }}
+            sx={{ display: 'block', height: { md: 86, xs: 58 }, objectFit: 'contain' }}
           />
         </Box>
 
@@ -303,7 +303,7 @@ export const Header = () => {
             sx={{
               backgroundColor: storefrontColors.surface,
               borderRadius: 1.5,
-              boxShadow: `0 22px 50px ${alpha('#102b5d', 0.16)}`,
+              boxShadow: `0 22px 50px ${alpha('#9f1714', 0.16)}`,
               left: { lg: 5, xs: 2 },
               minHeight: isScrolled ? 280 : 360,
               p: { md: 2.5, xs: 2 },
@@ -360,7 +360,7 @@ export const Header = () => {
                     transition: 'background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease',
                     '&:hover': {
                       backgroundColor: alpha(storefrontColors.navy, 0.06),
-                      boxShadow: `0 10px 22px ${alpha('#102b5d', 0.08)}`,
+                      boxShadow: `0 10px 22px ${alpha('#9f1714', 0.08)}`,
                       transform: 'translateY(-3px)',
                     },
                     '&:hover .category-menu-icon': {

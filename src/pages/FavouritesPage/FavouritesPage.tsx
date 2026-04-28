@@ -68,7 +68,7 @@ const accountPageConfigs = {
     title: 'My Addresses',
   },
   awards: {
-    description: 'Browse awards and recognitions from Kibsons product, service, and sustainability milestones.',
+    description: "Browse awards and recognitions from AV's Store product, service, and sustainability milestones.",
     emptyAction: 'View awards',
     icon: <EmojiEventsOutlinedIcon />,
     kind: 'info',
@@ -76,7 +76,7 @@ const accountPageConfigs = {
     title: 'Awards',
   },
   brand: {
-    description: 'Learn about the Kibsons brand promise, fresh sourcing standards, and customer commitments.',
+    description: "Learn about the AV's Store brand promise, fresh sourcing standards, and customer commitments.",
     emptyAction: 'Explore brand',
     icon: <SpaOutlinedIcon />,
     kind: 'info',
@@ -89,7 +89,7 @@ const accountPageConfigs = {
     icon: <FavoriteBorderRoundedIcon />,
     kind: 'info',
     path: routePaths.accountCares,
-    title: 'Kibsons Cares',
+    title: "AV's Store Cares",
   },
   changePassword: {
     description: 'Update your account password and keep your customer profile secure.',
@@ -135,15 +135,15 @@ const accountPageConfigs = {
     title: 'My Favourites',
   },
   kitchen: {
-    description: 'Discover recipes, prepared food inspiration, and kitchen ideas from Kibsons.',
+    description: "Discover recipes, prepared food inspiration, and kitchen ideas from AV's Store.",
     emptyAction: 'Open kitchen',
     icon: <RestaurantOutlinedIcon />,
     kind: 'info',
     path: routePaths.accountKitchen,
-    title: 'Kibsons Kitchen',
+    title: "AV's Store Kitchen",
   },
   media: {
-    description: 'Browse news, media stories, and recent Kibsons announcements.',
+    description: "Browse news, media stories, and recent AV's Store announcements.",
     emptyAction: 'View media',
     icon: <LocalOfferOutlinedIcon />,
     kind: 'info',
@@ -168,7 +168,7 @@ const accountPageConfigs = {
     title: 'My Profile',
   },
   quality: {
-    description: 'Understand the quality checks, freshness controls, and delivery standards used by Kibsons.',
+    description: "Understand the quality checks, freshness controls, and delivery standards used by AV's Store.",
     emptyAction: 'Read standards',
     icon: <VolunteerActivismOutlinedIcon />,
     kind: 'info',
@@ -220,7 +220,7 @@ const accountPageConfigs = {
     title: 'My Statement',
   },
   story: {
-    description: 'Read the Kibsons story and the journey behind the grocery service.',
+    description: "Read the AV's Store story and the journey behind the grocery service.",
     emptyAction: 'Read story',
     icon: <ReceiptLongOutlinedIcon />,
     kind: 'info',
@@ -479,7 +479,7 @@ const ProfileSummary = () => {
               {stat.icon ? (
                 <Box sx={{ display: 'inline-flex', '& svg': { fontSize: 31 } }}>{stat.icon}</Box>
               ) : (
-                <Typography sx={{ color: '#b21f3d', fontSize: '1rem', fontWeight: 900 }}>
+                <Typography sx={{ color: '#e43224', fontSize: '1rem', fontWeight: 900 }}>
                   {stat.value}
                 </Typography>
               )}
@@ -870,7 +870,7 @@ const WalletContent = () => {
           spacing={0.6}
           sx={{
             alignItems: 'center',
-            background: 'linear-gradient(120deg, #183a7a 0%, #407fb7 100%)',
+            background: 'linear-gradient(120deg, #e43224 0%, #ffd326 100%)',
             color: '#ffffff',
             justifyContent: 'center',
             minHeight: 108,
@@ -937,13 +937,13 @@ const WalletContent = () => {
               <Typography sx={{ color: storefrontColors.navy, flex: 1, fontSize: '1.05rem', fontWeight: 900 }}>৳ {row.amount}</Typography>
               <Button
                 sx={{
-                  backgroundColor: '#b21f3d',
+                  backgroundColor: '#e43224',
                   borderRadius: 999,
                   color: '#ffffff',
                   fontWeight: 900,
                   px: 2.8,
                   textTransform: 'none',
-                  '&:hover': { backgroundColor: '#961a34' },
+                  '&:hover': { backgroundColor: '#b71916' },
                 }}
               >
                 Add funds
@@ -978,7 +978,7 @@ const WalletContent = () => {
               key={row.bonus}
               sx={{ alignItems: 'center', borderTop: `1px solid ${storefrontColors.border}`, display: 'flex', minHeight: 74, px: 2.2 }}
             >
-              <Typography sx={{ color: '#b21f3d', fontSize: '1.05rem', fontWeight: 900 }}>{row.bonus}</Typography>
+              <Typography sx={{ color: '#e43224', fontSize: '1.05rem', fontWeight: 900 }}>{row.bonus}</Typography>
             </Box>
           ))}
         </Box>
@@ -1005,7 +1005,7 @@ const WalletContent = () => {
       </WalletPanel>
 
       <WalletAccordionRow title="Mini Statement" />
-      <WalletAccordionRow title="About Kibsons Wallet" />
+      <WalletAccordionRow title="About AV's Store Wallet" />
     </Stack>
   );
 };

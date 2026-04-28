@@ -58,9 +58,9 @@ const getPromoTilePath = (tile: { targetCategoryId: string; targetSearch?: strin
 const merchandisingHighlights = [
   ...featuredCategoryHighlights,
   { color: '#d2aa2d', icon: '🎁', id: 'custom-gift-boxes', label: 'Customised Gift Boxes', surfaceColor: '#fff9e8' },
-  { color: '#21448b', icon: '👍', id: 'must-try', label: 'Must Try', surfaceColor: '#edf2ff' },
+  { color: '#e43224', icon: '👍', id: 'must-try', label: 'Must Try', surfaceColor: '#fff2b8' },
   { color: '#b9263d', icon: '🏬', id: 'local', label: 'Local', surfaceColor: '#fff0f3' },
-  { color: '#21448b', icon: '⏳', id: 'coming-soon', label: 'Coming Soon', surfaceColor: '#edf2ff' },
+  { color: '#e43224', icon: '⏳', id: 'coming-soon', label: 'Coming Soon', surfaceColor: '#fff2b8' },
 ];
 
 const renderMerchandisingBadge = (itemId: string) => {
@@ -522,11 +522,11 @@ export const HomePage = () => {
                         brand.color === '#ffffff'
                           ? 'linear-gradient(180deg, #ffffff 0%, #f9fbff 100%)'
                           : `linear-gradient(180deg, ${brand.color} 0%, ${brand.color} 100%)`,
-                      border: `1px solid ${brand.color === '#ffffff' ? alpha('#183a7a', 0.12) : 'transparent'}`,
+                      border: `1px solid ${brand.color === '#ffffff' ? alpha('#e43224', 0.12) : 'transparent'}`,
                       borderRadius: 2,
                       boxShadow:
                         brand.color === '#ffffff'
-                          ? `0 12px 24px ${alpha('#102b5d', 0.08)}`
+                          ? `0 12px 24px ${alpha('#9f1714', 0.08)}`
                           : `0 16px 28px ${alpha(brand.color, 0.2)}`,
                       color: brand.textColor ?? '#ffffff',
                       display: 'flex',
@@ -539,7 +539,7 @@ export const HomePage = () => {
                       '&:hover': {
                         boxShadow:
                           brand.color === '#ffffff'
-                            ? `0 18px 30px ${alpha('#102b5d', 0.11)}`
+                            ? `0 18px 30px ${alpha('#9f1714', 0.11)}`
                             : `0 20px 34px ${alpha(brand.color, 0.28)}`,
                         transform: 'translateY(-2px)',
                       },
@@ -680,7 +680,7 @@ export const HomePage = () => {
                       alignSelf: 'flex-start',
                       backgroundColor: storefrontColors.surface,
                       borderRadius: 1,
-                      boxShadow: `0 8px 18px ${alpha('#102b5d', 0.14)}`,
+                      boxShadow: `0 8px 18px ${alpha('#9f1714', 0.14)}`,
                       color: storefrontColors.navy,
                       fontSize: { sm: '0.78rem', xs: '0.74rem' },
                       fontWeight: 800,
@@ -767,7 +767,7 @@ export const HomePage = () => {
                 sx={{
                   backdropFilter: 'blur(8px)',
                   backgroundColor: alpha('#ffffff', 0.76),
-                  boxShadow: `0 8px 20px ${alpha('#102b5d', 0.12)}`,
+                  boxShadow: `0 8px 20px ${alpha('#9f1714', 0.12)}`,
                   color: storefrontColors.navy,
                   height: 40,
                   left: -20,
@@ -788,7 +788,7 @@ export const HomePage = () => {
                 sx={{
                   backdropFilter: 'blur(8px)',
                   backgroundColor: alpha('#ffffff', 0.76),
-                  boxShadow: `0 8px 20px ${alpha('#102b5d', 0.12)}`,
+                  boxShadow: `0 8px 20px ${alpha('#9f1714', 0.12)}`,
                   color: storefrontColors.navy,
                   height: 40,
                   position: 'absolute',

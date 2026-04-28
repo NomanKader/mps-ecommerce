@@ -10,7 +10,7 @@ import { formatCurrency } from '@utils/formatCurrency';
 const revenue = mockOrders.reduce((total, order) => total + order.totalAmount, 0);
 
 const cards = [
-  { helper: `${mockTenant.name} · ${mockTenant.plan}`, icon: StoreOutlinedIcon, label: 'Tenant', value: 'MPS Demo' },
+  { helper: `${mockTenant.name} · ${mockTenant.plan}`, icon: StoreOutlinedIcon, label: 'Tenant', value: "AV's Store" },
   { helper: 'Live SKUs', icon: Inventory2OutlinedIcon, label: 'Catalog Items', value: `${mockProducts.length}` },
   { helper: 'Demo orders', icon: ShoppingBagOutlinedIcon, label: 'Orders', value: `${mockOrders.length}` },
   { helper: `${mockCustomers.length} customers`, icon: PaidOutlinedIcon, label: 'Revenue', value: formatCurrency(revenue) },

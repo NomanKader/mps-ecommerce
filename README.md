@@ -1,4 +1,4 @@
-# MPS Commerce Frontend
+# AV's Store Frontend
 
 Production-ready SaaS e-commerce frontend starter built directly in the current folder with React, TypeScript, Vite, Material UI, Redux Toolkit, and React Query.
 
