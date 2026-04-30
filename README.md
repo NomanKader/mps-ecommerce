@@ -1,4 +1,4 @@
-## mps-ecommerce mobile app
+## AV's Store mobile app
 
 Expo React Native wrapper for `https://mps-ecommerce.onrender.com/` using `react-native-webview`.
 
@@ -29,3 +29,4 @@ npm run start
 - Android hardware back will navigate backward inside the WebView when possible.
 - Pull-to-refresh is enabled.
 - A retry screen appears if the remote site fails to load.
+- The WebView injects a mobile viewport and the shell adapts loading/error states for compact phones, tablets, and orientation changes.

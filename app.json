@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "mps-ecommerce",
-    "slug": "mps-ecommerce-mobile",
+    "name": "AV's Store",
+    "slug": "avs-store-mobile",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -13,7 +13,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "bundleIdentifier": "com.mps.ecommerce",
+      "bundleIdentifier": "com.avs.store",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -24,8 +24,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.mps.ecommerce",
-      "edgeToEdgeEnabled": true,
+      "package": "com.avs.store",
+      "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false
     },
     "web": {
