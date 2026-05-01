@@ -10,6 +10,7 @@ import {
   Checkbox,
   Divider,
   Drawer,
+  Alert,
   IconButton,
   InputAdornment,
   Stack,
@@ -24,6 +25,7 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
+import { demoAdminCredentials, demoCustomerCredentials } from '@features/auth/api/authApi';
 import { useLogin } from '@features/auth/hooks/useLogin';
 import { routePaths } from '@routes/routePaths';
 import { registerSchema, type RegisterFormValues } from '@shared/validators/auth.schema';
@@ -206,6 +208,11 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
 
             {mode === 'login' ? (
               <Stack component="form" onSubmit={(event) => void onSubmit(event)} spacing={2.6}>
+                <Alert severity="info">
+                  Demo customer: {demoCustomerCredentials.email} / {demoCustomerCredentials.password}
+                  <br />
+                  Demo admin: {demoAdminCredentials.email} / {demoAdminCredentials.password}
+                </Alert>
                 <TextField
                   error={Boolean(loginErrors.email)}
                   fullWidth

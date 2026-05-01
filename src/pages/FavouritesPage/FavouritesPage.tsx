@@ -22,13 +22,14 @@ import SpaOutlinedIcon from '@mui/icons-material/SpaOutlined';
 import VolunteerActivismOutlinedIcon from '@mui/icons-material/VolunteerActivismOutlined';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
-import { Box, Button, IconButton, Stack, Typography } from '@mui/material';
+import { Box, Button, IconButton, Stack, TextField, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
+import { useWallet } from '@features/wallet/hooks/useWallet';
 import { routePaths } from '@routes/routePaths';
 import type { RootState } from '@store/index';
 
@@ -320,6 +321,12 @@ const pageConfigs = Object.values(accountPageConfigs);
 const getActivePage = (pathname: string) =>
   pageConfigs.find((page) => page.path === pathname) ?? accountPageConfigs.favourites;
 
+const formatWalletAmount = (amount: number) =>
+  `৳ ${new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  }).format(amount)}`;
+
 const AccountSidebar = ({ activePath }: { activePath: string }) => (
   <Box
     component="aside"
@@ -327,19 +334,26 @@ const AccountSidebar = ({ activePath }: { activePath: string }) => (
       backgroundColor: '#ffffff',
       border: `1px solid ${storefrontColors.border}`,
       borderRadius: 1,
+      display: { md: 'block', xs: 'flex' },
       flex: { lg: '0 0 300px', md: '0 0 270px', xs: 'none' },
+      gap: { xs: 1 },
       overflow: 'hidden',
+      overflowX: { md: 'hidden', xs: 'auto' },
+      p: { md: 0, xs: 1 },
       width: { md: 'auto', xs: '100%' },
+      '&::-webkit-scrollbar': {
+        display: 'none',
+      },
     }}
   >
     {sidebarSections.map((section) => (
-      <Box key={section.title}>
-        <Box sx={{ backgroundColor: '#f2f3f8', px: 2.2, py: 1.7 }}>
+      <Box key={section.title} sx={{ display: { md: 'block', xs: 'contents' } }}>
+        <Box sx={{ backgroundColor: '#f2f3f8', display: { md: 'block', xs: 'none' }, px: 2.2, py: 1.7 }}>
           <Typography sx={{ color: storefrontColors.navy, fontSize: '1.05rem', fontWeight: 900, lineHeight: 1.15 }}>
             {section.title}
           </Typography>
         </Box>
-        <Stack spacing={0}>
+        <Stack direction={{ md: 'column', xs: 'row' }} spacing={0.75}>
           {section.items.map((item) => {
             const isActive = item.path === activePath;
 
@@ -351,12 +365,15 @@ const AccountSidebar = ({ activePath }: { activePath: string }) => (
                 sx={{
                   alignItems: 'center',
                   backgroundColor: isActive ? '#f5f5f9' : '#ffffff',
+                  border: { md: 0, xs: `1px solid ${isActive ? storefrontColors.navy : storefrontColors.border}` },
+                  borderRadius: { md: 0, xs: 999 },
                   color: isActive ? storefrontColors.navy : '#54565c',
                   display: 'flex',
+                  flex: { md: 'initial', xs: '0 0 auto' },
                   gap: 1.7,
-                  minHeight: 64,
-                  px: 2.5,
-                  py: 1.4,
+                  minHeight: { md: 64, xs: 44 },
+                  px: { md: 2.5, xs: 1.5 },
+                  py: { md: 1.4, xs: 0.9 },
                   transition: 'background-color 160ms ease, color 160ms ease',
                   '&:hover': {
                     backgroundColor: '#f7f8fb',
@@ -364,10 +381,17 @@ const AccountSidebar = ({ activePath }: { activePath: string }) => (
                   },
                 }}
               >
-                <Box sx={{ color: storefrontColors.accent, display: 'inline-flex', '& svg': { fontSize: 27 } }}>
+                <Box sx={{ color: storefrontColors.accent, display: 'inline-flex', '& svg': { fontSize: { md: 27, xs: 20 } } }}>
                   {item.icon}
                 </Box>
-                <Typography sx={{ fontSize: '1.03rem', fontWeight: isActive ? 800 : 700, lineHeight: 1.15 }}>
+                <Typography
+                  sx={{
+                    fontSize: { md: '1.03rem', xs: '0.88rem' },
+                    fontWeight: isActive ? 800 : 700,
+                    lineHeight: 1.15,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {item.title}
                 </Typography>
               </Box>
@@ -381,12 +405,13 @@ const AccountSidebar = ({ activePath }: { activePath: string }) => (
 
 const ProfileSummary = () => {
   const user = useSelector((state: RootState) => state.auth.user);
+  const { availableBalance } = useWallet(user);
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'Min Naing Min Naing';
   const email = user?.email ?? 'minnaingjokermm@gmail.com';
 
   const stats = [
     { icon: <Inventory2OutlinedIcon />, label: 'My Orders', value: '' },
-    { label: 'Wallet', value: '0.00' },
+    { label: 'Wallet', value: formatWalletAmount(availableBalance) },
     { label: 'Loyalty Pts', value: '0' },
     { label: 'Referral Pts', value: '0' },
   ];
@@ -410,7 +435,7 @@ const ProfileSummary = () => {
           color: '#ffffff',
           display: 'grid',
           gap: 2,
-          gridTemplateColumns: '82px minmax(0, 1fr) 36px',
+          gridTemplateColumns: { sm: '82px minmax(0, 1fr) 36px', xs: '62px minmax(0, 1fr)' },
           minHeight: 138,
           px: { md: 3, xs: 2 },
           py: 2,
@@ -422,12 +447,12 @@ const ProfileSummary = () => {
             border: `3px solid ${alpha('#ffffff', 0.34)}`,
             borderRadius: '50%',
             display: 'flex',
-            height: 72,
+            height: { sm: 72, xs: 56 },
             justifyContent: 'center',
-            width: 72,
+            width: { sm: 72, xs: 56 },
           }}
         >
-          <EmojiEventsOutlinedIcon sx={{ color: '#dbe5fa', fontSize: 46 }} />
+          <EmojiEventsOutlinedIcon sx={{ color: '#dbe5fa', fontSize: { sm: 46, xs: 34 } }} />
         </Box>
         <Box sx={{ minWidth: 0 }}>
           <Typography sx={{ fontSize: { md: '1.15rem', xs: '1rem' }, fontWeight: 900, lineHeight: 1.15 }}>
@@ -479,7 +504,7 @@ const ProfileSummary = () => {
               {stat.icon ? (
                 <Box sx={{ display: 'inline-flex', '& svg': { fontSize: 31 } }}>{stat.icon}</Box>
               ) : (
-                <Typography sx={{ color: '#e43224', fontSize: '1rem', fontWeight: 900 }}>
+                <Typography sx={{ color: '#e43224', fontSize: { md: '1rem', xs: '0.82rem' }, fontWeight: 900 }}>
                   {stat.value}
                 </Typography>
               )}
@@ -773,9 +798,23 @@ const VouchersContent = () => (
   </Box>
 );
 
-const WalletAmountInput = ({ action, placeholder = '00.00' }: { action: string; placeholder?: string }) => (
+const WalletAmountInput = ({
+  action,
+  amount,
+  disabled,
+  onAction,
+  onAmountChange,
+  placeholder = '00.00',
+}: {
+  action: string;
+  amount: string;
+  disabled?: boolean;
+  onAction: () => void;
+  onAmountChange: (value: string) => void;
+  placeholder?: string;
+}) => (
   <Stack
-    direction="row"
+    direction={{ sm: 'row', xs: 'column' }}
     sx={{
       border: `1px solid ${storefrontColors.border}`,
       borderRadius: 1,
@@ -783,18 +822,40 @@ const WalletAmountInput = ({ action, placeholder = '00.00' }: { action: string; 
       overflow: 'hidden',
     }}
   >
-    <Stack direction="row" spacing={1.4} sx={{ alignItems: 'center', flex: 1, px: 2 }}>
-      <Typography sx={{ color: '#55565c', fontSize: '1.15rem', fontWeight: 900 }}>৳</Typography>
-      <Typography sx={{ color: '#a2aabd', fontSize: '1.1rem', fontWeight: 800 }}>{placeholder}</Typography>
-    </Stack>
+    <TextField
+      fullWidth
+      onChange={(event) => onAmountChange(event.target.value)}
+      placeholder={placeholder}
+      slotProps={{
+        htmlInput: { min: 0, step: '0.01' },
+        input: {
+          disableUnderline: true,
+          startAdornment: <Typography sx={{ color: '#55565c', fontSize: '1.15rem', fontWeight: 900, mr: 1.4 }}>৳</Typography>,
+          sx: {
+            color: '#55565c',
+            fontSize: '1.1rem',
+            fontWeight: 800,
+            minHeight: 64,
+            px: 2,
+          },
+        },
+      }}
+      type="number"
+      value={amount}
+      variant="standard"
+    />
     <Button
+      disabled={disabled}
+      onClick={onAction}
       sx={{
         backgroundColor: '#f1f2f7',
-        borderLeft: `1px solid ${storefrontColors.border}`,
+        borderLeft: { sm: `1px solid ${storefrontColors.border}`, xs: 0 },
+        borderTop: { sm: 0, xs: `1px solid ${storefrontColors.border}` },
         borderRadius: 0,
         color: storefrontColors.navy,
         fontSize: '1rem',
         fontWeight: 900,
+        minHeight: { sm: 'auto', xs: 52 },
         px: { md: 5, xs: 2 },
         textTransform: 'none',
         '&:hover': { backgroundColor: '#e8ebf3' },
@@ -844,12 +905,40 @@ const WalletAccordionRow = ({ title }: { title: string }) => (
 );
 
 const WalletContent = () => {
+  const user = useSelector((state: RootState) => state.auth.user);
+  const { addBonusFunds, addFunds, availableBalance, transferToFriend, wallet } = useWallet(user);
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [friendEmail, setFriendEmail] = useState('');
+  const [friendAmount, setFriendAmount] = useState('');
+  const [walletMessage, setWalletMessage] = useState('');
+
   const bonusRows = [
-    { amount: '5,000', bonus: '+ ৳ 200' },
-    { amount: '7,000', bonus: '+ ৳ 500' },
-    { amount: '10,000', bonus: '+ ৳ 1,000' },
-    { amount: '10,000', bonus: '+ Food cycler worth ৳ 999', divider: true },
+    { amount: 5000, bonus: '+ ৳ 200', bonusAmount: 200 },
+    { amount: 7000, bonus: '+ ৳ 500', bonusAmount: 500 },
+    { amount: 10000, bonus: '+ ৳ 1,000', bonusAmount: 1000 },
+    { amount: 10000, bonus: '+ Food cycler worth ৳ 999', bonusAmount: 0, divider: true },
   ];
+  const topUpValue = Number(topUpAmount);
+  const friendAmountValue = Number(friendAmount);
+
+  const handleTopUp = () => {
+    if (addFunds(topUpValue)) {
+      setTopUpAmount('');
+      setWalletMessage('Wallet balance updated.');
+    } else {
+      setWalletMessage('Enter an amount greater than zero.');
+    }
+  };
+
+  const handleFriendTransfer = () => {
+    if (transferToFriend(friendEmail, friendAmountValue)) {
+      setFriendAmount('');
+      setFriendEmail('');
+      setWalletMessage('Money sent to friend wallet.');
+    } else {
+      setWalletMessage('Check the friend email, amount, and available balance.');
+    }
+  };
 
   return (
     <Stack spacing={3} sx={{ maxWidth: 980, mt: 4.5 }}>
@@ -876,7 +965,7 @@ const WalletContent = () => {
             minHeight: 108,
           }}
         >
-          <Typography sx={{ fontSize: '1.35rem', fontWeight: 900 }}>৳ 0.00</Typography>
+          <Typography sx={{ fontSize: '1.35rem', fontWeight: 900 }}>{formatWalletAmount(wallet.balance)}</Typography>
           <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center' }}>
             <AccountBalanceWalletOutlinedIcon />
             <Typography sx={{ fontSize: '1.05rem', fontWeight: 900 }}>My Wallet</Typography>
@@ -885,18 +974,30 @@ const WalletContent = () => {
         <Box sx={{ display: 'grid', gridTemplateColumns: { sm: '1fr 1fr', xs: '1fr' } }}>
           <Stack spacing={0.6} sx={{ alignItems: 'center', borderRight: { sm: `1px solid ${storefrontColors.navy}`, xs: 0 }, py: 2.2 }}>
             <Typography sx={{ color: '#55565c', fontSize: '1.05rem', fontWeight: 700 }}>Reserved For Regular:</Typography>
-            <Typography sx={{ color: '#55565c', fontWeight: 800 }}>৳ 0.00</Typography>
+            <Typography sx={{ color: '#55565c', fontWeight: 800 }}>{formatWalletAmount(wallet.reservedBalance)}</Typography>
           </Stack>
           <Stack spacing={0.6} sx={{ alignItems: 'center', py: 2.2 }}>
             <Typography sx={{ color: storefrontColors.navy, fontSize: '1.05rem', fontWeight: 900 }}>Available Balance:</Typography>
-            <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>৳ 0.00</Typography>
+            <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>{formatWalletAmount(availableBalance)}</Typography>
           </Stack>
         </Box>
       </Box>
 
+      {walletMessage ? (
+        <Box sx={{ backgroundColor: '#fff8e1', border: `1px solid ${storefrontColors.border}`, borderRadius: 1, px: 2, py: 1.3 }}>
+          <Typography sx={{ color: storefrontColors.navy, fontWeight: 800 }}>{walletMessage}</Typography>
+        </Box>
+      ) : null}
+
       <WalletPanel title="Add Money To Wallet">
         <Stack spacing={1.5}>
-          <WalletAmountInput action="Load Wallet" />
+          <WalletAmountInput
+            action="Load Wallet"
+            amount={topUpAmount}
+            disabled={topUpValue <= 0}
+            onAction={handleTopUp}
+            onAmountChange={setTopUpAmount}
+          />
           <Typography sx={{ color: '#55565c', fontSize: '1rem', fontWeight: 700, lineHeight: 1.45, maxWidth: 610 }}>
             Please verify your amount before making a payment as the wallet amount is not refundable via cash or bank transfers
           </Typography>
@@ -934,8 +1035,14 @@ const WalletContent = () => {
                 position: 'relative',
               }}
             >
-              <Typography sx={{ color: storefrontColors.navy, flex: 1, fontSize: '1.05rem', fontWeight: 900 }}>৳ {row.amount}</Typography>
+              <Typography sx={{ color: storefrontColors.navy, flex: 1, fontSize: '1.05rem', fontWeight: 900 }}>
+                {formatWalletAmount(row.amount)}
+              </Typography>
               <Button
+                onClick={() => {
+                  addBonusFunds(row.amount, row.bonusAmount);
+                  setWalletMessage('Wallet package added.');
+                }}
                 sx={{
                   backgroundColor: '#e43224',
                   borderRadius: 999,
@@ -955,6 +1062,7 @@ const WalletContent = () => {
                     border: `1px solid ${storefrontColors.border}`,
                     borderRadius: 999,
                     color: '#55565c',
+                    display: { md: 'block', xs: 'none' },
                     fontWeight: 900,
                     left: '100%',
                     px: 1.4,
@@ -986,25 +1094,68 @@ const WalletContent = () => {
 
       <WalletPanel title="Add Money To Friends Wallet">
         <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { md: '0.9fr 1.8fr', xs: '1fr' } }}>
-          <Box
+          <TextField
+            fullWidth
+            onChange={(event) => setFriendEmail(event.target.value)}
+            placeholder="Enter friend's email"
+            type="email"
+            value={friendEmail}
             sx={{
-              alignItems: 'center',
-              border: `1px solid ${storefrontColors.border}`,
-              borderRadius: 1,
-              color: '#a2aabd',
-              display: 'flex',
-              fontSize: '1rem',
-              fontWeight: 800,
-              px: 2,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 1,
+                fontWeight: 800,
+                minHeight: 64,
+              },
             }}
-          >
-            Enter friend's email
-          </Box>
-          <WalletAmountInput action="Add Money" />
+          />
+          <WalletAmountInput
+            action="Add Money"
+            amount={friendAmount}
+            disabled={!friendEmail || friendAmountValue <= 0 || friendAmountValue > availableBalance}
+            onAction={handleFriendTransfer}
+            onAmountChange={setFriendAmount}
+          />
         </Box>
       </WalletPanel>
 
-      <WalletAccordionRow title="Mini Statement" />
+      <WalletPanel title="Mini Statement">
+        {wallet.transactions.length ? (
+          <Stack spacing={1.2}>
+            {wallet.transactions.slice(0, 6).map((transaction) => (
+              <Stack
+                direction={{ sm: 'row', xs: 'column' }}
+                key={transaction.id}
+                spacing={0.8}
+                sx={{
+                  border: `1px solid ${storefrontColors.border}`,
+                  borderRadius: 1,
+                  justifyContent: 'space-between',
+                  px: 1.5,
+                  py: 1.2,
+                }}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>{transaction.description}</Typography>
+                  <Typography sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 700 }}>
+                    {new Date(transaction.createdAt).toLocaleString()}
+                  </Typography>
+                </Box>
+                <Typography
+                  sx={{
+                    color: transaction.direction === 'credit' ? storefrontColors.success : storefrontColors.navy,
+                    flexShrink: 0,
+                    fontWeight: 900,
+                  }}
+                >
+                  {transaction.direction === 'credit' ? '+' : '-'} {formatWalletAmount(transaction.amount)}
+                </Typography>
+              </Stack>
+            ))}
+          </Stack>
+        ) : (
+          <Typography sx={{ color: storefrontColors.muted, fontWeight: 700 }}>No wallet activity yet.</Typography>
+        )}
+      </WalletPanel>
       <WalletAccordionRow title="About AV's Store Wallet" />
     </Stack>
   );

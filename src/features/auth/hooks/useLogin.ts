@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
-import { authApi, demoAdminCredentials } from '@features/auth/api/authApi';
+import { authApi, demoCustomerCredentials } from '@features/auth/api/authApi';
 import { authService } from '@services/auth/auth.service';
 import { useAppDispatch } from '@store/hooks';
 import { setSession } from '@store/slices/auth.slice';
@@ -20,8 +20,8 @@ export const useLogin = (options?: UseLoginOptions) => {
   const navigate = useNavigate();
   const form = useForm<LoginFormValues>({
     defaultValues: {
-      email: demoAdminCredentials.email,
-      password: demoAdminCredentials.password,
+      email: demoCustomerCredentials.email,
+      password: demoCustomerCredentials.password,
     },
     resolver: zodResolver(loginSchema),
   });
@@ -33,7 +33,13 @@ export const useLogin = (options?: UseLoginOptions) => {
       dispatch(setSession(session));
       toast.success('Signed in successfully');
       options?.onSuccess?.();
-      void navigate(routePaths.tenantAdmin.dashboard);
+
+      const redirectTo =
+        session.user.role === 'tenant_admin' || session.user.role === 'staff' || session.user.role === 'super_admin'
+          ? routePaths.tenantAdmin.dashboard
+          : routePaths.accountWallet;
+
+      void navigate(redirectTo);
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Unable to sign in');

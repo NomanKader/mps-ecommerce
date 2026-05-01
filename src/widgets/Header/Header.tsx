@@ -1,6 +1,9 @@
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
 import FmdGoodOutlinedIcon from '@mui/icons-material/FmdGoodOutlined';
+import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
 import PhoneInTalkOutlinedIcon from '@mui/icons-material/PhoneInTalkOutlined';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
@@ -8,7 +11,8 @@ import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import { Badge, Box, Button, IconButton, Stack, Toolbar, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
 import logoImage from '@assets/images/logo.png';
@@ -16,7 +20,11 @@ import { AuthDrawer } from '@widgets/AuthDrawer/AuthDrawer';
 import { routePaths } from '@routes/routePaths';
 import { storefrontCategories, storefrontCategoryMenuItems } from '@features/home/data/homePage.data';
 import { useCart } from '@features/cart/hooks/useCart';
+import { authService } from '@services/auth/auth.service';
 import { storefrontIconButtonSx } from '@shared/styles/storefront';
+import type { RootState } from '@store/index';
+import { useAppDispatch } from '@store/hooks';
+import { clearSession } from '@store/slices/auth.slice';
 
 const getCatalogPath = (categoryId: string, title: string, search?: string) => {
   const params = new URLSearchParams({
@@ -33,12 +41,22 @@ const getCatalogPath = (categoryId: string, title: string, search?: string) => {
 
 export const Header = () => {
   const { totalItems } = useCart();
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const [isAuthDrawerOpen, setIsAuthDrawerOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollFrameRef = useRef<number | null>(null);
   const activeCategory = storefrontCategories.find((category) => category.id === activeCategoryId);
   const activeMenuItems = activeCategoryId ? (storefrontCategoryMenuItems[activeCategoryId] ?? []) : [];
+  const isCustomer = isAuthenticated && user?.role === 'customer';
+
+  const handleSignOut = () => {
+    authService.signOut();
+    dispatch(clearSession());
+    void navigate(routePaths.home);
+  };
 
   useEffect(() => {
     const updateScrolledState = () => {
@@ -79,6 +97,7 @@ export const Header = () => {
         sx={{
           backgroundColor: storefrontColors.navy,
           color: storefrontColors.surface,
+          display: { md: 'block', xs: 'none' },
           px: { lg: 5, xs: 2 },
           py: 1.25,
         }}
@@ -116,26 +135,69 @@ export const Header = () => {
                 800 AVS
               </Typography>
             </Stack>
-            <Stack
-              component="button"
-              direction="row"
-              onClick={() => setIsAuthDrawerOpen(true)}
-              spacing={1}
-              sx={{
-                alignItems: 'center',
-                background: 'transparent',
-                border: 0,
-                color: 'inherit',
-                cursor: 'pointer',
-                p: 0,
-              }}
-              type="button"
-            >
-              <PersonOutlineRoundedIcon sx={{ fontSize: 18 }} />
-              <Typography sx={{ fontWeight: 700 }} variant="body2">
-                Login / Register
-              </Typography>
-            </Stack>
+            {isAuthenticated ? (
+              <Stack direction="row" spacing={1.4} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                {isCustomer ? (
+                  <Stack
+                    component={Link}
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: 'center' }}
+                    to={routePaths.accountWallet}
+                  >
+                    <PersonOutlineRoundedIcon sx={{ fontSize: 18 }} />
+                    <Typography sx={{ fontWeight: 700 }} variant="body2">
+                      {user.firstName} / Wallet
+                    </Typography>
+                  </Stack>
+                ) : (
+                  <Typography sx={{ fontWeight: 700 }} variant="body2">
+                    {user?.firstName ?? 'Account'}
+                  </Typography>
+                )}
+                <Stack
+                  component="button"
+                  direction="row"
+                  onClick={handleSignOut}
+                  spacing={0.7}
+                  sx={{
+                    alignItems: 'center',
+                    background: 'transparent',
+                    border: 0,
+                    color: 'inherit',
+                    cursor: 'pointer',
+                    p: 0,
+                  }}
+                  type="button"
+                >
+                  <LogoutRoundedIcon sx={{ fontSize: 18 }} />
+                  <Typography sx={{ fontWeight: 700 }} variant="body2">
+                    Sign out
+                  </Typography>
+                </Stack>
+              </Stack>
+            ) : (
+              <Stack
+                component="button"
+                direction="row"
+                onClick={() => setIsAuthDrawerOpen(true)}
+                spacing={1}
+                sx={{
+                  alignItems: 'center',
+                  background: 'transparent',
+                  border: 0,
+                  color: 'inherit',
+                  cursor: 'pointer',
+                  p: 0,
+                }}
+                type="button"
+              >
+                <PersonOutlineRoundedIcon sx={{ fontSize: 18 }} />
+                <Typography sx={{ fontWeight: 700 }} variant="body2">
+                  Login / Register
+                </Typography>
+              </Stack>
+            )}
           </Stack>
         </Stack>
       </Box>
@@ -198,6 +260,13 @@ export const Header = () => {
         </Stack>
 
         <Stack direction="row" spacing={1.1} sx={{ alignItems: 'center', flexShrink: 0 }}>
+          {isCustomer ? (
+            <Badge color="secondary" variant="dot">
+              <IconButton component={Link} sx={{ ...storefrontIconButtonSx, height: 56, width: 56 }} to={routePaths.accountWallet}>
+                <AccountBalanceWalletOutlinedIcon />
+              </IconButton>
+            </Badge>
+          ) : null}
           <Badge badgeContent={0} color="secondary">
             <IconButton component={Link} sx={{ ...storefrontIconButtonSx, height: 56, width: 56 }} to={routePaths.accountFavourites}>
               <FavoriteBorderRoundedIcon />
@@ -413,6 +482,101 @@ export const Header = () => {
       </Box>
 
       <AuthDrawer onClose={() => setIsAuthDrawerOpen(false)} open={isAuthDrawerOpen} />
+      <Box
+        aria-label="Primary mobile navigation"
+        component="nav"
+        sx={{
+          backgroundColor: storefrontColors.navy,
+          bottom: 0,
+          boxShadow: `0 -10px 28px ${alpha('#9f1714', 0.18)}`,
+          color: storefrontColors.surface,
+          display: { md: 'none', xs: 'grid' },
+          gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+          height: 'calc(72px + env(safe-area-inset-bottom, 0px))',
+          left: 0,
+          pb: 'env(safe-area-inset-bottom, 0px)',
+          position: 'fixed',
+          right: 0,
+          top: 'auto',
+          zIndex: 1200,
+        }}
+      >
+        {[
+          { icon: <HomeRoundedIcon />, label: 'Home', to: routePaths.home },
+          { icon: <FavoriteBorderRoundedIcon />, label: 'Favourites', to: routePaths.accountFavourites },
+          { icon: <SearchRoundedIcon />, label: 'Search', to: routePaths.catalog },
+          { badge: totalItems, icon: <ShoppingBagOutlinedIcon />, label: 'Cart', to: routePaths.cart },
+        ].map((item) => (
+          <Box
+            aria-label={item.label}
+            component={Link}
+            key={item.label}
+            sx={{
+              alignItems: 'center',
+              color: '#ffffff',
+              display: 'flex',
+              height: 56,
+              justifyContent: 'center',
+              minWidth: 0,
+              position: 'relative',
+              textDecoration: 'none',
+              '& svg': {
+                fontSize: 31,
+              },
+            }}
+            to={item.to}
+          >
+            {item.icon}
+            {item.badge ? (
+              <Box
+                sx={{
+                  alignItems: 'center',
+                  backgroundColor: '#c33d4b',
+                  borderRadius: 999,
+                  color: '#ffffff',
+                  display: 'flex',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  height: 22,
+                  justifyContent: 'center',
+                  minWidth: 22,
+                  position: 'absolute',
+                  right: 'calc(50% - 25px)',
+                  top: 2,
+                }}
+              >
+                {item.badge}
+              </Box>
+            ) : null}
+          </Box>
+        ))}
+        <Box
+          aria-label={isCustomer ? 'Wallet account' : 'Account login'}
+          component={isCustomer ? Link : 'button'}
+          onClick={isCustomer ? undefined : () => setIsAuthDrawerOpen(true)}
+          sx={{
+            alignItems: 'center',
+            background: 'transparent',
+            border: 0,
+            color: '#ffffff',
+            cursor: 'pointer',
+            display: 'flex',
+            height: 56,
+            justifyContent: 'center',
+            minWidth: 0,
+            p: 0,
+            position: 'relative',
+            textDecoration: 'none',
+            '& svg': {
+              fontSize: 31,
+            },
+          }}
+          to={isCustomer ? routePaths.accountWallet : undefined}
+          type={isCustomer ? undefined : 'button'}
+        >
+          {isCustomer ? <AccountBalanceWalletOutlinedIcon /> : <PersonOutlineRoundedIcon />}
+        </Box>
+      </Box>
     </Box>
   );
 };

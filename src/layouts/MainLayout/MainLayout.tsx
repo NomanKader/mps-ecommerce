@@ -7,7 +7,7 @@ import { Footer } from '@widgets/Footer/Footer';
 import { Header } from '@widgets/Header/Header';
 
 export const MainLayout = () => (
-  <Box sx={{ ...storefrontShellSx, minHeight: '100vh' }}>
+  <Box sx={{ ...storefrontShellSx, minHeight: '100vh', pb: { md: 0, xs: 16 } }}>
     <Header />
     <PageContainer sx={{ py: { md: 4, xs: 2.5 } }}>
       <Outlet />
