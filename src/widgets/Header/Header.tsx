@@ -1,4 +1,6 @@
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
 import FmdGoodOutlinedIcon from '@mui/icons-material/FmdGoodOutlined';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
@@ -11,14 +13,17 @@ import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import { Badge, Box, Button, IconButton, Stack, Toolbar, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
 import logoImage from '@assets/images/logo.png';
 import { AuthDrawer } from '@widgets/AuthDrawer/AuthDrawer';
 import { routePaths } from '@routes/routePaths';
-import { storefrontCategories, storefrontCategoryMenuItems } from '@features/home/data/homePage.data';
+import {
+  storefrontCategories,
+  storefrontCategoryMenuItems,
+} from '@features/home/data/homePage.data';
 import { useCart } from '@features/cart/hooks/useCart';
 import { authService } from '@services/auth/auth.service';
 import { storefrontIconButtonSx } from '@shared/styles/storefront';
@@ -42,15 +47,22 @@ const getCatalogPath = (categoryId: string, title: string, search?: string) => {
 export const Header = () => {
   const { totalItems } = useCart();
   const dispatch = useAppDispatch();
+  const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const [isAppPromptVisible, setIsAppPromptVisible] = useState(true);
   const [isAuthDrawerOpen, setIsAuthDrawerOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollFrameRef = useRef<number | null>(null);
   const activeCategory = storefrontCategories.find((category) => category.id === activeCategoryId);
-  const activeMenuItems = activeCategoryId ? (storefrontCategoryMenuItems[activeCategoryId] ?? []) : [];
+  const activeMenuItems = activeCategoryId
+    ? (storefrontCategoryMenuItems[activeCategoryId] ?? [])
+    : [];
   const isCustomer = isAuthenticated && user?.role === 'customer';
+  const isAccountRoute =
+    location.pathname.startsWith(routePaths.account) &&
+    location.pathname !== routePaths.accountFavourites;
 
   const handleSignOut = () => {
     authService.signOut();
@@ -96,6 +108,66 @@ export const Header = () => {
       <Box
         sx={{
           backgroundColor: storefrontColors.navy,
+          display: { md: 'none', xs: 'block' },
+          px: 2.4,
+          py: 1.4,
+        }}
+      >
+        <Stack direction="row" spacing={1.6} sx={{ alignItems: 'center' }}>
+          <Box
+            component={Link}
+            sx={{
+              alignItems: 'center',
+              backgroundColor: storefrontColors.surface,
+              borderRadius: 1,
+              color: alpha(storefrontColors.navy, 0.42),
+              display: 'flex',
+              flex: 1,
+              gap: 1.5,
+              minHeight: 55,
+              minWidth: 0,
+              px: 1.65,
+              textDecoration: 'none',
+            }}
+            to={routePaths.catalog}
+          >
+            <Box
+              alt="AV's Store"
+              component="img"
+              src={logoImage}
+              sx={{ display: 'block', height: 28, objectFit: 'contain', width: 28 }}
+            />
+            <Typography
+              sx={{
+                color: alpha(storefrontColors.navy, 0.42),
+                fontSize: '1.02rem',
+                fontWeight: 800,
+                minWidth: 0,
+              }}
+            >
+              Search for fruits
+            </Typography>
+          </Box>
+          <IconButton
+            aria-label="Orders"
+            component={Link}
+            sx={{ color: '#ffffff', flexShrink: 0, height: 42, width: 42 }}
+            to={routePaths.orders}
+          >
+            <ArticleOutlinedIcon sx={{ fontSize: 31 }} />
+          </IconButton>
+          <IconButton
+            aria-label="Call support"
+            sx={{ color: '#ffffff', flexShrink: 0, height: 42, width: 42 }}
+          >
+            <PhoneInTalkOutlinedIcon sx={{ fontSize: 31 }} />
+          </IconButton>
+        </Stack>
+      </Box>
+
+      <Box
+        sx={{
+          backgroundColor: storefrontColors.navy,
           color: storefrontColors.surface,
           display: { md: 'block', xs: 'none' },
           px: { lg: 5, xs: 2 },
@@ -105,7 +177,12 @@ export const Header = () => {
         <Stack
           direction={{ lg: 'row', xs: 'column' }}
           spacing={1.5}
-          sx={{ alignItems: { lg: 'center', xs: 'flex-start' }, justifyContent: 'space-between', maxWidth: 1600, mx: 'auto' }}
+          sx={{
+            alignItems: { lg: 'center', xs: 'flex-start' },
+            justifyContent: 'space-between',
+            maxWidth: 1600,
+            mx: 'auto',
+          }}
         >
           <Stack direction="row" spacing={3} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
@@ -205,6 +282,7 @@ export const Header = () => {
       <Toolbar
         sx={{
           gap: 2,
+          display: { md: 'flex', xs: 'none' },
           justifyContent: 'space-between',
           maxWidth: 1600,
           mx: 'auto',
@@ -238,7 +316,11 @@ export const Header = () => {
         >
           <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center', flex: 1, px: 2 }}>
             <SearchRoundedIcon sx={{ color: '#97a4ba', fontSize: 28 }} />
-            <Typography color="#a1acc0" sx={{ fontSize: { md: '1.05rem', lg: '1.1rem' }, fontWeight: 700 }} variant="h6">
+            <Typography
+              color="#a1acc0"
+              sx={{ fontSize: { md: '1.05rem', lg: '1.1rem' }, fontWeight: 700 }}
+              variant="h6"
+            >
               Search for pantry essentials
             </Typography>
           </Stack>
@@ -262,18 +344,30 @@ export const Header = () => {
         <Stack direction="row" spacing={1.1} sx={{ alignItems: 'center', flexShrink: 0 }}>
           {isCustomer ? (
             <Badge color="secondary" variant="dot">
-              <IconButton component={Link} sx={{ ...storefrontIconButtonSx, height: 56, width: 56 }} to={routePaths.accountWallet}>
+              <IconButton
+                component={Link}
+                sx={{ ...storefrontIconButtonSx, height: 56, width: 56 }}
+                to={routePaths.accountWallet}
+              >
                 <AccountBalanceWalletOutlinedIcon />
               </IconButton>
             </Badge>
           ) : null}
           <Badge badgeContent={0} color="secondary">
-            <IconButton component={Link} sx={{ ...storefrontIconButtonSx, height: 56, width: 56 }} to={routePaths.accountFavourites}>
+            <IconButton
+              component={Link}
+              sx={{ ...storefrontIconButtonSx, height: 56, width: 56 }}
+              to={routePaths.accountFavourites}
+            >
               <FavoriteBorderRoundedIcon />
             </IconButton>
           </Badge>
           <Badge badgeContent={totalItems} color="secondary">
-            <IconButton component={Link} sx={{ ...storefrontIconButtonSx, height: 56, width: 56 }} to={routePaths.cart}>
+            <IconButton
+              component={Link}
+              sx={{ ...storefrontIconButtonSx, height: 56, width: 56 }}
+              to={routePaths.cart}
+            >
               <ShoppingBagOutlinedIcon />
             </IconButton>
           </Badge>
@@ -284,6 +378,7 @@ export const Header = () => {
         onMouseLeave={() => setActiveCategoryId(null)}
         sx={{
           borderTop: `1px solid ${storefrontColors.border}`,
+          display: { md: 'block', xs: 'none' },
           px: { lg: 5, xs: 2 },
           position: 'relative',
           py: isScrolled ? 0.45 : 1.2,
@@ -333,7 +428,8 @@ export const Header = () => {
                 py: isScrolled ? 0.45 : 1,
                 textAlign: 'center',
                 textDecoration: 'none',
-                transition: 'min-height 180ms ease, min-width 180ms ease, padding 180ms ease, gap 180ms ease',
+                transition:
+                  'min-height 180ms ease, min-width 180ms ease, padding 180ms ease, gap 180ms ease',
                 '&:hover': {
                   boxShadow: `0 10px 22px ${alpha(category.color, 0.28)}`,
                   filter: 'brightness(1.06)',
@@ -343,10 +439,13 @@ export const Header = () => {
                   outline: `3px solid ${alpha(storefrontColors.navy, 0.28)}`,
                   outlineOffset: 2,
                 },
-                }}
+              }}
               to={getCatalogPath(category.id, category.label)}
             >
-              <Typography sx={{ display: isScrolled ? 'none' : 'block', fontSize: '2rem', lineHeight: 1 }} variant="body1">
+              <Typography
+                sx={{ display: isScrolled ? 'none' : 'block', fontSize: '2rem', lineHeight: 1 }}
+                variant="body1"
+              >
                 {category.icon}
               </Typography>
               <Typography
@@ -426,7 +525,8 @@ export const Header = () => {
                     minWidth: 0,
                     textDecoration: 'none',
                     textAlign: 'center',
-                    transition: 'background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease',
+                    transition:
+                      'background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease',
                     '&:hover': {
                       backgroundColor: alpha(storefrontColors.navy, 0.06),
                       boxShadow: `0 10px 22px ${alpha('#9f1714', 0.08)}`,
@@ -443,7 +543,11 @@ export const Header = () => {
                       outlineOffset: 2,
                     },
                   }}
-                  to={getCatalogPath(activeCategory.id, `${activeCategory.label}: ${item.label}`, item.label)}
+                  to={getCatalogPath(
+                    activeCategory.id,
+                    `${activeCategory.label}: ${item.label}`,
+                    item.label,
+                  )}
                 >
                   <Box
                     aria-hidden="true"
@@ -482,13 +586,70 @@ export const Header = () => {
       </Box>
 
       <AuthDrawer onClose={() => setIsAuthDrawerOpen(false)} open={isAuthDrawerOpen} />
+      {isAppPromptVisible ? (
+        <Box
+          sx={{
+            alignItems: 'center',
+            backgroundColor: storefrontColors.navy,
+            borderRadius: 1.5,
+            bottom: 'calc(72px + env(safe-area-inset-bottom, 0px) + 16px)',
+            boxShadow: `0 12px 26px ${alpha(storefrontColors.navyDark, 0.24)}`,
+            color: '#ffffff',
+            display: { md: 'none', xs: 'flex' },
+            gap: 1.4,
+            left: 12,
+            minHeight: 98,
+            px: 1.6,
+            py: 1.4,
+            position: 'fixed',
+            right: 12,
+            zIndex: 1190,
+          }}
+        >
+          <Box
+            alt="AV's Store"
+            component="img"
+            src={logoImage}
+            sx={{ display: 'block', flexShrink: 0, height: 43, objectFit: 'contain', width: 43 }}
+          />
+          <Typography
+            sx={{ flex: 1, fontSize: '1.18rem', fontWeight: 900, lineHeight: 1.4, minWidth: 0 }}
+          >
+            The easiest way to shop on AV's Store
+          </Typography>
+          <Button
+            sx={{
+              backgroundColor: '#ffffff',
+              borderRadius: 999,
+              color: storefrontColors.muted,
+              flexShrink: 0,
+              fontSize: '1rem',
+              fontWeight: 900,
+              minWidth: 150,
+              px: 2.1,
+              py: 1.2,
+              textTransform: 'none',
+              '&:hover': { backgroundColor: '#eef3ff' },
+            }}
+          >
+            Download App
+          </Button>
+          <IconButton
+            aria-label="Dismiss app download"
+            onClick={() => setIsAppPromptVisible(false)}
+            sx={{ color: '#ffffff', flexShrink: 0, p: 0.2 }}
+          >
+            <CloseRoundedIcon sx={{ fontSize: 30 }} />
+          </IconButton>
+        </Box>
+      ) : null}
       <Box
         aria-label="Primary mobile navigation"
         component="nav"
         sx={{
           backgroundColor: storefrontColors.navy,
           bottom: 0,
-          boxShadow: `0 -10px 28px ${alpha('#9f1714', 0.18)}`,
+          boxShadow: `0 -8px 24px ${alpha(storefrontColors.navyDark, 0.2)}`,
           color: storefrontColors.surface,
           display: { md: 'none', xs: 'grid' },
           gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
@@ -502,10 +663,31 @@ export const Header = () => {
         }}
       >
         {[
-          { icon: <HomeRoundedIcon />, label: 'Home', to: routePaths.home },
-          { icon: <FavoriteBorderRoundedIcon />, label: 'Favourites', to: routePaths.accountFavourites },
-          { icon: <SearchRoundedIcon />, label: 'Search', to: routePaths.catalog },
-          { badge: totalItems, icon: <ShoppingBagOutlinedIcon />, label: 'Cart', to: routePaths.cart },
+          {
+            icon: <HomeRoundedIcon />,
+            isActive: location.pathname === routePaths.home,
+            label: 'Home',
+            to: routePaths.home,
+          },
+          {
+            icon: <FavoriteBorderRoundedIcon />,
+            isActive: location.pathname === routePaths.accountFavourites,
+            label: 'Favourites',
+            to: routePaths.accountFavourites,
+          },
+          {
+            icon: <SearchRoundedIcon />,
+            isActive: location.pathname.startsWith(routePaths.catalog),
+            label: 'Search',
+            to: routePaths.catalog,
+          },
+          {
+            badge: totalItems,
+            icon: <ShoppingBagOutlinedIcon />,
+            isActive: location.pathname.startsWith(routePaths.cart),
+            label: 'Cart',
+            to: routePaths.cart,
+          },
         ].map((item) => (
           <Box
             aria-label={item.label}
@@ -521,7 +703,17 @@ export const Header = () => {
               position: 'relative',
               textDecoration: 'none',
               '& svg': {
-                fontSize: 31,
+                fontSize: 35,
+              },
+              '&::after': {
+                backgroundColor: '#ff8c1a',
+                bottom: 0,
+                content: '""',
+                display: item.isActive ? 'block' : 'none',
+                height: 2,
+                left: 0,
+                position: 'absolute',
+                right: 0,
               },
             }}
             to={item.to}
@@ -568,7 +760,17 @@ export const Header = () => {
             position: 'relative',
             textDecoration: 'none',
             '& svg': {
-              fontSize: 31,
+              fontSize: 35,
+            },
+            '&::after': {
+              backgroundColor: '#ff8c1a',
+              bottom: 0,
+              content: '""',
+              display: isAccountRoute ? 'block' : 'none',
+              height: 2,
+              left: 0,
+              position: 'absolute',
+              right: 0,
             },
           }}
           to={isCustomer ? routePaths.accountWallet : undefined}
