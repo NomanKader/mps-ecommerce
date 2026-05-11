@@ -60,6 +60,39 @@ const getPromoTilePath = (tile: {
   return `${routePaths.catalog}?${params.toString()}`;
 };
 
+const highlightCatalogTargets: Record<string, { category?: string; search?: string; title: string }> = {
+  bulk: { category: 'pantry', search: 'bulk', title: 'Buy Bulk' },
+  'coming-soon': { search: 'new', title: 'Coming Soon' },
+  'custom-gift-boxes': { category: 'gifts', search: 'gift', title: 'Customised Gift Boxes' },
+  frozen: { category: 'frozen', search: 'frozen', title: 'Frozen' },
+  'gift-cards': { category: 'gifts', search: 'gift card', title: 'E-Gift Cards' },
+  'gluten-free': { category: 'pantry', search: 'gluten-free', title: 'Gluten-free' },
+  imperfect: { category: 'vegetables', search: 'ugly', title: 'Imperfect' },
+  keto: { category: 'quick-meals', search: 'keto', title: 'Keto' },
+  local: { search: 'local', title: 'Local' },
+  'must-try': { search: 'fresh', title: 'Must Try' },
+  new: { search: 'new', title: 'New' },
+  'no-sugar': { category: 'pantry', search: 'sugar', title: 'No Added Sugar' },
+  organic: { search: 'organic', title: 'Organic' },
+  promotion: { search: 'offer', title: 'Promotion' },
+  recipes: { category: 'quick-meals', search: 'recipe', title: 'Recipes' },
+  vegan: { category: 'quick-meals', search: 'vegan', title: 'Vegan' },
+};
+
+const getHighlightCatalogPath = (item: { id: string; label: string }) => {
+  const target = highlightCatalogTargets[item.id] ?? { search: item.label, title: item.label };
+  const params = new URLSearchParams({
+    category: target.category ?? 'all',
+    title: target.title,
+  });
+
+  if (target.search) {
+    params.set('search', target.search);
+  }
+
+  return `${routePaths.catalog}?${params.toString()}`;
+};
+
 const merchandisingHighlights = [
   ...featuredCategoryHighlights,
   {
@@ -1069,6 +1102,7 @@ export const HomePage = () => {
           <Stack direction="row" spacing={{ md: 1.5, xs: 1.25 }} sx={{ overflowX: 'auto', pb: 1 }}>
             {featuredCategoryHighlights.map((item) => (
               <Stack
+                component={Link}
                 key={item.id}
                 spacing={1}
                 sx={{
@@ -1082,7 +1116,14 @@ export const HomePage = () => {
                   px: 1.1,
                   py: 1.25,
                   textAlign: 'center',
+                  textDecoration: 'none',
+                  transition: 'transform 180ms ease, box-shadow 180ms ease',
+                  '&:hover': {
+                    boxShadow: `0 18px 28px ${alpha(item.color, 0.12)}`,
+                    transform: 'translateY(-2px)',
+                  },
                 }}
+                to={getHighlightCatalogPath(item)}
               >
                 <Box
                   sx={{
@@ -1489,6 +1530,7 @@ export const HomePage = () => {
           >
             {merchandisingHighlights.map((item, index) => (
               <Stack
+                component={Link}
                 key={item.id}
                 spacing={0.75}
                 sx={{
@@ -1497,7 +1539,13 @@ export const HomePage = () => {
                   pb: 1.2,
                   position: 'relative',
                   textAlign: 'center',
+                  textDecoration: 'none',
+                  transition: 'transform 180ms ease',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                  },
                 }}
+                to={getHighlightCatalogPath(item)}
               >
                 <Box
                   sx={{
