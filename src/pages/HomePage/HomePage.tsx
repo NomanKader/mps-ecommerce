@@ -60,7 +60,10 @@ const getPromoTilePath = (tile: {
   return `${routePaths.catalog}?${params.toString()}`;
 };
 
-const highlightCatalogTargets: Record<string, { category?: string; search?: string; title: string }> = {
+const highlightCatalogTargets: Record<
+  string,
+  { category?: string; search?: string; title: string }
+> = {
   bulk: { category: 'pantry', search: 'bulk', title: 'Buy Bulk' },
   'coming-soon': { search: 'new', title: 'Coming Soon' },
   'custom-gift-boxes': { category: 'gifts', search: 'gift', title: 'Customised Gift Boxes' },
@@ -89,6 +92,167 @@ const getHighlightCatalogPath = (item: { id: string; label: string }) => {
   if (target.search) {
     params.set('search', target.search);
   }
+
+  return `${routePaths.catalog}?${params.toString()}`;
+};
+
+const shopMegaMenuColumns = [
+  [
+    {
+      categoryId: 'quick-meals',
+      items: ['Appetizers', 'Sides', 'Heat & Eat', 'Italian', 'Desserts'],
+      title: 'Quick Meals',
+    },
+    {
+      categoryId: 'seafood',
+      items: ['Fish', 'Smoked Seafood', 'Prawns & Shellfish', 'Breaded Seafood', 'Canned Seafood'],
+      title: 'Seafood',
+    },
+    { categoryId: 'bakery', items: ['Cakes & Cupcakes'], title: 'Bakery' },
+    { categoryId: 'dairy', items: ['Cheese'], title: 'Dairy' },
+  ],
+  [
+    {
+      categoryId: 'dairy',
+      items: [
+        'Ice Cream & Frozen Desserts',
+        'Butter & Ghee',
+        'Long Life Milk',
+        'Plant-Based',
+        'Yoghurt',
+      ],
+      title: 'Dairy',
+    },
+    {
+      categoryId: 'pantry',
+      items: [
+        'Breakfast Cereals',
+        'Cans, Jars & Packets',
+        'Chocolates & Sweets',
+        'Deli & Dips',
+        'Condiments & Dressings',
+        'Crackers & Biscuits',
+        'Flours & Mixes',
+        'Honey, Jams & Spreads',
+        'Oil & Vinegar',
+        'Sauces & Ingredients',
+        'Pasta & Noodles',
+      ],
+      title: 'Pantry',
+    },
+  ],
+  [
+    {
+      categoryId: 'pantry',
+      items: [
+        'Pulses & Seeds',
+        'Crisps & Snacks',
+        'Rice & Grains',
+        'Spices & Seasonings',
+        'Sugar & Baking',
+        'World Foods',
+      ],
+      title: 'Pantry',
+    },
+    {
+      categoryId: 'drinks',
+      items: [
+        'Carbonated Drinks',
+        'Chocolate & Malt Drinks',
+        'Coffee',
+        'Cordials',
+        'Juice',
+        'Non Alcoholic Drinks',
+        'Tea',
+      ],
+      title: 'Drinks',
+    },
+    {
+      categoryId: 'frozen',
+      items: ['Frozen Ready Meals', 'Frozen Fruit', 'Frozen Vegetables'],
+      title: 'Frozen',
+    },
+  ],
+  [
+    {
+      categoryId: 'frozen',
+      items: [
+        'Frozen Seafood',
+        'Frozen Chips, Potatoes & Rice',
+        'Frozen Bakery',
+        'Ice Cream & Frozen Desserts',
+        'Frozen Pizza',
+        'Frozen Appetizers',
+        'Vegetarian & Vegan Food',
+      ],
+      title: 'Frozen',
+    },
+    {
+      categoryId: 'home',
+      items: [
+        'Home Fragrance',
+        'Tissue Rolls & Paper Towels',
+        'Cleaning Supplies',
+        'Kitchenware',
+        'Laundry Care',
+      ],
+      title: 'Home',
+    },
+    { categoryId: 'kids', items: ['Bathing & Grooming'], title: 'Kids' },
+  ],
+  [
+    {
+      categoryId: 'kids',
+      items: [
+        'Teething & Dental',
+        'Baby Food',
+        'Bottles & Pacifiers',
+        'Nappies & Potty Training',
+        'Nursery Items',
+      ],
+      title: 'Kids',
+    },
+    { categoryId: 'pets', items: ['Cat Care'], title: 'Pets' },
+    {
+      categoryId: 'care',
+      items: [
+        'Suncare & Outdoor',
+        'Facial Care',
+        'Bath & Shower',
+        'Dental Care',
+        'Body Care',
+        'Feminine Care',
+        'Hair Care',
+        "Men's Grooming & Skin Care",
+      ],
+      title: 'Self Care',
+    },
+    { categoryId: 'gifts', items: ['Cakes & Cupcakes'], title: 'Gifting' },
+  ],
+];
+
+const shopBrandCatalogTargets: Record<string, { category: string; search: string; title: string }> =
+  {
+    Iceland: { category: 'frozen', search: 'iceland', title: 'Iceland' },
+    'M&S': { category: 'quick-meals', search: 'marks spencer', title: 'M&S' },
+    Morrisons: { category: 'fruits', search: 'morrisons', title: 'Morrisons' },
+    redmart: { category: 'pantry', search: 'redmart', title: 'redmart' },
+    "Sainsbury's": { category: 'pantry', search: 'sainsbury', title: "Sainsbury's" },
+    SuperValu: { category: 'quick-meals', search: 'supervalu', title: 'SuperValu' },
+  };
+
+const getShopCatalogPath = (brandLabel: string, categoryId = 'all', itemLabel?: string) => {
+  const brandTarget = shopBrandCatalogTargets[brandLabel] ?? {
+    category: categoryId,
+    search: brandLabel,
+    title: brandLabel,
+  };
+  const title = itemLabel ? `${brandLabel}: ${itemLabel}` : brandLabel;
+  const params = new URLSearchParams({
+    category: itemLabel ? categoryId : brandTarget.category,
+    search: itemLabel ?? brandTarget.search,
+    title,
+  });
 
   return `${routePaths.catalog}?${params.toString()}`;
 };
@@ -776,7 +940,10 @@ export const HomePage = () => {
   const { addToCart } = useCart();
   const [activeHeroSlideIndex, setActiveHeroSlideIndex] = useState(0);
   const [activeShowcaseIndex, setActiveShowcaseIndex] = useState(0);
+  const [activeShopBrandId, setActiveShopBrandId] = useState<string | null>(null);
   const activeHeroSlide = homeHeroSlides[activeHeroSlideIndex] ?? defaultHomeHeroSlide;
+  const activeShopBrand = shopBrands.find((brand) => brand.id === activeShopBrandId);
+  const activeShopBrandIndex = shopBrands.findIndex((brand) => brand.id === activeShopBrandId);
   const activeShowcase = showcaseBanners[activeShowcaseIndex] ??
     showcaseBanners[0] ?? {
       description: '',
@@ -991,12 +1158,13 @@ export const HomePage = () => {
 
           <Grid size={{ lg: 2.5, xs: 12 }}>
             <Box
+              onMouseLeave={() => setActiveShopBrandId(null)}
               sx={{
                 ...storefrontMutedPanelSx,
                 background:
                   'linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(241,245,252,0.98) 100%)',
                 height: '100%',
-                overflow: 'hidden',
+                overflow: 'visible',
                 p: { md: 2.5, xs: 2.1 },
                 position: 'relative',
                 '&::before': {
@@ -1008,6 +1176,105 @@ export const HomePage = () => {
                 },
               }}
             >
+              {activeShopBrand ? (
+                <Box
+                  onMouseEnter={() => setActiveShopBrandId(activeShopBrand.id)}
+                  sx={{
+                    backgroundColor: storefrontColors.surface,
+                    borderRadius: 1,
+                    boxShadow: `0 18px 44px ${alpha(storefrontColors.navy, 0.16)}`,
+                    display: { lg: 'block', xs: 'none' },
+                    minHeight: 420,
+                    p: { lg: 4.5, md: 3.5 },
+                    position: 'absolute',
+                    right: 'calc(100% + 18px)',
+                    top: 42,
+                    width: 'min(72vw, 1120px)',
+                    zIndex: 20,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gap: { lg: 5.5, md: 3.5 },
+                      gridTemplateColumns: 'repeat(5, minmax(130px, 1fr))',
+                    }}
+                  >
+                    {shopMegaMenuColumns.map((column, columnIndex) => (
+                      <Stack key={columnIndex} spacing={1.45}>
+                        {column.map((section) => (
+                          <Box key={`${section.categoryId}-${section.title}`}>
+                            <Typography
+                              component={Link}
+                              onClick={() => setActiveShopBrandId(null)}
+                              sx={{
+                                color: storefrontColors.navy,
+                                display: 'inline-block',
+                                fontSize: '1.05rem',
+                                fontWeight: 900,
+                                lineHeight: 1.2,
+                                mb: 0.65,
+                                textDecoration: 'none',
+                                '&:hover': {
+                                  color: activeShopBrand.color,
+                                },
+                              }}
+                              to={getShopCatalogPath(
+                                activeShopBrand.label,
+                                section.categoryId,
+                                section.title,
+                              )}
+                              variant="h6"
+                            >
+                              {section.title}
+                            </Typography>
+                            <Stack spacing={0.42}>
+                              {section.items.map((item) => (
+                                <Typography
+                                  component={Link}
+                                  key={item}
+                                  onClick={() => setActiveShopBrandId(null)}
+                                  sx={{
+                                    color: '#555a64',
+                                    display: 'block',
+                                    fontSize: '0.98rem',
+                                    fontWeight: 650,
+                                    lineHeight: 1.25,
+                                    textDecoration: 'none',
+                                    transition: 'color 140ms ease',
+                                    '&:hover': {
+                                      color: storefrontColors.navy,
+                                    },
+                                  }}
+                                  to={getShopCatalogPath(
+                                    activeShopBrand.label,
+                                    section.categoryId,
+                                    item,
+                                  )}
+                                  variant="body2"
+                                >
+                                  {item}
+                                </Typography>
+                              ))}
+                            </Stack>
+                          </Box>
+                        ))}
+                      </Stack>
+                    ))}
+                  </Box>
+                  <Box
+                    sx={{
+                      borderColor: `transparent transparent transparent ${activeShopBrand.color}`,
+                      borderStyle: 'solid',
+                      borderWidth: '14px 0 14px 22px',
+                      filter: `drop-shadow(7px 0 8px ${alpha(storefrontColors.navy, 0.08)})`,
+                      position: 'absolute',
+                      right: -22,
+                      top: 90 + Math.max(activeShopBrandIndex, 0) * 58,
+                    }}
+                  />
+                </Box>
+              ) : null}
               <Stack spacing={0.65} sx={{ mb: 1.5, position: 'relative', zIndex: 1 }}>
                 <Box
                   sx={{
@@ -1050,6 +1317,9 @@ export const HomePage = () => {
                 {shopBrands.map((brand) => (
                   <Grid key={brand.id} size={12}>
                     <Box
+                      component={Link}
+                      onFocus={() => setActiveShopBrandId(brand.id)}
+                      onMouseEnter={() => setActiveShopBrandId(brand.id)}
                       sx={{
                         alignItems: 'center',
                         background:
@@ -1069,6 +1339,7 @@ export const HomePage = () => {
                         p: 0.8,
                         position: 'relative',
                         textAlign: 'center',
+                        textDecoration: 'none',
                         transition: 'transform 180ms ease, box-shadow 180ms ease',
                         '&:hover': {
                           boxShadow:
@@ -1077,7 +1348,12 @@ export const HomePage = () => {
                               : `0 20px 34px ${alpha(brand.color, 0.28)}`,
                           transform: 'translateY(-2px)',
                         },
+                        '&:focus-visible': {
+                          outline: `3px solid ${alpha(brand.color, 0.24)}`,
+                          outlineOffset: 2,
+                        },
                       }}
+                      to={getShopCatalogPath(brand.label)}
                     >
                       <Typography
                         sx={{

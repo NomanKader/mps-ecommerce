@@ -1,19 +1,19 @@
 export const storefrontColors = {
-  accent: '#ffd326',
-  accentSoft: '#fff2b8',
-  border: '#f1d2c5',
-  muted: '#755c52',
-  navy: '#e43224',
-  navyDark: '#b71916',
-  page: '#fff8f2',
-  slate: '#2b211c',
-  success: '#2fa84f',
+  accent: '#d8a942',
+  accentSoft: '#fff4d8',
+  border: '#eadfd4',
+  muted: '#72645a',
+  navy: '#c6251f',
+  navyDark: '#8f1717',
+  page: '#fbf7f1',
+  slate: '#201b18',
+  success: '#16834f',
   surface: '#ffffff',
-  surfaceMuted: '#fff1d6',
+  surfaceMuted: '#f6efe6',
 } as const;
 
 export const storefrontGradients = {
-  footer: 'linear-gradient(180deg, #d92d20 0%, #9f1714 100%)',
-  hero: 'linear-gradient(135deg, #f23b2d 0%, #d92d20 48%, #ffd326 100%)',
-  softHero: 'linear-gradient(180deg, #ffffff 0%, #fff8f2 100%)',
+  footer: 'linear-gradient(180deg, #b9221d 0%, #611010 100%)',
+  hero: 'linear-gradient(135deg, #9f1714 0%, #cf2d24 46%, #d8a942 100%)',
+  softHero: 'linear-gradient(180deg, #ffffff 0%, #fbf7f1 100%)',
 } as const;

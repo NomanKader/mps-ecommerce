@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap');
 
 html,
 body,
@@ -6,9 +6,15 @@ body,
   min-height: 100%;
 }
 
+html {
+  background: #fbf7f1;
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   min-width: 320px;
+  overflow-x: hidden;
 }
 
 a {
@@ -20,4 +26,32 @@ a {
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(216, 169, 66, 0.32);
+  color: #201b18;
+}
+
+* {
+  scrollbar-color: rgba(198, 37, 31, 0.34) rgba(234, 223, 212, 0.52);
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(234, 223, 212, 0.52);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #d8a942 0%, #c6251f 100%);
+  border-radius: 999px;
+}
+
+img {
+  max-width: 100%;
 }

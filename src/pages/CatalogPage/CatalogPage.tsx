@@ -569,8 +569,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#d2aa2d', icon: '🎂', id: 'celebration', label: 'Celebration' },
       { color: '#1fa44d', icon: '🌾', id: 'wholegrain', label: 'Wholegrain' },
     ],
-    filterProducts: ['Sourdough (22)', 'Croissants (18)', 'Birthday Cakes (12)', 'Cookies (28)', 'Bagels (16)', 'Dinner Rolls (24)'],
-    heroImage: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Sourdough (22)',
+      'Croissants (18)',
+      'Birthday Cakes (12)',
+      'Cookies (28)',
+      'Bagels (16)',
+      'Dinner Rolls (24)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Fresh from the oven',
     heroTitle: 'BAKERY COMFORTS',
     posterTitles: ['Warm Loaves for Every Table', 'Sweet Bakes and Cafe Treats'],
@@ -578,7 +586,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1483695028939-5bb13f8648b0?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1517433367423-c7e5b0f35086?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1517433367423-c7e5b0f35086?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'bakery shelf',
     sections: storefrontCategoryMenuItems.bakery ?? [],
     title: 'Bakery',
@@ -591,8 +600,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#d2aa2d', icon: '🧖', id: 'beauty', label: 'Beauty' },
       { color: '#35508f', icon: '🪥', id: 'dental', label: 'Dental' },
     ],
-    filterProducts: ['Body Wash (18)', 'Hand Soap (22)', 'Dental Care (19)', 'Cleaning Sprays (16)', 'Paper Goods (25)', 'Skin Care (14)'],
-    heroImage: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Body Wash (18)',
+      'Hand Soap (22)',
+      'Dental Care (19)',
+      'Cleaning Sprays (16)',
+      'Paper Goods (25)',
+      'Skin Care (14)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Clean routines',
     heroTitle: 'SELF-CARE ESSENTIALS',
     posterTitles: ['Personal Care Made Simple', 'Household Cleaning Refills'],
@@ -600,7 +617,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1583947581924-860bda6a26df?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'care cupboard',
     sections: storefrontCategoryMenuItems.care ?? [],
     title: 'Self-Care',
@@ -613,8 +631,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#d2aa2d', icon: '🥚', id: 'eggs', label: 'Breakfast' },
       { color: '#b9263d', icon: '🍦', id: 'dessert', label: 'Desserts' },
     ],
-    filterProducts: ['Fresh Milk (20)', 'Cheese (34)', 'Butter (10)', 'Yoghurt (28)', 'Eggs (16)', 'Desserts (22)'],
-    heroImage: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Fresh Milk (20)',
+      'Cheese (34)',
+      'Butter (10)',
+      'Yoghurt (28)',
+      'Eggs (16)',
+      'Desserts (22)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Chilled daily',
     heroTitle: 'DAIRY FAVOURITES',
     posterTitles: ['Milk, Yoghurt and Breakfast Basics', 'Cheese for Cooking and Boards'],
@@ -622,7 +648,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1452195100486-9cc805987862?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'chilled dairy',
     sections: storefrontCategoryMenuItems.dairy ?? [],
     title: 'Dairy',
@@ -635,8 +662,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#b9263d', icon: '🧃', id: 'lunchbox', label: 'Lunchbox' },
       { color: '#7e7b74', icon: '☕', id: 'hot-drinks', label: 'Hot Drinks' },
     ],
-    filterProducts: ['Soft Drinks (44)', 'Juices (32)', 'Water (38)', 'Coffee (21)', 'Tea (18)', 'Ice (8)'],
-    heroImage: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Soft Drinks (44)',
+      'Juices (32)',
+      'Water (38)',
+      'Coffee (21)',
+      'Tea (18)',
+      'Ice (8)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Serve cold',
     heroTitle: 'DRINKS FOR EVERY MOMENT',
     posterTitles: ['Chilled Drinks and Mixers', 'Coffee, Tea and Daily Sips'],
@@ -644,7 +679,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1523371054106-bbf80586c38c?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1534353473418-4cfa6c56fd38?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'cold drinks',
     sections: storefrontCategoryMenuItems.drinks ?? [],
     title: 'Drinks',
@@ -657,8 +693,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#1fa44d', icon: '🪴', id: 'plants', label: 'Plants' },
       { color: '#35508f', icon: '🎀', id: 'arranged', label: 'Arranged' },
     ],
-    filterProducts: ['Bouquets (28)', 'Roses (16)', 'Tulips (12)', 'Plants (20)', 'Sunflowers (9)', 'Arrangements (18)'],
-    heroImage: 'https://images.unsplash.com/photo-1468327768560-75b778cbb551?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Bouquets (28)',
+      'Roses (16)',
+      'Tulips (12)',
+      'Plants (20)',
+      'Sunflowers (9)',
+      'Arrangements (18)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1468327768560-75b778cbb551?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Fresh stems',
     heroTitle: 'FLOWERS THAT ARRIVE BRIGHT',
     posterTitles: ['Bouquets for Gifting', 'Plants and Table Arrangements'],
@@ -666,7 +710,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1519378058457-4c29a0a2efac?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1519378058457-4c29a0a2efac?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'fresh flowers',
     sections: storefrontCategoryMenuItems.flowers ?? [],
     title: 'Flowers',
@@ -679,8 +724,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#b9263d', icon: '🍨', id: 'ice-cream', label: 'Ice Cream' },
       { color: '#1fa44d', icon: '🥦', id: 'veg', label: 'Frozen Veg' },
     ],
-    filterProducts: ['Ready Meals (42)', 'Frozen Fruit (18)', 'Frozen Vegetables (26)', 'Frozen Seafood (20)', 'Frozen Chips (16)', 'Ice Cream (34)'],
-    heroImage: 'https://images.unsplash.com/photo-1488900128323-21503983a07e?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Ready Meals (42)',
+      'Frozen Fruit (18)',
+      'Frozen Vegetables (26)',
+      'Frozen Seafood (20)',
+      'Frozen Chips (16)',
+      'Ice Cream (34)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1488900128323-21503983a07e?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Stock the freezer',
     heroTitle: 'FROZEN FAVOURITES',
     posterTitles: ['Freezer Meals for Busy Nights', 'Desserts, Chips and Party Bites'],
@@ -688,7 +741,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'freezer aisle',
     sections: storefrontCategoryMenuItems.frozen ?? [],
     title: 'Frozen',
@@ -701,8 +755,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#b9263d', icon: '🍎', id: 'crisp', label: 'Crisp' },
       { color: '#1fa44d', icon: '🍇', id: 'sweet', label: 'Sweet Picks' },
     ],
-    filterProducts: ['Apples (28)', 'Bananas (14)', 'Berries (32)', 'Citrus (24)', 'Mangoes (18)', 'Melons (10)'],
-    heroImage: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Apples (28)',
+      'Bananas (14)',
+      'Berries (32)',
+      'Citrus (24)',
+      'Mangoes (18)',
+      'Melons (10)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Picked ripe',
     heroTitle: 'FRUIT THAT FEELS SEASONAL',
     posterTitles: ['Breakfast Fruit and Berries', 'Tropical Picks for Sharing'],
@@ -710,7 +772,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1518635017498-87f514b751ba?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'fresh fruit market',
     sections: storefrontCategoryMenuItems.fruits ?? [],
     title: 'Fruits',
@@ -723,8 +786,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#1fa44d', icon: '🧺', id: 'hampers', label: 'Hampers' },
       { color: '#35508f', icon: '💳', id: 'cards', label: 'Gift Cards' },
     ],
-    filterProducts: ['Gift Boxes (18)', 'E-Gift Cards (8)', 'Chocolate Gifts (22)', 'Flower Gifts (12)', 'Hampers (16)', 'Custom Gifts (10)'],
-    heroImage: 'https://images.unsplash.com/photo-1512909006721-3d6018887383?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Gift Boxes (18)',
+      'E-Gift Cards (8)',
+      'Chocolate Gifts (22)',
+      'Flower Gifts (12)',
+      'Hampers (16)',
+      'Custom Gifts (10)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1512909006721-3d6018887383?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Ready to give',
     heroTitle: 'GIFTS WITH GOOD TASTE',
     posterTitles: ['Hampers Built for Sharing', 'Flowers, Chocolate and Cards'],
@@ -732,7 +803,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'gift edit',
     sections: storefrontCategoryMenuItems.gifts ?? [],
     title: 'Gifts',
@@ -745,8 +817,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#d2aa2d', icon: '🕯️', id: 'fragrance', label: 'Fragrance' },
       { color: '#7e7b74', icon: '🧺', id: 'laundry', label: 'Laundry' },
     ],
-    filterProducts: ['Kitchen Rolls (24)', 'Cleaning (38)', 'Home Fragrance (12)', 'Laundry (22)', 'Tableware (14)', 'Batteries (10)'],
-    heroImage: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Kitchen Rolls (24)',
+      'Cleaning (38)',
+      'Home Fragrance (12)',
+      'Laundry (22)',
+      'Tableware (14)',
+      'Batteries (10)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Home ready',
     heroTitle: 'HOUSEHOLD ESSENTIALS',
     posterTitles: ['Cleaning Supplies That Work', 'Laundry, Paper and Table Basics'],
@@ -754,7 +834,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1604335399105-a0c585fd81a1?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'home essentials',
     sections: storefrontCategoryMenuItems.home ?? [],
     title: 'Home',
@@ -767,8 +848,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#21af44', icon: '🧃', id: 'lunchbox', label: 'Lunchbox' },
       { color: '#35508f', icon: '🧸', id: 'play', label: 'Play' },
     ],
-    filterProducts: ['Baby Food (18)', 'Kids Breakfast (16)', 'Lunchbox Drinks (24)', 'Kids Snacks (28)', 'Toys (14)', 'Baby Care (20)'],
-    heroImage: 'https://images.unsplash.com/photo-1546015720-b8b30df5aa27?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Baby Food (18)',
+      'Kids Breakfast (16)',
+      'Lunchbox Drinks (24)',
+      'Kids Snacks (28)',
+      'Toys (14)',
+      'Baby Care (20)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1546015720-b8b30df5aa27?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Family favourites',
     heroTitle: 'KIDS LUNCHBOX PICKS',
     posterTitles: ['Snack Packs for School Days', 'Baby Care and Little Treats'],
@@ -776,7 +865,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1587654780291-39c9404d746b?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'kids essentials',
     sections: storefrontCategoryMenuItems.kids ?? [],
     title: 'Kids',
@@ -789,8 +879,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#7e7b74', icon: '🥓', id: 'deli', label: 'Deli' },
       { color: '#d2aa2d', icon: '🍔', id: 'grill', label: 'Grill Ready' },
     ],
-    filterProducts: ['Beef (30)', 'Chicken (42)', 'Lamb (16)', 'Cold Cuts (18)', 'Sausages (20)', 'Burgers (12)'],
-    heroImage: 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Beef (30)',
+      'Chicken (42)',
+      'Lamb (16)',
+      'Cold Cuts (18)',
+      'Sausages (20)',
+      'Burgers (12)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Butcher quality',
     heroTitle: 'MEAT FOR EVERY MEAL',
     posterTitles: ['Prime Cuts and Weeknight Packs', 'Grill Picks and Deli Favourites'],
@@ -798,7 +896,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'butcher counter',
     sections: storefrontCategoryMenuItems.meat ?? [],
     title: 'Meat',
@@ -811,8 +910,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#b9263d', icon: '🍫', id: 'treats', label: 'Treats' },
       { color: '#35508f', icon: '🧂', id: 'seasoning', label: 'Seasoning' },
     ],
-    filterProducts: ['Cereals (24)', 'Cans & Jars (44)', 'Chocolate (32)', 'Condiments (28)', 'Pasta (26)', 'Rice & Grains (20)'],
-    heroImage: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Cereals (24)',
+      'Cans & Jars (44)',
+      'Chocolate (32)',
+      'Condiments (28)',
+      'Pasta (26)',
+      'Rice & Grains (20)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Cupboard ready',
     heroTitle: 'PANTRY STAPLES',
     posterTitles: ['Cans, Jars and Cooking Basics', 'Snacks, Sweets and Breakfast'],
@@ -820,7 +927,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1534723452862-4c874018d66d?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1608198093002-ad4e005484ec?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'pantry staples',
     sections: storefrontCategoryMenuItems.pantry ?? [],
     title: 'Pantry',
@@ -833,8 +941,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#d2aa2d', icon: '🦴', id: 'treats', label: 'Treats' },
       { color: '#1fa44d', icon: '🧼', id: 'care', label: 'Pet Care' },
     ],
-    filterProducts: ['Dog Food (26)', 'Cat Food (24)', 'Treats (30)', 'Pet Toys (16)', 'Pet Care (14)', 'Accessories (12)'],
-    heroImage: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Dog Food (26)',
+      'Cat Food (24)',
+      'Treats (30)',
+      'Pet Toys (16)',
+      'Pet Care (14)',
+      'Accessories (12)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Pet shelf',
     heroTitle: 'PET FOOD AND CARE',
     posterTitles: ['Meals, Treats and Toys', 'Care and Accessories'],
@@ -842,7 +958,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1591946614720-90a587da4a36?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'pet essentials',
     sections: storefrontCategoryMenuItems.pets ?? [],
     title: 'Pets',
@@ -871,7 +988,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'Cakes (14)',
       'Cheese Sticks (5)',
     ],
-    heroImage: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=1500&q=80',
+    heroImage:
+      'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'GOOD FOOD FAST',
     heroTitle: 'SAVE TIME',
     posterTitles: ['Fast, Flavourful Meals', 'Chef-made and Ready to Enjoy'],
@@ -879,7 +997,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'Iceland & the food warehouse',
     sections: storefrontCategoryMenuItems['quick-meals'] ?? [],
     title: 'Quick Meals',
@@ -892,8 +1011,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#b9263d', icon: '🍣', id: 'sushi', label: 'Sushi' },
       { color: '#7e7b74', icon: '🥫', id: 'smoked', label: 'Smoked' },
     ],
-    filterProducts: ['Fresh Fish (28)', 'Prawns (20)', 'Crab (8)', 'Lobster (6)', 'Sushi (18)', 'Smoked & Canned (14)'],
-    heroImage: 'https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Fresh Fish (28)',
+      'Prawns (20)',
+      'Crab (8)',
+      'Lobster (6)',
+      'Sushi (18)',
+      'Smoked & Canned (14)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Ocean fresh',
     heroTitle: 'SEAFOOD COUNTER',
     posterTitles: ['Fresh Catch and Shellfish', 'Sushi, Smoked and Ready Seafood'],
@@ -901,7 +1028,8 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1559737558-2f5a35f4523b?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'seafood market',
     sections: storefrontCategoryMenuItems.seafood ?? [],
     title: 'Seafood',
@@ -914,8 +1042,16 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       { color: '#b9263d', icon: '🍅', id: 'tomatoes', label: 'Tomatoes' },
       { color: '#1fa44d', icon: '🥦', id: 'brassicas', label: 'Broccoli' },
     ],
-    filterProducts: ['Leafy Greens (34)', 'Root Vegetables (28)', 'Tomatoes (22)', 'Broccoli (16)', 'Cucumbers (18)', 'Peppers (20)'],
-    heroImage: 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?auto=format&fit=crop&w=1500&q=80',
+    filterProducts: [
+      'Leafy Greens (34)',
+      'Root Vegetables (28)',
+      'Tomatoes (22)',
+      'Broccoli (16)',
+      'Cucumbers (18)',
+      'Peppers (20)',
+    ],
+    heroImage:
+      'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?auto=format&fit=crop&w=1500&q=80',
     heroKicker: 'Fresh market',
     heroTitle: 'VEGETABLES WITH CRUNCH',
     posterTitles: ['Greens, Roots and Roast Veg', 'Salad Staples and Local Picks'],
@@ -923,12 +1059,23 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
       'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
     ],
-    promoImage: 'https://images.unsplash.com/photo-1506806732259-39c2d0268443?auto=format&fit=crop&w=1600&q=80',
+    promoImage:
+      'https://images.unsplash.com/photo-1506806732259-39c2d0268443?auto=format&fit=crop&w=1600&q=80',
     promoTitle: 'fresh vegetables',
     sections: storefrontCategoryMenuItems.vegetables ?? [],
     title: 'Vegetables',
   },
 };
+
+const shopBrandCatalogTargets: Record<string, { category: string; search: string; title: string }> =
+  {
+    Iceland: { category: 'frozen', search: 'iceland', title: 'Iceland' },
+    'M&S': { category: 'quick-meals', search: 'marks spencer', title: 'M&S' },
+    Morrisons: { category: 'fruits', search: 'morrisons', title: 'Morrisons' },
+    redmart: { category: 'pantry', search: 'redmart', title: 'redmart' },
+    "Sainsbury's": { category: 'pantry', search: 'sainsbury', title: "Sainsbury's" },
+    SuperValu: { category: 'quick-meals', search: 'supervalu', title: 'SuperValu' },
+  };
 
 const quickShowcaseCategoryIds = new Set(storefrontCategories.map((category) => category.id));
 const merchandisingPageTitles = new Set([
@@ -948,6 +1095,7 @@ const merchandisingPageTitles = new Set([
   'Promotion',
   'Recipes',
   'Vegan',
+  ...Object.values(shopBrandCatalogTargets).map((target) => target.title),
 ]);
 
 const getCategoryConfig = (categoryId: string): CategoryShowcaseConfig => {
@@ -957,7 +1105,14 @@ const getCategoryConfig = (categoryId: string): CategoryShowcaseConfig => {
     categoryShowcaseConfigs[categoryId] ?? {
       accent: category?.color ?? storefrontColors.accent,
       featureHighlights: featuredCategoryHighlights.slice(0, 4),
-      filterProducts: ['Popular Picks (24)', 'New Arrivals (12)', 'Best Value (18)', 'Local (10)', 'Fresh (16)', 'Essentials (20)'],
+      filterProducts: [
+        'Popular Picks (24)',
+        'New Arrivals (12)',
+        'Best Value (18)',
+        'Local (10)',
+        'Fresh (16)',
+        'Essentials (20)',
+      ],
       heroImage: fallbackCategoryImages[0] ?? '',
       heroKicker: 'Curated picks',
       heroTitle: `${category?.label.toUpperCase() ?? 'CATEGORY'} ESSENTIALS`,
@@ -1024,7 +1179,9 @@ const getCategoryProducts = (
         ? section.label
         : `${config.title} ${index % 2 === 0 ? 'Selection' : 'Value Pack'}`;
     const imageUrl =
-      [config.heroImage, config.promoImage, ...config.posters, ...fallbackCategoryImages][index % 7] ??
+      [config.heroImage, config.promoImage, ...config.posters, ...fallbackCategoryImages][
+        index % 7
+      ] ??
       fallbackCategoryImages[0] ??
       '';
 
@@ -1055,7 +1212,7 @@ const categoryFilters = [
   'Morrisons (4)',
   'Quick Meals (907)',
   'Redmart (4)',
-  "Sainsburys (18)",
+  'Sainsburys (18)',
   'Supervalu (14)',
 ];
 
@@ -1076,25 +1233,6 @@ const subCategoryFilters = [
   'Sushi (41)',
 ];
 
-const productFilters = [
-  'Acai (14)',
-  'African (2)',
-  'Angus Beef (2)',
-  'Arabic Sweets (6)',
-  'Asian (42)',
-  'Bean Curd (5)',
-  'Beans (2)',
-  'Beef Steak (4)',
-  'Beef Strips (2)',
-  'Beetroot (2)',
-  'Boxed Meals (6)',
-  'Breakfast Bowls (2)',
-  'Brownies (5)',
-  'Cake Jars (2)',
-  'Cakes (14)',
-  'Cheese Sticks (5)',
-];
-
 const gridSx = {
   display: 'grid',
   gap: 2,
@@ -1111,6 +1249,384 @@ const sectionTitleSx = {
   fontSize: { md: '2rem', xs: '1.55rem' },
   fontWeight: 900,
   lineHeight: 1.1,
+};
+
+const merchandisingHeroHeight = { md: 420, xs: 220 };
+const categoryHeroHeight = { md: 420, xs: 250 };
+
+const shopsPanelSx = {
+  background: 'linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(241,245,252,0.98) 100%)',
+  border: `1px solid ${alpha(storefrontColors.navy, 0.04)}`,
+  borderRadius: 2,
+  boxShadow: `0 18px 34px ${alpha(storefrontColors.navy, 0.07)}`,
+  height: '100%',
+  overflow: 'hidden',
+  p: { lg: 2.2, md: 1.8, xs: 2.1 },
+  position: 'relative',
+  '&::before': {
+    background:
+      'radial-gradient(circle at top right, rgba(24,58,122,0.09), rgba(24,58,122,0) 42%), radial-gradient(circle at bottom left, rgba(147,200,62,0.08), rgba(147,200,62,0) 30%)',
+    content: '""',
+    inset: 0,
+    position: 'absolute',
+  },
+};
+
+const shopsTitleSx = {
+  ...sectionTitleSx,
+  fontSize: { lg: '1.72rem', md: '1.38rem', sm: '1.8rem', xs: '1.55rem' },
+  letterSpacing: 0,
+  lineHeight: 0.95,
+};
+
+const shopTileSx = {
+  alignItems: 'center',
+  borderRadius: 2,
+  boxShadow: 'none',
+  display: 'flex',
+  fontSize: { lg: '0.92rem', md: '0.84rem', xs: '0.96rem' },
+  fontWeight: 900,
+  height: { lg: 41, md: 39, xs: 52 },
+  justifyContent: 'center',
+  lineHeight: 1.05,
+  minWidth: 0,
+  overflow: 'hidden',
+  px: { md: 1, xs: 1.25 },
+  position: 'relative',
+  textAlign: 'center',
+  textDecoration: 'none',
+  transition: 'transform 180ms ease, box-shadow 180ms ease',
+  whiteSpace: 'normal',
+  wordBreak: 'normal',
+};
+
+const shopMegaMenuColumns = [
+  [
+    {
+      categoryId: 'quick-meals',
+      items: ['Appetizers', 'Sides', 'Heat & Eat', 'Italian', 'Desserts'],
+      title: 'Quick Meals',
+    },
+    {
+      categoryId: 'seafood',
+      items: ['Fish', 'Smoked Seafood', 'Prawns & Shellfish', 'Breaded Seafood', 'Canned Seafood'],
+      title: 'Seafood',
+    },
+    { categoryId: 'bakery', items: ['Cakes & Cupcakes'], title: 'Bakery' },
+    { categoryId: 'dairy', items: ['Cheese'], title: 'Dairy' },
+  ],
+  [
+    {
+      categoryId: 'dairy',
+      items: [
+        'Ice Cream & Frozen Desserts',
+        'Butter & Ghee',
+        'Long Life Milk',
+        'Plant-Based',
+        'Yoghurt',
+      ],
+      title: 'Dairy',
+    },
+    {
+      categoryId: 'pantry',
+      items: [
+        'Breakfast Cereals',
+        'Cans, Jars & Packets',
+        'Chocolates & Sweets',
+        'Deli & Dips',
+        'Condiments & Dressings',
+        'Crackers & Biscuits',
+        'Flours & Mixes',
+        'Honey, Jams & Spreads',
+        'Oil & Vinegar',
+        'Sauces & Ingredients',
+        'Pasta & Noodles',
+      ],
+      title: 'Pantry',
+    },
+  ],
+  [
+    {
+      categoryId: 'pantry',
+      items: [
+        'Pulses & Seeds',
+        'Crisps & Snacks',
+        'Rice & Grains',
+        'Spices & Seasonings',
+        'Sugar & Baking',
+        'World Foods',
+      ],
+      title: 'Pantry',
+    },
+    {
+      categoryId: 'drinks',
+      items: [
+        'Carbonated Drinks',
+        'Chocolate & Malt Drinks',
+        'Coffee',
+        'Cordials',
+        'Juice',
+        'Non Alcoholic Drinks',
+        'Tea',
+      ],
+      title: 'Drinks',
+    },
+    {
+      categoryId: 'frozen',
+      items: ['Frozen Ready Meals', 'Frozen Fruit', 'Frozen Vegetables'],
+      title: 'Frozen',
+    },
+  ],
+  [
+    {
+      categoryId: 'frozen',
+      items: [
+        'Frozen Seafood',
+        'Frozen Chips, Potatoes & Rice',
+        'Frozen Bakery',
+        'Ice Cream & Frozen Desserts',
+        'Frozen Pizza',
+        'Frozen Appetizers',
+        'Vegetarian & Vegan Food',
+      ],
+      title: 'Frozen',
+    },
+    {
+      categoryId: 'home',
+      items: [
+        'Home Fragrance',
+        'Tissue Rolls & Paper Towels',
+        'Cleaning Supplies',
+        'Kitchenware',
+        'Laundry Care',
+      ],
+      title: 'Home',
+    },
+    { categoryId: 'kids', items: ['Bathing & Grooming'], title: 'Kids' },
+  ],
+  [
+    {
+      categoryId: 'kids',
+      items: [
+        'Teething & Dental',
+        'Baby Food',
+        'Bottles & Pacifiers',
+        'Nappies & Potty Training',
+        'Nursery Items',
+      ],
+      title: 'Kids',
+    },
+    { categoryId: 'pets', items: ['Cat Care'], title: 'Pets' },
+    {
+      categoryId: 'care',
+      items: [
+        'Suncare & Outdoor',
+        'Facial Care',
+        'Bath & Shower',
+        'Dental Care',
+        'Body Care',
+        'Feminine Care',
+        'Hair Care',
+        "Men's Grooming & Skin Care",
+      ],
+      title: 'Self Care',
+    },
+    { categoryId: 'gifts', items: ['Cakes & Cupcakes'], title: 'Gifting' },
+  ],
+];
+
+const getShopCatalogPath = (brandLabel: string, categoryId = 'all', itemLabel?: string) => {
+  const brandTarget = shopBrandCatalogTargets[brandLabel] ?? {
+    category: categoryId,
+    search: brandLabel,
+    title: brandLabel,
+  };
+  const title = itemLabel ? `${brandLabel}: ${itemLabel}` : brandLabel;
+  const params = new URLSearchParams({
+    category: itemLabel ? categoryId : brandTarget.category,
+    search: itemLabel ?? brandTarget.search,
+    title,
+  });
+
+  return `${routePaths.catalog}?${params.toString()}`;
+};
+
+const ShopBrandsPanel = ({ height }: { height: { md: number; xs: number } }) => {
+  const [activeShopBrandId, setActiveShopBrandId] = useState<string | null>(null);
+  const activeShopBrand = shopBrands.find((brand) => brand.id === activeShopBrandId);
+  const activeShopBrandIndex = shopBrands.findIndex((brand) => brand.id === activeShopBrandId);
+
+  return (
+    <Box
+      onMouseLeave={() => setActiveShopBrandId(null)}
+      sx={{ height, position: 'relative', zIndex: 5 }}
+    >
+      {activeShopBrand ? (
+        <Box
+          onMouseEnter={() => setActiveShopBrandId(activeShopBrand.id)}
+          sx={{
+            backgroundColor: storefrontColors.surface,
+            borderRadius: 1,
+            boxShadow: `0 18px 44px ${alpha(storefrontColors.navy, 0.16)}`,
+            display: { lg: 'block', xs: 'none' },
+            minHeight: 420,
+            p: { lg: 4.5, md: 3.5 },
+            position: 'absolute',
+            right: 'calc(100% + 18px)',
+            top: 0,
+            width: 'min(72vw, 1120px)',
+            zIndex: 20,
+          }}
+        >
+          <Box
+            sx={{
+              display: 'grid',
+              gap: { lg: 5.5, md: 3.5 },
+              gridTemplateColumns: 'repeat(5, minmax(130px, 1fr))',
+            }}
+          >
+            {shopMegaMenuColumns.map((column, columnIndex) => (
+              <Stack key={columnIndex} spacing={1.45}>
+                {column.map((section) => (
+                  <Box key={`${section.categoryId}-${section.title}`}>
+                    <Typography
+                      component={Link}
+                      onClick={() => setActiveShopBrandId(null)}
+                      sx={{
+                        color: storefrontColors.navy,
+                        display: 'inline-block',
+                        fontSize: '1.05rem',
+                        fontWeight: 900,
+                        lineHeight: 1.2,
+                        mb: 0.65,
+                        textDecoration: 'none',
+                        '&:hover': {
+                          color: activeShopBrand.color,
+                        },
+                      }}
+                      to={getShopCatalogPath(
+                        activeShopBrand.label,
+                        section.categoryId,
+                        section.title,
+                      )}
+                      variant="h6"
+                    >
+                      {section.title}
+                    </Typography>
+                    <Stack spacing={0.42}>
+                      {section.items.map((item) => (
+                        <Typography
+                          component={Link}
+                          key={item}
+                          onClick={() => setActiveShopBrandId(null)}
+                          sx={{
+                            color: '#555a64',
+                            display: 'block',
+                            fontSize: '0.98rem',
+                            fontWeight: 650,
+                            lineHeight: 1.25,
+                            textDecoration: 'none',
+                            transition: 'color 140ms ease',
+                            '&:hover': {
+                              color: storefrontColors.navy,
+                            },
+                          }}
+                          to={getShopCatalogPath(activeShopBrand.label, section.categoryId, item)}
+                          variant="body2"
+                        >
+                          {item}
+                        </Typography>
+                      ))}
+                    </Stack>
+                  </Box>
+                ))}
+              </Stack>
+            ))}
+          </Box>
+          <Box
+            sx={{
+              borderColor: `transparent transparent transparent ${activeShopBrand.color}`,
+              borderStyle: 'solid',
+              borderWidth: '14px 0 14px 22px',
+              filter: `drop-shadow(7px 0 8px ${alpha(storefrontColors.navy, 0.08)})`,
+              position: 'absolute',
+              right: -22,
+              top: 130 + Math.max(activeShopBrandIndex, 0) * 46,
+            }}
+          />
+        </Box>
+      ) : null}
+
+      <Box sx={{ ...shopsPanelSx, height }}>
+        <Stack spacing={0.45} sx={{ mb: 1.15, position: 'relative', zIndex: 1 }}>
+          <Box
+            sx={{
+              alignItems: 'center',
+              backgroundColor: alpha(storefrontColors.navy, 0.07),
+              borderRadius: 999,
+              color: storefrontColors.navy,
+              display: 'inline-flex',
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              letterSpacing: 0,
+              px: 1.1,
+              py: 0.55,
+              textTransform: 'uppercase',
+              width: 'fit-content',
+            }}
+          >
+            Partner Brands
+          </Box>
+          <Typography sx={shopsTitleSx}>Our Shops</Typography>
+          <Typography
+            color={storefrontColors.muted}
+            sx={{ lineHeight: 1.4, maxWidth: 220 }}
+            variant="body2"
+          >
+            Explore trusted partner ranges in one place.
+          </Typography>
+        </Stack>
+        <Grid container spacing={0.65} sx={{ position: 'relative', zIndex: 1 }}>
+          {shopBrands.map((brand) => (
+            <Grid key={brand.id} size={12}>
+              <Box
+                component={Link}
+                onFocus={() => setActiveShopBrandId(brand.id)}
+                onMouseEnter={() => setActiveShopBrandId(brand.id)}
+                sx={{
+                  ...shopTileSx,
+                  background:
+                    brand.color === '#ffffff'
+                      ? 'linear-gradient(180deg, #ffffff 0%, #f9fbff 100%)'
+                      : `linear-gradient(180deg, ${brand.color} 0%, ${brand.color} 100%)`,
+                  border: `1px solid ${brand.color === '#ffffff' ? alpha('#e43224', 0.12) : 'transparent'}`,
+                  boxShadow:
+                    brand.color === '#ffffff'
+                      ? `0 12px 24px ${alpha('#9f1714', 0.08)}`
+                      : `0 16px 28px ${alpha(brand.color, 0.2)}`,
+                  color: brand.textColor ?? storefrontColors.navy,
+                  '&:hover': {
+                    boxShadow:
+                      brand.color === '#ffffff'
+                        ? `0 18px 30px ${alpha('#9f1714', 0.11)}`
+                        : `0 20px 34px ${alpha(brand.color, 0.28)}`,
+                    transform: 'translateY(-2px)',
+                  },
+                  '&:focus-visible': {
+                    outline: `3px solid ${alpha(brand.color, 0.24)}`,
+                    outlineOffset: 2,
+                  },
+                }}
+                to={getShopCatalogPath(brand.label)}
+              >
+                {brand.label}
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    </Box>
+  );
 };
 
 const PromoPoster = ({ imageUrl, title }: { imageUrl: string; title: string }) => (
@@ -1262,30 +1778,31 @@ const FilterPanel = ({
   </Box>
 );
 
-const featuredCatalogTargets: Record<string, { category?: string; search: string; title: string }> = {
-  bulk: { category: 'pantry', search: 'bulk', title: 'Buy Bulk' },
-  'baked-today': { category: 'bakery', search: 'fresh', title: 'Baked Today' },
-  'bright': { category: 'flowers', search: 'bright', title: 'Bright Picks' },
-  'butcher': { category: 'meat', search: 'butcher', title: 'Butcher Cut' },
-  'cafe-favourites': { category: 'bakery', search: 'cafe', title: 'Cafe Favourites' },
-  chilled: { category: 'dairy', search: 'chilled', title: 'Chilled' },
-  crisp: { category: 'fruits', search: 'crisp', title: 'Crisp' },
-  dessert: { category: 'dairy', search: 'dessert', title: 'Desserts' },
-  'daily-care': { category: 'care', search: 'care', title: 'Daily Care' },
-  'eco-friendly': { search: 'eco', title: 'Eco-Friendly' },
-  frozen: { category: 'frozen', search: 'frozen', title: 'Frozen' },
-  'gluten-free': { category: 'pantry', search: 'gluten-free', title: 'Gluten-free' },
-  imperfect: { category: 'vegetables', search: 'ugly', title: 'Imperfect' },
-  keto: { category: 'quick-meals', search: 'keto', title: 'Keto' },
-  local: { search: 'local', title: 'Local' },
-  'must-try': { search: 'fresh', title: 'Must Try' },
-  new: { search: 'new', title: 'New' },
-  'no-sugar': { category: 'pantry', search: 'sugar', title: 'No Added Sugar' },
-  organic: { search: 'organic', title: 'Organic' },
-  promotion: { search: 'offer', title: 'Promotion' },
-  recipes: { category: 'quick-meals', search: 'recipe', title: 'Recipes' },
-  vegan: { category: 'quick-meals', search: 'vegan', title: 'Vegan' },
-};
+const featuredCatalogTargets: Record<string, { category?: string; search: string; title: string }> =
+  {
+    bulk: { category: 'pantry', search: 'bulk', title: 'Buy Bulk' },
+    'baked-today': { category: 'bakery', search: 'fresh', title: 'Baked Today' },
+    bright: { category: 'flowers', search: 'bright', title: 'Bright Picks' },
+    butcher: { category: 'meat', search: 'butcher', title: 'Butcher Cut' },
+    'cafe-favourites': { category: 'bakery', search: 'cafe', title: 'Cafe Favourites' },
+    chilled: { category: 'dairy', search: 'chilled', title: 'Chilled' },
+    crisp: { category: 'fruits', search: 'crisp', title: 'Crisp' },
+    dessert: { category: 'dairy', search: 'dessert', title: 'Desserts' },
+    'daily-care': { category: 'care', search: 'care', title: 'Daily Care' },
+    'eco-friendly': { search: 'eco', title: 'Eco-Friendly' },
+    frozen: { category: 'frozen', search: 'frozen', title: 'Frozen' },
+    'gluten-free': { category: 'pantry', search: 'gluten-free', title: 'Gluten-free' },
+    imperfect: { category: 'vegetables', search: 'ugly', title: 'Imperfect' },
+    keto: { category: 'quick-meals', search: 'keto', title: 'Keto' },
+    local: { search: 'local', title: 'Local' },
+    'must-try': { search: 'fresh', title: 'Must Try' },
+    new: { search: 'new', title: 'New' },
+    'no-sugar': { category: 'pantry', search: 'sugar', title: 'No Added Sugar' },
+    organic: { search: 'organic', title: 'Organic' },
+    promotion: { search: 'offer', title: 'Promotion' },
+    recipes: { category: 'quick-meals', search: 'recipe', title: 'Recipes' },
+    vegan: { category: 'quick-meals', search: 'vegan', title: 'Vegan' },
+  };
 
 const getFeaturedCatalogPath = (item: FeatureHighlight) => {
   const target = featuredCatalogTargets[item.id] ?? {
@@ -1333,7 +1850,9 @@ const HighlightIcon = ({ item }: { item: FeatureHighlight }) => (
     >
       {item.icon}
     </Box>
-    <Typography sx={{ color: '#56585e', fontSize: '0.86rem', fontWeight: 800, textAlign: 'center' }}>
+    <Typography
+      sx={{ color: '#56585e', fontSize: '0.86rem', fontWeight: 800, textAlign: 'center' }}
+    >
       {item.label}
     </Typography>
   </Stack>
@@ -1350,12 +1869,12 @@ const CategoryFilterSidebar = ({
 }) => {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     brand: false,
-    categories: true,
+    categories: false,
     featured: false,
     origin: false,
-    products: true,
-    sort: true,
-    subCategory: true,
+    products: false,
+    sort: false,
+    subCategory: false,
   });
 
   const toggleSection = (section: string) => {
@@ -1381,29 +1900,29 @@ const CategoryFilterSidebar = ({
         backgroundColor: '#ffffff',
         border: `1px solid ${alpha('#dfe5ef', 0.95)}`,
         borderRadius: 1,
-        maxHeight: { md: 'calc(100vh - 178px)', xs: 'none' },
-        overflowY: { md: 'auto', xs: 'visible' },
-        overscrollBehavior: 'contain',
+        height: { lg: 'calc(100dvh - 166px)', md: 'calc(100dvh - 150px)', xs: 'auto' },
+        overflow: 'hidden',
         position: { md: 'sticky', xs: 'static' },
         top: { lg: 166, md: 150 },
-        '&::-webkit-scrollbar': {
-          width: 6,
-        },
-        '&::-webkit-scrollbar-thumb': {
-          backgroundColor: alpha(storefrontColors.navy, 0.22),
-          borderRadius: 999,
-        },
       }}
     >
       <FilterPanel
         embedded
         expanded={expandedSections.sort}
-        items={['New Arrivals', 'Price (lowest first)', 'Price (highest first)', 'From A-Z', 'From Z-A']}
+        items={[
+          'New Arrivals',
+          'Price (lowest first)',
+          'Price (highest first)',
+          'From A-Z',
+          'From Z-A',
+        ]}
         onToggle={() => toggleSection('sort')}
         title="Sort By"
       />
       <Box sx={{ borderBottom: `1px solid ${alpha('#dfe5ef', 0.95)}`, px: 1.8, py: 1.3 }}>
-        <Typography sx={{ color: '#56585e', fontSize: '0.95rem', fontWeight: 600, textAlign: 'right' }}>
+        <Typography
+          sx={{ color: '#56585e', fontSize: '0.95rem', fontWeight: 600, textAlign: 'right' }}
+        >
           Clear All
         </Typography>
       </Box>
@@ -1454,18 +1973,28 @@ const CategoryFilterSidebar = ({
 };
 
 const merchandisingHeroImages: Record<string, string> = {
-  'Buy Bulk': 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?auto=format&fit=crop&w=1500&q=80',
-  Frozen: 'https://images.unsplash.com/photo-1488900128323-21503983a07e?auto=format&fit=crop&w=1500&q=80',
-  'Gluten-free': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1500&q=80',
-  Imperfect: 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?auto=format&fit=crop&w=1500&q=80',
+  'Buy Bulk':
+    'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?auto=format&fit=crop&w=1500&q=80',
+  Frozen:
+    'https://images.unsplash.com/photo-1488900128323-21503983a07e?auto=format&fit=crop&w=1500&q=80',
+  'Gluten-free':
+    'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1500&q=80',
+  Imperfect:
+    'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?auto=format&fit=crop&w=1500&q=80',
   Keto: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1500&q=80',
-  Local: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1500&q=80',
+  Local:
+    'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1500&q=80',
   New: 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1500&q=80',
-  'No Added Sugar': 'https://images.unsplash.com/photo-1608198093002-ad4e005484ec?auto=format&fit=crop&w=1500&q=80',
-  Organic: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1500&q=80',
-  Promotion: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1500&q=80',
-  Recipes: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1500&q=80',
-  Vegan: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1500&q=80',
+  'No Added Sugar':
+    'https://images.unsplash.com/photo-1608198093002-ad4e005484ec?auto=format&fit=crop&w=1500&q=80',
+  Organic:
+    'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1500&q=80',
+  Promotion:
+    'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1500&q=80',
+  Recipes:
+    'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1500&q=80',
+  Vegan:
+    'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1500&q=80',
 };
 
 const allShowcaseProducts = [
@@ -1494,7 +2023,9 @@ const productMatchesMerchandising = (product: StoreProduct, search: string, titl
   }
 
   if (normalizedTitle === 'promotion') {
-    return haystack.includes('offer') || haystack.includes('promotion') || haystack.includes('sale');
+    return (
+      haystack.includes('offer') || haystack.includes('promotion') || haystack.includes('sale')
+    );
   }
 
   if (normalizedTitle === 'new') {
@@ -1525,7 +2056,10 @@ const getMerchandisingProducts = (title: string, category: string, search: strin
     ...fallbackProducts.browsing,
   ];
 
-  return Array.from(new Map(mergedProducts.map((product) => [product.id, product])).values()).slice(0, 24);
+  return Array.from(new Map(mergedProducts.map((product) => [product.id, product])).values()).slice(
+    0,
+    24,
+  );
 };
 
 const MerchandisingCollectionPage = ({
@@ -1544,7 +2078,9 @@ const MerchandisingCollectionPage = ({
   const collectionProducts = getMerchandisingProducts(title, category, search);
   const shopMenuItems =
     category === 'all'
-      ? storefrontCategories.filter((item) => item.id !== 'pets' && item.id !== 'gifts').slice(0, 12)
+      ? storefrontCategories
+          .filter((item) => item.id !== 'pets' && item.id !== 'gifts')
+          .slice(0, 12)
       : config.sections;
   const featureItems = [
     { color: '#7e7b74', icon: '📦', id: 'bulk', label: 'Buy Bulk' },
@@ -1568,7 +2104,7 @@ const MerchandisingCollectionPage = ({
                 backgroundPosition: 'center',
                 backgroundSize: 'cover',
                 borderRadius: 1,
-                height: { md: 300, xs: 220 },
+                height: merchandisingHeroHeight,
                 overflow: 'hidden',
                 position: 'relative',
               }}
@@ -1581,42 +2117,28 @@ const MerchandisingCollectionPage = ({
                   top: { md: 78, xs: 52 },
                 }}
               >
-                <Typography sx={{ fontSize: { md: '2.6rem', xs: '1.8rem' }, fontWeight: 300, lineHeight: 1.1 }}>
+                <Typography
+                  sx={{
+                    fontSize: { md: '2.6rem', xs: '1.8rem' },
+                    fontWeight: 300,
+                    lineHeight: 1.1,
+                  }}
+                >
                   SHOP
                 </Typography>
-                <Typography sx={{ fontSize: { md: '3.25rem', xs: '2.1rem' }, fontWeight: 900, lineHeight: 1 }}>
+                <Typography
+                  sx={{ fontSize: { md: '3.25rem', xs: '2.1rem' }, fontWeight: 900, lineHeight: 1 }}
+                >
                   {title.toUpperCase()}
                 </Typography>
-                <Box sx={{ backgroundColor: storefrontColors.accent, height: 5, mt: 2.2, width: 270 }} />
+                <Box
+                  sx={{ backgroundColor: storefrontColors.accent, height: 5, mt: 2.2, width: 270 }}
+                />
               </Box>
             </Box>
           </Grid>
           <Grid size={{ lg: 2, md: 3, xs: 12 }}>
-            <Box sx={{ backgroundColor: '#f5f5f9', borderRadius: 1, height: '100%', minHeight: 260, p: 2.4 }}>
-              <Typography sx={sectionTitleSx}>Our Shops</Typography>
-              <Grid container spacing={1.1} sx={{ mt: 2.2 }}>
-                {shopBrands.map((brand) => (
-                  <Grid key={brand.id} size={6}>
-                    <Box
-                      sx={{
-                        alignItems: 'center',
-                        backgroundColor: brand.color,
-                        borderRadius: 0.6,
-                        color: brand.textColor ?? storefrontColors.navy,
-                        display: 'flex',
-                        fontSize: brand.id === 'marks-spencer' ? '1.25rem' : '1rem',
-                        fontWeight: 900,
-                        height: 58,
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                      }}
-                    >
-                      {brand.label}
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-            </Box>
+            <ShopBrandsPanel height={merchandisingHeroHeight} />
           </Grid>
         </Grid>
 
@@ -1624,11 +2146,25 @@ const MerchandisingCollectionPage = ({
           <Typography sx={sectionTitleSx}>Shop {title}</Typography>
           <Stack direction="row" spacing={4.5} sx={{ mt: 2.2, overflowX: 'auto', pb: 1.4 }}>
             {shopMenuItems.map((item) => (
-              <Stack key={item.label} spacing={0.85} sx={{ alignItems: 'center', flex: '0 0 auto', minWidth: 98 }}>
-                <Typography aria-hidden="true" sx={{ color: '#b9263d', fontSize: '2.5rem', lineHeight: 1 }}>
+              <Stack
+                key={item.label}
+                spacing={0.85}
+                sx={{ alignItems: 'center', flex: '0 0 auto', minWidth: 98 }}
+              >
+                <Typography
+                  aria-hidden="true"
+                  sx={{ color: '#b9263d', fontSize: '2.5rem', lineHeight: 1 }}
+                >
                   {item.icon}
                 </Typography>
-                <Typography sx={{ color: '#4d4f56', fontSize: '0.92rem', fontWeight: 600, textAlign: 'center' }}>
+                <Typography
+                  sx={{
+                    color: '#4d4f56',
+                    fontSize: '0.92rem',
+                    fontWeight: 600,
+                    textAlign: 'center',
+                  }}
+                >
                   {item.label}
                 </Typography>
               </Stack>
@@ -1698,7 +2234,7 @@ const CategoryShowcasePage = ({
                 backgroundPosition: 'center',
                 backgroundSize: 'cover',
                 borderRadius: 1,
-                height: { md: 355, xs: 250 },
+                height: categoryHeroHeight,
                 overflow: 'hidden',
                 position: 'relative',
               }}
@@ -1714,7 +2250,13 @@ const CategoryShowcasePage = ({
                   top: { md: 58, xs: 48 },
                 }}
               >
-                <Typography sx={{ fontSize: { md: '2.1rem', xs: '1.6rem' }, fontWeight: 300, lineHeight: 1.05 }}>
+                <Typography
+                  sx={{
+                    fontSize: { md: '2.1rem', xs: '1.6rem' },
+                    fontWeight: 300,
+                    lineHeight: 1.05,
+                  }}
+                >
                   <Box component="span" sx={{ display: 'block', fontWeight: 900 }}>
                     {config.heroTitle}
                   </Box>
@@ -1724,202 +2266,189 @@ const CategoryShowcasePage = ({
               </Box>
             </Box>
           </Grid>
-        <Grid size={{ lg: 2, md: 3, xs: 12 }}>
-          <Box sx={{ backgroundColor: '#f5f5f9', borderRadius: 1, height: '100%', minHeight: 280, p: 2.4 }}>
-            <Typography sx={sectionTitleSx}>Our Shops</Typography>
-            <Grid container spacing={1.1} sx={{ mt: 2.2 }}>
-              {shopBrands.map((brand) => (
-                <Grid key={brand.id} size={6}>
-                  <Box
-                    sx={{
-                      alignItems: 'center',
-                      backgroundColor: brand.color,
-                      borderRadius: 0.6,
-                      color: brand.textColor ?? storefrontColors.navy,
-                      display: 'flex',
-                      fontSize: brand.id === 'marks-spencer' ? '1.25rem' : '1rem',
-                      fontWeight: 900,
-                      height: 58,
-                      justifyContent: 'center',
-                      textAlign: 'center',
-                    }}
-                  >
-                    {brand.label}
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
+          <Grid size={{ lg: 2, md: 3, xs: 12 }}>
+            <ShopBrandsPanel height={categoryHeroHeight} />
+          </Grid>
         </Grid>
-      </Grid>
 
-      <Box>
-        <Typography sx={sectionTitleSx}>Shop {config.title}</Typography>
-        <Stack
-          direction="row"
-          spacing={3.4}
+        <Box>
+          <Typography sx={sectionTitleSx}>Shop {config.title}</Typography>
+          <Stack
+            direction="row"
+            spacing={3.4}
+            sx={{
+              mt: 2.2,
+              overflowX: 'auto',
+              pb: 1,
+              '&::-webkit-scrollbar': { height: 6 },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: alpha(storefrontColors.navy, 0.2),
+                borderRadius: 999,
+              },
+            }}
+          >
+            {config.sections.map((section) => (
+              <Stack
+                key={section.label}
+                spacing={0.7}
+                sx={{ alignItems: 'center', flex: '0 0 auto', minWidth: 104 }}
+              >
+                <Box
+                  sx={{
+                    alignItems: 'center',
+                    display: 'flex',
+                    fontSize: '2.6rem',
+                    height: 68,
+                    justifyContent: 'center',
+                  }}
+                >
+                  {section.icon}
+                </Box>
+                <Typography
+                  sx={{
+                    color: '#4d4f56',
+                    fontSize: '0.92rem',
+                    fontWeight: 600,
+                    textAlign: 'center',
+                  }}
+                >
+                  {section.label}
+                </Typography>
+              </Stack>
+            ))}
+          </Stack>
+        </Box>
+
+        <Box sx={{ borderTop: `1px solid ${alpha('#dfe5ef', 0.75)}`, pt: 3.4 }}>
+          <Typography sx={sectionTitleSx}>Top Offers</Typography>
+          <Box sx={{ ...gridSx, mt: 2.6 }}>
+            {products.topOffers.map((product) => (
+              <StoreProductCard key={product.id} onAddToCart={onAddToCart} product={product} />
+            ))}
+          </Box>
+        </Box>
+
+        <Box>
+          <Typography sx={sectionTitleSx}>New Products</Typography>
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: {
+                lg: 'repeat(6, minmax(0, 1fr))',
+                md: 'repeat(3, minmax(0, 1fr))',
+                sm: 'repeat(2, minmax(0, 1fr))',
+                xs: '1fr',
+              },
+              mt: 2.6,
+            }}
+          >
+            {products.newProducts.map((product) => (
+              <StoreProductCard key={product.id} onAddToCart={onAddToCart} product={product} />
+            ))}
+          </Box>
+        </Box>
+
+        <Box
           sx={{
-            mt: 2.2,
-            overflowX: 'auto',
-            pb: 1,
-            '&::-webkit-scrollbar': { height: 6 },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: alpha(storefrontColors.navy, 0.2),
-              borderRadius: 999,
-            },
+            backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.1)), url(${config.promoImage})`,
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+            borderRadius: 1,
+            height: { md: 318, xs: 220 },
+            overflow: 'hidden',
+            position: 'relative',
           }}
         >
-          {config.sections.map((section) => (
-            <Stack key={section.label} spacing={0.7} sx={{ alignItems: 'center', flex: '0 0 auto', minWidth: 104 }}>
+          <Box
+            sx={{
+              backgroundColor: '#ffffff',
+              boxShadow: `0 12px 26px ${alpha('#000000', 0.18)}`,
+              color: storefrontColors.navy,
+              fontSize: { md: '3rem', xs: '1.85rem' },
+              fontWeight: 900,
+              left: '50%',
+              px: { md: 4, xs: 2 },
+              py: { md: 2.2, xs: 1.5 },
+              position: 'absolute',
+              textAlign: 'center',
+              textTransform: 'lowercase',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: { md: 560, xs: '78%' },
+            }}
+          >
+            {config.promoTitle}
+          </Box>
+          <Button
+            sx={{
+              backgroundColor: storefrontColors.navy,
+              borderRadius: 0,
+              bottom: 34,
+              color: '#ffffff',
+              fontSize: '1.4rem',
+              fontWeight: 900,
+              px: 3.4,
+              py: 1,
+              position: 'absolute',
+              right: 34,
+              textTransform: 'uppercase',
+              '&:hover': { backgroundColor: storefrontColors.navyDark },
+            }}
+          >
+            Shop Now
+          </Button>
+        </Box>
+
+        <Box>
+          <Typography sx={sectionTitleSx}>Featured Categories</Typography>
+          <Stack direction="row" spacing={2.8} sx={{ mt: 2.2, overflowX: 'auto', pb: 1.4 }}>
+            {config.featureHighlights.map((item) => (
+              <HighlightIcon item={item} key={item.id} />
+            ))}
+          </Stack>
+        </Box>
+
+        <Box>
+          <Typography sx={sectionTitleSx}>Have You Seen</Typography>
+          <Grid container spacing={2.6} sx={{ mt: 2.6 }}>
+            <Grid size={{ lg: 2, md: 3, xs: 12 }} sx={{ alignSelf: 'flex-start' }}>
+              <CategoryFilterSidebar
+                categoryTitle={config.title}
+                productFilters={config.filterProducts}
+                sections={config.sections}
+              />
+            </Grid>
+            <Grid size={{ lg: 10, md: 9, xs: 12 }}>
               <Box
                 sx={{
-                  alignItems: 'center',
-                  display: 'flex',
-                  fontSize: '2.6rem',
-                  height: 68,
-                  justifyContent: 'center',
+                  display: 'grid',
+                  gap: 2,
+                  gridTemplateColumns: {
+                    lg: 'repeat(5, minmax(0, 1fr))',
+                    md: 'repeat(3, minmax(0, 1fr))',
+                    sm: 'repeat(2, minmax(0, 1fr))',
+                    xs: '1fr',
+                  },
                 }}
               >
-                {section.icon}
+                <PromoPoster
+                  imageUrl={config.posters[0] ?? config.heroImage}
+                  title={config.posterTitles[0] ?? `${config.title} Picks`}
+                />
+                <PromoPoster
+                  imageUrl={config.posters[1] ?? config.promoImage}
+                  title={config.posterTitles[1] ?? `${config.title} Essentials`}
+                />
+                {products.browsing.map((product) => (
+                  <StoreProductCard key={product.id} onAddToCart={onAddToCart} product={product} />
+                ))}
               </Box>
-              <Typography sx={{ color: '#4d4f56', fontSize: '0.92rem', fontWeight: 600, textAlign: 'center' }}>
-                {section.label}
-              </Typography>
-            </Stack>
-          ))}
-        </Stack>
-      </Box>
-
-      <Box sx={{ borderTop: `1px solid ${alpha('#dfe5ef', 0.75)}`, pt: 3.4 }}>
-        <Typography sx={sectionTitleSx}>Top Offers</Typography>
-        <Box sx={{ ...gridSx, mt: 2.6 }}>
-          {products.topOffers.map((product) => (
-            <StoreProductCard key={product.id} onAddToCart={onAddToCart} product={product} />
-          ))}
-        </Box>
-      </Box>
-
-      <Box>
-        <Typography sx={sectionTitleSx}>New Products</Typography>
-        <Box
-          sx={{
-            display: 'grid',
-            gap: 2,
-            gridTemplateColumns: {
-              lg: 'repeat(6, minmax(0, 1fr))',
-              md: 'repeat(3, minmax(0, 1fr))',
-              sm: 'repeat(2, minmax(0, 1fr))',
-              xs: '1fr',
-            },
-            mt: 2.6,
-          }}
-        >
-          {products.newProducts.map((product) => (
-            <StoreProductCard key={product.id} onAddToCart={onAddToCart} product={product} />
-          ))}
-        </Box>
-      </Box>
-
-      <Box
-        sx={{
-          backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.1)), url(${config.promoImage})`,
-          backgroundPosition: 'center',
-          backgroundSize: 'cover',
-          borderRadius: 1,
-          height: { md: 318, xs: 220 },
-          overflow: 'hidden',
-          position: 'relative',
-        }}
-      >
-        <Box
-          sx={{
-            backgroundColor: '#ffffff',
-            boxShadow: `0 12px 26px ${alpha('#000000', 0.18)}`,
-            color: storefrontColors.navy,
-            fontSize: { md: '3rem', xs: '1.85rem' },
-            fontWeight: 900,
-            left: '50%',
-            px: { md: 4, xs: 2 },
-            py: { md: 2.2, xs: 1.5 },
-            position: 'absolute',
-            textAlign: 'center',
-            textTransform: 'lowercase',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: { md: 560, xs: '78%' },
-          }}
-        >
-          {config.promoTitle}
-        </Box>
-        <Button
-          sx={{
-            backgroundColor: storefrontColors.navy,
-            borderRadius: 0,
-            bottom: 34,
-            color: '#ffffff',
-            fontSize: '1.4rem',
-            fontWeight: 900,
-            px: 3.4,
-            py: 1,
-            position: 'absolute',
-            right: 34,
-            textTransform: 'uppercase',
-            '&:hover': { backgroundColor: storefrontColors.navyDark },
-          }}
-        >
-          Shop Now
-        </Button>
-      </Box>
-
-      <Box>
-        <Typography sx={sectionTitleSx}>Featured Categories</Typography>
-        <Stack direction="row" spacing={2.8} sx={{ mt: 2.2, overflowX: 'auto', pb: 1.4 }}>
-          {config.featureHighlights.map((item) => (
-            <HighlightIcon item={item} key={item.id} />
-          ))}
-        </Stack>
-      </Box>
-
-      <Box>
-        <Typography sx={sectionTitleSx}>Have You Seen</Typography>
-        <Grid container spacing={2.6} sx={{ mt: 2.6 }}>
-          <Grid size={{ lg: 2, md: 3, xs: 12 }} sx={{ alignSelf: 'flex-start' }}>
-            <CategoryFilterSidebar
-              categoryTitle={config.title}
-              productFilters={config.filterProducts}
-              sections={config.sections}
-            />
+            </Grid>
           </Grid>
-          <Grid size={{ lg: 10, md: 9, xs: 12 }}>
-            <Box
-              sx={{
-                display: 'grid',
-                gap: 2,
-                gridTemplateColumns: {
-                  lg: 'repeat(5, minmax(0, 1fr))',
-                  md: 'repeat(3, minmax(0, 1fr))',
-                  sm: 'repeat(2, minmax(0, 1fr))',
-                  xs: '1fr',
-                },
-              }}
-            >
-              <PromoPoster
-                imageUrl={config.posters[0] ?? config.heroImage}
-                title={config.posterTitles[0] ?? `${config.title} Picks`}
-              />
-              <PromoPoster
-                imageUrl={config.posters[1] ?? config.promoImage}
-                title={config.posterTitles[1] ?? `${config.title} Essentials`}
-              />
-              {products.browsing.map((product) => (
-                <StoreProductCard key={product.id} onAddToCart={onAddToCart} product={product} />
-              ))}
-            </Box>
-          </Grid>
-        </Grid>
-      </Box>
-    </Stack>
-  </Box>
+        </Box>
+      </Stack>
+    </Box>
   );
 };
 
