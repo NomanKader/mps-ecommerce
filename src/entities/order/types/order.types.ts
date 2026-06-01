@@ -10,7 +10,7 @@ export type Order = {
   itemCount: number;
   orderNumber: string;
   region?: string;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'fulfilled' | 'cancelled';
   township?: string;
   totalAmount: number;
 };

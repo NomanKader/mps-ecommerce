@@ -1,15 +1,28 @@
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
-import { Chip, Grid, InputAdornment, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import {
+  Alert,
+  Chip,
+  Grid,
+  InputAdornment,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
 import { type GridColDef } from '@mui/x-data-grid';
-import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 
+import { adminApi } from '@features/admin/api/adminApi';
+import type { AdminCustomer } from '@features/admin/types/admin.types';
+import { useDebounce } from '@hooks/useDebounce';
+import { toApiError } from '@shared/api/apiError';
 import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
-import { type DemoCustomer, mockCustomers } from '@shared/lib/mockData';
 import { formatCurrency } from '@utils/formatCurrency';
 import { formatDate } from '@utils/formatDate';
 
-type SegmentFilter = DemoCustomer['segment'] | 'all';
+type SegmentFilter = AdminCustomer['segment'] | 'all';
 
 const segmentOptions: Array<{ label: string; value: SegmentFilter }> = [
   { label: 'All segments', value: 'all' },
@@ -19,32 +32,21 @@ const segmentOptions: Array<{ label: string; value: SegmentFilter }> = [
   { label: 'At Risk', value: 'At Risk' },
 ];
 
-const toDateInputValue = (date: string) => date.slice(0, 10);
-
 export const CustomersPage = () => {
-  const [customers] = useState<DemoCustomer[]>(mockCustomers);
-  const [endDate, setEndDate] = useState('');
   const [search, setSearch] = useState('');
   const [segmentFilter, setSegmentFilter] = useState<SegmentFilter>('all');
-  const [startDate, setStartDate] = useState('');
+  const debouncedSearch = useDebounce(search);
+  const customersQuery = useQuery({
+    queryFn: ({ signal }) =>
+      adminApi.listCustomers(
+        { search: debouncedSearch, segment: segmentFilter === 'all' ? undefined : segmentFilter },
+        { signal },
+      ),
+    queryKey: ['admin', 'customers', debouncedSearch, segmentFilter],
+  });
+  const customers = customersQuery.data ?? [];
 
-  const filteredCustomers = useMemo(
-    () =>
-      customers.filter((customer) => {
-        const normalizedSearch = search.trim().toLowerCase();
-        const searchableValue = [customer.name, customer.email, customer.segment].join(' ').toLowerCase();
-        const lastOrderDate = toDateInputValue(customer.lastOrderAt);
-        const matchesSearch = normalizedSearch ? searchableValue.includes(normalizedSearch) : true;
-        const matchesSegment = segmentFilter === 'all' || customer.segment === segmentFilter;
-        const matchesStartDate = startDate ? lastOrderDate >= startDate : true;
-        const matchesEndDate = endDate ? lastOrderDate <= endDate : true;
-
-        return matchesSearch && matchesSegment && matchesStartDate && matchesEndDate;
-      }),
-    [customers, endDate, search, segmentFilter, startDate],
-  );
-
-  const columns: GridColDef<DemoCustomer>[] = [
+  const columns: GridColDef<AdminCustomer>[] = [
     { field: 'name', flex: 1, headerName: 'Customer', minWidth: 180 },
     { field: 'email', flex: 1, headerName: 'Email', minWidth: 220 },
     {
@@ -70,7 +72,7 @@ export const CustomersPage = () => {
 
   return (
     <PageSection
-      description="Manage demo customer records, segments, spend, and loyalty status."
+      description="View customer records, segments, spend, and loyalty status."
       title="Customers"
     >
       <Stack
@@ -116,28 +118,30 @@ export const CustomersPage = () => {
           ))}
         </TextField>
         <TextField
+          disabled
+          helperText="Date filtering is not available from the backend yet."
           label="Last order from"
-          onChange={(event) => setStartDate(event.target.value)}
           slotProps={{ inputLabel: { shrink: true } }}
           type="date"
-          value={startDate}
         />
         <TextField
+          disabled
           label="Last order to"
-          onChange={(event) => setEndDate(event.target.value)}
           slotProps={{ inputLabel: { shrink: true } }}
           type="date"
-          value={endDate}
         />
         <Typography color="text.secondary" sx={{ ml: { lg: 'auto' } }} variant="body2">
-          Showing {filteredCustomers.length} of {customers.length}
+          Showing {customers.length}
         </Typography>
       </Stack>
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12 }}>
           <Stack>
-            <AppDataTable columns={columns} rows={filteredCustomers} />
+            {customersQuery.isError ? (
+              <Alert severity="error">{toApiError(customersQuery.error).message}</Alert>
+            ) : null}
+            <AppDataTable columns={columns} loading={customersQuery.isLoading} rows={customers} />
           </Stack>
         </Grid>
       </Grid>

@@ -13,7 +13,7 @@ import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import { Badge, Box, Button, IconButton, Stack, Toolbar, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
@@ -25,11 +25,9 @@ import {
   storefrontCategoryMenuItems,
 } from '@features/home/data/homePage.data';
 import { useCart } from '@features/cart/hooks/useCart';
-import { authService } from '@services/auth/auth.service';
+import { useSignOut } from '@features/auth/hooks/useSignOut';
 import { storefrontIconButtonSx } from '@shared/styles/storefront';
 import type { RootState } from '@store/index';
-import { useAppDispatch } from '@store/hooks';
-import { clearSession } from '@store/slices/auth.slice';
 
 const getCatalogPath = (categoryId: string, title: string, search?: string) => {
   const params = new URLSearchParams({
@@ -46,9 +44,8 @@ const getCatalogPath = (categoryId: string, title: string, search?: string) => {
 
 export const Header = () => {
   const { totalItems } = useCart();
-  const dispatch = useAppDispatch();
+  const signOut = useSignOut();
   const location = useLocation();
-  const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const [isAppPromptVisible, setIsAppPromptVisible] = useState(true);
   const [isAuthDrawerOpen, setIsAuthDrawerOpen] = useState(false);
@@ -63,12 +60,6 @@ export const Header = () => {
   const isAccountRoute =
     location.pathname.startsWith(routePaths.account) &&
     location.pathname !== routePaths.accountFavourites;
-
-  const handleSignOut = () => {
-    authService.signOut();
-    dispatch(clearSession());
-    void navigate(routePaths.home);
-  };
 
   useEffect(() => {
     const updateScrolledState = () => {
@@ -235,7 +226,7 @@ export const Header = () => {
                 <Stack
                   component="button"
                   direction="row"
-                  onClick={handleSignOut}
+                  onClick={() => void signOut()}
                   spacing={0.7}
                   sx={{
                     alignItems: 'center',

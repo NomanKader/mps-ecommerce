@@ -5,6 +5,7 @@ import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import {
+  Alert,
   Card,
   CardContent,
   Dialog,
@@ -19,35 +20,41 @@ import {
   Typography,
 } from '@mui/material';
 import { GridActionsCellItem, type GridColDef } from '@mui/x-data-grid';
-import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 
-import type { Order } from '@entities/order/types/order.types';
+import { adminApi } from '@features/admin/api/adminApi';
+import type { AdminOrder, AdminOrderStatus } from '@features/admin/types/admin.types';
 import { OrderStatusChip } from '@entities/order/ui/OrderStatusChip';
+import { useDebounce } from '@hooks/useDebounce';
+import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
-import { mockOrders } from '@shared/lib/mockData';
 import { formatCurrency } from '@utils/formatCurrency';
 import { formatDate } from '@utils/formatDate';
 
-const nextStatus: Record<Order['status'], Order['status']> = {
+const nextStatus: Record<AdminOrderStatus, AdminOrderStatus> = {
   cancelled: 'cancelled',
   delivered: 'delivered',
+  fulfilled: 'fulfilled',
   pending: 'processing',
   processing: 'shipped',
   shipped: 'delivered',
 };
 
-const statusOptions: Array<{ label: string; value: Order['status'] | 'all' }> = [
+const statusOptions: Array<{ label: string; value: AdminOrderStatus | 'all' }> = [
   { label: 'All statuses', value: 'all' },
   { label: 'Pending', value: 'pending' },
   { label: 'Processing', value: 'processing' },
   { label: 'Shipped', value: 'shipped' },
   { label: 'Delivered', value: 'delivered' },
+  { label: 'Fulfilled', value: 'fulfilled' },
   { label: 'Cancelled', value: 'cancelled' },
 ];
 
-const getAdvanceIcon = (status: Order['status']) => {
+const getAdvanceIcon = (status: AdminOrderStatus) => {
   if (status === 'pending') {
     return <Inventory2OutlinedIcon />;
   }
@@ -59,7 +66,7 @@ const getAdvanceIcon = (status: Order['status']) => {
   return <CheckCircleOutlineRoundedIcon />;
 };
 
-const getAdvanceLabel = (status: Order['status']) => {
+const getAdvanceLabel = (status: AdminOrderStatus) => {
   if (status === 'pending') {
     return 'Mark processing';
   }
@@ -71,44 +78,46 @@ const getAdvanceLabel = (status: Order['status']) => {
   return 'Mark delivered';
 };
 
-const toDateInputValue = (date: string) => date.slice(0, 10);
-
 export const OrdersManagementPage = () => {
-  const [orders, setOrders] = useState<Order[]>(mockOrders);
-  const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const queryClient = useQueryClient();
+  const [detailOrder, setDetailOrder] = useState<AdminOrder | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<AdminOrder | null>(null);
   const [endDate, setEndDate] = useState('');
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
-  const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<AdminOrderStatus | 'all'>('all');
+  const debouncedSearch = useDebounce(search);
+  const ordersQuery = useQuery({
+    queryFn: ({ signal }) =>
+      adminApi.listOrders(
+        {
+          from: startDate,
+          search: debouncedSearch,
+          status: statusFilter === 'all' ? undefined : statusFilter,
+          to: endDate,
+        },
+        { signal },
+      ),
+    queryKey: ['admin', 'orders', debouncedSearch, statusFilter, startDate, endDate],
+  });
+  const statsQuery = useQuery({
+    queryFn: ({ signal }) => adminApi.orderStats({ signal }),
+    queryKey: ['admin', 'orders', 'stats'],
+  });
+  const orders = ordersQuery.data ?? [];
+  const stats = statsQuery.data ?? { fulfilled: 0, netRevenue: 0, openOrders: 0 };
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: AdminOrderStatus }) =>
+      adminApi.updateOrderStatus(id, status),
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
+      toast.success(result.message);
+      setCancelTarget(null);
+    },
+  });
 
-  const filteredOrders = useMemo(
-    () =>
-      orders.filter((order) => {
-        const normalizedSearch = search.trim().toLowerCase();
-        const searchableValue = [
-          order.orderNumber,
-          order.customerName,
-          order.customerEmail,
-          order.customerPhone,
-          order.region,
-          order.township,
-          order.deliveryAddress,
-          order.paymentMethod,
-        ]
-          .join(' ')
-          .toLowerCase();
-        const orderDate = toDateInputValue(order.createdAt);
-        const matchesSearch = normalizedSearch ? searchableValue.includes(normalizedSearch) : true;
-        const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-        const matchesStartDate = startDate ? orderDate >= startDate : true;
-        const matchesEndDate = endDate ? orderDate <= endDate : true;
-
-        return matchesSearch && matchesStatus && matchesStartDate && matchesEndDate;
-      }),
-    [endDate, orders, search, startDate, statusFilter],
-  );
-
-  const columns: GridColDef<Order>[] = [
+  const columns: GridColDef<AdminOrder>[] = [
     { field: 'orderNumber', flex: 1, headerName: 'Order #', minWidth: 130 },
     { field: 'customerName', flex: 1.2, headerName: 'Customer', minWidth: 180 },
     { field: 'itemCount', headerName: 'Items', width: 90 },
@@ -140,28 +149,22 @@ export const OrdersManagementPage = () => {
           onClick={() => setDetailOrder(row)}
         />,
         <GridActionsCellItem
-          disabled={row.status === 'delivered' || row.status === 'cancelled'}
+          disabled={
+            row.status === 'delivered' || row.status === 'fulfilled' || row.status === 'cancelled'
+          }
           icon={getAdvanceIcon(row.status)}
           key="advance"
           label={getAdvanceLabel(row.status)}
-          onClick={() =>
-            setOrders((current) =>
-              current.map((order) =>
-                order.id === row.id ? { ...order, status: nextStatus[order.status] } : order,
-              ),
-            )
-          }
+          onClick={() => statusMutation.mutate({ id: row.id, status: nextStatus[row.status] })}
         />,
         <GridActionsCellItem
-          disabled={row.status === 'cancelled' || row.status === 'delivered'}
+          disabled={
+            row.status === 'cancelled' || row.status === 'delivered' || row.status === 'fulfilled'
+          }
           icon={<BlockOutlinedIcon />}
           key="cancel"
           label="Cancel order"
-          onClick={() =>
-            setOrders((current) =>
-              current.map((order) => (order.id === row.id ? { ...order, status: 'cancelled' } : order)),
-            )
-          }
+          onClick={() => setCancelTarget(row)}
         />,
       ],
       type: 'actions',
@@ -169,14 +172,9 @@ export const OrdersManagementPage = () => {
     },
   ];
 
-  const openOrders = orders.filter((order) => ['pending', 'processing', 'shipped'].includes(order.status));
-  const revenue = orders
-    .filter((order) => order.status !== 'cancelled')
-    .reduce((total, order) => total + order.totalAmount, 0);
-
   return (
     <PageSection
-      description="Advance fulfillment statuses, cancel orders, and monitor the demo order queue."
+      description="Advance fulfillment statuses, cancel orders, and monitor the order queue."
       title="Orders Management"
     >
       <Grid container spacing={3}>
@@ -186,7 +184,7 @@ export const OrdersManagementPage = () => {
               <Typography color="text.secondary" variant="body2">
                 Open orders
               </Typography>
-              <Typography variant="h4">{openOrders.length}</Typography>
+              <Typography variant="h4">{stats.openOrders}</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -196,7 +194,7 @@ export const OrdersManagementPage = () => {
               <Typography color="text.secondary" variant="body2">
                 Fulfilled
               </Typography>
-              <Typography variant="h4">{orders.filter((order) => order.status === 'delivered').length}</Typography>
+              <Typography variant="h4">{stats.fulfilled}</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -206,11 +204,14 @@ export const OrdersManagementPage = () => {
               <Typography color="text.secondary" variant="body2">
                 Net revenue
               </Typography>
-              <Typography variant="h4">{formatCurrency(revenue)}</Typography>
+              <Typography variant="h4">{formatCurrency(stats.netRevenue)}</Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
+      {statsQuery.isError ? (
+        <Alert severity="error">{toApiError(statsQuery.error).message}</Alert>
+      ) : null}
 
       <Stack
         direction={{ lg: 'row', xs: 'column' }}
@@ -243,7 +244,7 @@ export const OrdersManagementPage = () => {
         />
         <TextField
           label="Status"
-          onChange={(event) => setStatusFilter(event.target.value as Order['status'] | 'all')}
+          onChange={(event) => setStatusFilter(event.target.value as AdminOrderStatus | 'all')}
           select
           sx={{ minWidth: { lg: 170 } }}
           value={statusFilter}
@@ -269,15 +270,23 @@ export const OrdersManagementPage = () => {
           value={endDate}
         />
         <Typography color="text.secondary" sx={{ ml: { lg: 'auto' } }} variant="body2">
-          Showing {filteredOrders.length} of {orders.length}
+          Showing {orders.length}
         </Typography>
       </Stack>
 
       <Stack sx={{ mt: 2 }}>
-        <AppDataTable columns={columns} rows={filteredOrders} />
+        {ordersQuery.isError ? (
+          <Alert severity="error">{toApiError(ordersQuery.error).message}</Alert>
+        ) : null}
+        <AppDataTable columns={columns} loading={ordersQuery.isLoading} rows={orders} />
       </Stack>
 
-      <Dialog fullWidth maxWidth="sm" onClose={() => setDetailOrder(null)} open={Boolean(detailOrder)}>
+      <Dialog
+        fullWidth
+        maxWidth="sm"
+        onClose={() => setDetailOrder(null)}
+        open={Boolean(detailOrder)}
+      >
         <DialogTitle>Order Details</DialogTitle>
         <DialogContent>
           {detailOrder ? (
@@ -344,6 +353,31 @@ export const OrdersManagementPage = () => {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <AppButton onClick={() => setDetailOrder(null)}>Close</AppButton>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        onClose={() => setCancelTarget(null)}
+        open={Boolean(cancelTarget)}
+      >
+        <DialogTitle>Cancel Order?</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">Cancel {cancelTarget?.orderNumber}?</Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <AppButton color="inherit" onClick={() => setCancelTarget(null)} variant="outlined">
+            Keep order
+          </AppButton>
+          <AppButton
+            color="error"
+            disabled={statusMutation.isPending}
+            onClick={() =>
+              cancelTarget && statusMutation.mutate({ id: cancelTarget.id, status: 'cancelled' })
+            }
+          >
+            Cancel order
+          </AppButton>
         </DialogActions>
       </Dialog>
     </PageSection>

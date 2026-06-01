@@ -1,7 +1,9 @@
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
+  Alert,
   Chip,
   Dialog,
   DialogActions,
@@ -14,70 +16,49 @@ import {
   Typography,
 } from '@mui/material';
 import { GridActionsCellItem, type GridColDef } from '@mui/x-data-grid';
-import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 
+import { adminApi } from '@features/admin/api/adminApi';
+import type { AdminPromotion } from '@features/admin/types/admin.types';
+import { useDebounce } from '@hooks/useDebounce';
+import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
-import { type DemoPromotion, mockPromotions } from '@shared/lib/mockData';
 import { formatDate } from '@utils/formatDate';
 
-type PromotionForm = Pick<DemoPromotion, 'code' | 'discount' | 'endsAt' | 'name' | 'startsAt'>;
+type PromotionForm = Pick<AdminPromotion, 'code' | 'discount' | 'endsAt' | 'startsAt'> & {
+  campaign: string;
+};
 
 const emptyForm: PromotionForm = {
   code: '',
   discount: '',
   endsAt: '2026-06-30',
-  name: '',
+  campaign: '',
   startsAt: '2026-04-27',
 };
 
 const toDateInputValue = (date: string) => date.slice(0, 10);
 
-const getPromotionStatus = (promotion: DemoPromotion): DemoPromotion['status'] => {
-  const today = '2026-04-27';
-  const startsAt = toDateInputValue(promotion.startsAt);
-  const endsAt = toDateInputValue(promotion.endsAt);
-
-  if (today < startsAt) {
-    return 'Scheduled';
-  }
-
-  if (today > endsAt) {
-    return 'Paused';
-  }
-
-  return 'Active';
-};
-
 export const PromotionsPage = () => {
-  const [promotions, setPromotions] = useState<DemoPromotion[]>(mockPromotions);
+  const queryClient = useQueryClient();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminPromotion | null>(null);
   const [form, setForm] = useState<PromotionForm>(emptyForm);
   const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search);
+  const promotionsQuery = useQuery({
+    queryFn: ({ signal }) => adminApi.listPromotions({ search: debouncedSearch }, { signal }),
+    queryKey: ['admin', 'promotions', debouncedSearch],
+  });
+  const promotions = promotionsQuery.data ?? [];
 
-  const filteredPromotions = useMemo(
-    () =>
-      promotions.filter((promotion) => {
-        const normalizedSearch = search.trim().toLowerCase();
-        const searchableValue = [
-          promotion.name,
-          promotion.code,
-          promotion.discount,
-          getPromotionStatus(promotion),
-          formatDate(promotion.startsAt),
-          formatDate(promotion.endsAt),
-        ]
-          .join(' ')
-          .toLowerCase();
-
-        return normalizedSearch ? searchableValue.includes(normalizedSearch) : true;
-      }),
-    [promotions, search],
-  );
-
-  const columns: GridColDef<DemoPromotion>[] = [
-    { field: 'name', flex: 1, headerName: 'Campaign', minWidth: 200 },
+  const columns: GridColDef<AdminPromotion>[] = [
+    { field: 'campaign', flex: 1, headerName: 'Campaign', minWidth: 200 },
     { field: 'code', headerName: 'Code', width: 130 },
     { field: 'discount', flex: 1, headerName: 'Discount', minWidth: 220 },
     {
@@ -96,11 +77,11 @@ export const PromotionsPage = () => {
       field: 'status',
       headerName: 'Status',
       renderCell: (params) => {
-        const status = getPromotionStatus(params.row);
+        const status = params.row.status;
 
         return (
           <Chip
-            color={status === 'Active' ? 'success' : status === 'Paused' ? 'default' : 'info'}
+            color={status === 'active' ? 'success' : status === 'paused' ? 'default' : 'info'}
             label={status}
             size="small"
           />
@@ -108,15 +89,31 @@ export const PromotionsPage = () => {
       },
       width: 130,
     },
-    { field: 'redemptions', headerName: 'Uses', type: 'number', width: 100 },
+    { field: 'uses', headerName: 'Uses', type: 'number', width: 100 },
     {
       field: 'actions',
       getActions: ({ row }) => [
         <GridActionsCellItem
+          icon={<EditRoundedIcon />}
+          key="edit"
+          label="Edit"
+          onClick={() => {
+            setEditingId(row.id);
+            setForm({
+              campaign: row.campaign,
+              code: row.code,
+              discount: row.discount,
+              endsAt: toDateInputValue(row.endsAt),
+              startsAt: toDateInputValue(row.startsAt),
+            });
+            setIsPromotionDialogOpen(true);
+          }}
+        />,
+        <GridActionsCellItem
           icon={<DeleteOutlineRoundedIcon />}
           key="delete"
           label="Delete"
-          onClick={() => setPromotions((current) => current.filter((promotion) => promotion.id !== row.id))}
+          onClick={() => setDeleteTarget(row)}
         />,
       ],
       type: 'actions',
@@ -124,30 +121,49 @@ export const PromotionsPage = () => {
     },
   ];
 
-  const addPromotion = () => {
-    const name = form.name.trim();
-    const code = form.code.trim().toUpperCase();
-    const discount = form.discount.trim();
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const campaign = form.campaign.trim();
+      const code = form.code.trim().toUpperCase();
+      const discount = form.discount.trim();
 
-    if (!name || !code || !discount || !form.startsAt || !form.endsAt) {
-      return;
-    }
+      if (!campaign || !code || !discount || !form.startsAt || !form.endsAt) {
+        throw new Error('Complete the campaign, code, discount, and date fields.');
+      }
 
-    const promotionPayload: DemoPromotion = {
-      code,
-      discount,
-      endsAt: `${form.endsAt}T23:59:00Z`,
-      id: `promo-${Date.now()}`,
-      name,
-      redemptions: 0,
-      startsAt: `${form.startsAt}T00:00:00Z`,
-      status: 'Scheduled',
-    };
+      const existing = promotions.find((promotion) => promotion.id === editingId);
+      const promotionPayload = {
+        campaign,
+        code,
+        discount,
+        endsAt: new Date(`${form.endsAt}T23:59:59.999Z`).toISOString(),
+        startsAt: new Date(`${form.startsAt}T00:00:00.000Z`).toISOString(),
+        status: existing?.status ?? ('scheduled' as const),
+        uses: existing?.uses ?? 0,
+      };
 
-    setPromotions((current) => [{ ...promotionPayload, status: getPromotionStatus(promotionPayload) }, ...current]);
-    setForm(emptyForm);
-    setIsPromotionDialogOpen(false);
-  };
+      return editingId
+        ? adminApi.updatePromotion(editingId, promotionPayload)
+        : adminApi.createPromotion(promotionPayload);
+    },
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'promotions'] });
+      toast.success(result.message);
+      setEditingId(null);
+      setForm(emptyForm);
+      setIsPromotionDialogOpen(false);
+    },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: adminApi.deletePromotion,
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'promotions'] });
+      toast.success(result.message);
+      setDeleteTarget(null);
+    },
+  });
 
   return (
     <PageSection
@@ -155,6 +171,7 @@ export const PromotionsPage = () => {
         <AppButton
           onClick={() => {
             setForm(emptyForm);
+            setEditingId(null);
             setIsPromotionDialogOpen(true);
           }}
           startIcon={<AddRoundedIcon />}
@@ -162,7 +179,7 @@ export const PromotionsPage = () => {
           Add promotion
         </AppButton>
       }
-      description="Create demo campaigns, manage promotion dates, and remove outdated offers."
+      description="Create campaigns, manage promotion dates, and remove outdated offers."
       title="Promotions"
     >
       <Stack
@@ -195,7 +212,7 @@ export const PromotionsPage = () => {
           value={search}
         />
         <Typography color="text.secondary" sx={{ ml: { lg: 'auto' } }} variant="body2">
-          Showing {filteredPromotions.length} of {promotions.length}
+          Showing {promotions.length}
         </Typography>
       </Stack>
 
@@ -206,8 +223,12 @@ export const PromotionsPage = () => {
             paginationModel: { page: 0, pageSize: 10 },
           },
         }}
-        rows={filteredPromotions}
+        loading={promotionsQuery.isLoading}
+        rows={promotions}
       />
+      {promotionsQuery.isError ? (
+        <Alert severity="error">{toApiError(promotionsQuery.error).message}</Alert>
+      ) : null}
 
       <Dialog
         fullWidth
@@ -215,14 +236,16 @@ export const PromotionsPage = () => {
         onClose={() => setIsPromotionDialogOpen(false)}
         open={isPromotionDialogOpen}
       >
-        <DialogTitle>Create Promotion</DialogTitle>
+        <DialogTitle>{editingId ? 'Edit Promotion' : 'Create Promotion'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2.25} sx={{ pt: 1 }}>
             <TextField
               autoFocus
               label="Campaign name"
-              onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-              value={form.name}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, campaign: event.target.value }))
+              }
+              value={form.campaign}
             />
             <TextField
               label="Promo code"
@@ -231,7 +254,9 @@ export const PromotionsPage = () => {
             />
             <TextField
               label="Discount"
-              onChange={(event) => setForm((current) => ({ ...current, discount: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, discount: event.target.value }))
+              }
               value={form.discount}
             />
             <Grid container spacing={2}>
@@ -239,7 +264,9 @@ export const PromotionsPage = () => {
                 <TextField
                   fullWidth
                   label="Promotion start date"
-                  onChange={(event) => setForm((current) => ({ ...current, startsAt: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, startsAt: event.target.value }))
+                  }
                   slotProps={{ inputLabel: { shrink: true } }}
                   type="date"
                   value={form.startsAt}
@@ -249,7 +276,9 @@ export const PromotionsPage = () => {
                 <TextField
                   fullWidth
                   label="Promotion end date"
-                  onChange={(event) => setForm((current) => ({ ...current, endsAt: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, endsAt: event.target.value }))
+                  }
                   slotProps={{ inputLabel: { shrink: true } }}
                   type="date"
                   value={form.endsAt}
@@ -259,10 +288,39 @@ export const PromotionsPage = () => {
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <AppButton color="inherit" onClick={() => setIsPromotionDialogOpen(false)} variant="outlined">
+          <AppButton
+            color="inherit"
+            onClick={() => setIsPromotionDialogOpen(false)}
+            variant="outlined"
+          >
             Cancel
           </AppButton>
-          <AppButton onClick={addPromotion}>Add promotion</AppButton>
+          <AppButton disabled={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
+            {editingId ? 'Save promotion' : 'Add promotion'}
+          </AppButton>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        onClose={() => setDeleteTarget(null)}
+        open={Boolean(deleteTarget)}
+      >
+        <DialogTitle>Delete Promotion?</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">Delete {deleteTarget?.campaign}?</Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <AppButton color="inherit" onClick={() => setDeleteTarget(null)} variant="outlined">
+            Cancel
+          </AppButton>
+          <AppButton
+            color="error"
+            disabled={deleteMutation.isPending}
+            onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+          >
+            Delete
+          </AppButton>
         </DialogActions>
       </Dialog>
     </PageSection>

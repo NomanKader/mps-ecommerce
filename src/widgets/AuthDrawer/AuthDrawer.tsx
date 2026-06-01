@@ -1,6 +1,4 @@
-import AppleIcon from '@mui/icons-material/Apple';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import FacebookRoundedIcon from '@mui/icons-material/FacebookRounded';
 import GoogleIcon from '@mui/icons-material/Google';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
@@ -10,7 +8,6 @@ import {
   Checkbox,
   Divider,
   Drawer,
-  Alert,
   IconButton,
   InputAdornment,
   Stack,
@@ -18,17 +15,20 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { Controller } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { useEffect, useState, type ReactElement } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, type ReactElement } from 'react';
+import PhoneInputModule from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
-import { demoAdminCredentials, demoCustomerCredentials } from '@features/auth/api/authApi';
 import { useLogin } from '@features/auth/hooks/useLogin';
-import { routePaths } from '@routes/routePaths';
-import { registerSchema, type RegisterFormValues } from '@shared/validators/auth.schema';
+import { useRegister } from '@features/auth/hooks/useRegister';
+
+// This package exposes a nested default export when Vite pre-bundles its CommonJS build.
+const PhoneInput =
+  (PhoneInputModule as typeof PhoneInputModule & { default?: typeof PhoneInputModule }).default ??
+  PhoneInputModule;
 
 type AuthDrawerMode = 'login' | 'register';
 
@@ -56,9 +56,7 @@ const drawerTextFieldSx = {
 };
 
 const socialAuthButtons = [
-  { icon: <AppleIcon sx={{ color: '#111111' }} />, id: 'apple', label: 'Sign in with Apple' },
   { icon: <GoogleIcon sx={{ color: '#4285f4' }} />, id: 'google', label: 'Sign in with Google' },
-  { icon: <FacebookRoundedIcon sx={{ color: '#1877f2' }} />, id: 'facebook', label: 'Sign in with Facebook' },
 ];
 
 const drawerButtonSx = {
@@ -69,9 +67,73 @@ const drawerButtonSx = {
   textTransform: 'uppercase',
 };
 
-const SocialAuthButton = ({ icon, label }: { icon: ReactElement; label: string }) => (
+const phoneInputSx = {
+  flex: 1,
+  minWidth: 0,
+  '& .react-tel-input': {
+    fontFamily: 'inherit',
+  },
+  '& .react-tel-input .form-control': {
+    border: '1px solid #dde3ee',
+    borderRadius: 1.1,
+    color: '#30343c',
+    fontFamily: 'inherit',
+    fontSize: '1rem',
+    height: 60,
+    pl: '66px',
+    width: '100%',
+    '&:focus': {
+      borderColor: storefrontColors.navy,
+      boxShadow: `0 0 0 1px ${storefrontColors.navy}`,
+    },
+  },
+  '& .react-tel-input .flag-dropdown': {
+    backgroundColor: '#f8fafe',
+    border: '1px solid #dde3ee',
+    borderRadius: '4px 0 0 4px',
+    width: 54,
+  },
+  '& .react-tel-input .selected-flag': {
+    borderRadius: '4px 0 0 4px',
+    pl: '14px',
+    width: 54,
+    '&:hover, &:focus': {
+      backgroundColor: '#eef3fb',
+    },
+  },
+  '& .react-tel-input .country-list': {
+    borderRadius: 1.5,
+    boxShadow: '0 12px 34px rgba(29, 35, 48, 0.18)',
+    color: '#30343c',
+    maxWidth: { sm: 380, xs: 280 },
+    width: 'max-content',
+  },
+  '& .react-tel-input .country-list .search': {
+    backgroundColor: storefrontColors.surface,
+    px: 1.2,
+    py: 1,
+  },
+  '& .react-tel-input .country-list .search-box': {
+    border: '1px solid #dde3ee',
+    borderRadius: 1,
+    fontFamily: 'inherit',
+    ml: 0,
+    width: 'calc(100% - 10px)',
+  },
+};
+
+const SocialAuthButton = ({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: ReactElement;
+  label: string;
+  onClick: () => void;
+}) => (
   <Button
     fullWidth
+    onClick={onClick}
     startIcon={icon}
     sx={{
       ...drawerButtonSx,
@@ -95,60 +157,53 @@ const SocialAuthButton = ({ icon, label }: { icon: ReactElement; label: string }
 
 export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerProps) => {
   const [mode, setMode] = useState<AuthDrawerMode>(initialMode);
-  const [rememberMe, setRememberMe] = useState(false);
   const [loginPasswordVisible, setLoginPasswordVisible] = useState(false);
   const [registerPasswordVisible, setRegisterPasswordVisible] = useState(false);
   const login = useLogin({ onSuccess: onClose });
-  const registerForm = useForm<RegisterFormValues>({
-    defaultValues: {
-      email: '',
-      name: '',
-      otp: '',
-      password: '',
-      phone: '',
-    },
-    resolver: zodResolver(registerSchema),
-  });
+  const registerUser = useRegister({ onSuccess: onClose });
 
   const {
     formState: { errors: loginErrors },
     isSubmitting,
     onSubmit,
-    register,
+    register: registerLoginField,
+    reset: resetLogin,
+    setValue: setLoginValue,
+    watch: watchLogin,
   } = login;
 
   const {
     formState: { errors: registerErrors, isSubmitting: isRegisterSubmitting },
-    handleSubmit,
+    canRequestOtp,
+    control,
+    isOtpRequested,
+    isOtpRequesting,
+    isRegistering,
+    onSubmit: onRegisterSubmit,
+    otpSecondsRemaining,
     register: registerRegisterField,
-    reset,
-  } = registerForm;
+    requestOtp,
+    reset: resetRegister,
+    setPhone,
+  } = registerUser;
+  const rememberMe = watchLogin('rememberMe');
 
   const handleClose = () => {
     onClose();
     setMode(initialMode);
     setLoginPasswordVisible(false);
     setRegisterPasswordVisible(false);
+    resetLogin();
+    resetRegister();
   };
 
   const handleSwitchMode = (nextMode: AuthDrawerMode) => {
+    resetLogin();
+    resetRegister();
     setMode(nextMode);
   };
 
-  const handleRegisterSubmit = handleSubmit(async (values) => {
-    void values;
-    toast.success('Registration flow is mocked. Switching to sign in.');
-    reset();
-    setMode('login');
-  });
-
   const heading = mode === 'login' ? 'SIGN IN' : "Create your AV's Store account";
-
-  useEffect(() => {
-    if (open) {
-      setMode(initialMode);
-    }
-  }, [initialMode, open]);
 
   return (
     <Drawer
@@ -208,11 +263,6 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
 
             {mode === 'login' ? (
               <Stack component="form" onSubmit={(event) => void onSubmit(event)} spacing={2.6}>
-                <Alert severity="info">
-                  Demo customer: {demoCustomerCredentials.email} / {demoCustomerCredentials.password}
-                  <br />
-                  Demo admin: {demoAdminCredentials.email} / {demoAdminCredentials.password}
-                </Alert>
                 <TextField
                   error={Boolean(loginErrors.email)}
                   fullWidth
@@ -220,7 +270,7 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
                   label="Email"
                   slotProps={{ inputLabel: { shrink: true } }}
                   sx={drawerTextFieldSx}
-                  {...register('email')}
+                  {...registerLoginField('email')}
                 />
                 <TextField
                   error={Boolean(loginErrors.password)}
@@ -229,12 +279,15 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
                   label="Password"
                   sx={drawerTextFieldSx}
                   type={loginPasswordVisible ? 'text' : 'password'}
-                  {...register('password')}
+                  {...registerLoginField('password')}
                   slotProps={{
                     input: {
                       endAdornment: (
                         <InputAdornment position="end">
-                          <IconButton edge="end" onClick={() => setLoginPasswordVisible((current) => !current)}>
+                          <IconButton
+                            edge="end"
+                            onClick={() => setLoginPasswordVisible((current) => !current)}
+                          >
                             {loginPasswordVisible ? (
                               <VisibilityOutlinedIcon sx={{ color: storefrontColors.navy }} />
                             ) : (
@@ -248,23 +301,46 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
                   }}
                 />
 
-                <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mt: -0.5 }}>
+                <Stack
+                  direction="row"
+                  sx={{ alignItems: 'center', justifyContent: 'space-between', mt: -0.5 }}
+                >
                   <Stack direction="row" spacing={0.7} sx={{ alignItems: 'center' }}>
-                    <Checkbox checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} sx={{ p: 0 }} />
-                    <Typography sx={{ color: storefrontColors.navy, fontSize: '0.98rem', fontWeight: 500 }}>
+                    <Checkbox
+                      checked={rememberMe}
+                      onChange={(event) => setLoginValue('rememberMe', event.target.checked)}
+                      sx={{ p: 0 }}
+                    />
+                    <Typography
+                      sx={{ color: storefrontColors.navy, fontSize: '0.98rem', fontWeight: 500 }}
+                    >
                       Remember me
                     </Typography>
                   </Stack>
-                  <Typography
-                    component={Link}
-                    sx={{ color: storefrontColors.navy, fontSize: '0.98rem', fontWeight: 500, textDecoration: 'none' }}
-                    to={routePaths.auth.forgotPassword}
+                  <Box
+                    component="button"
+                    onClick={() => toast('Forgot password is coming soon.')}
+                    sx={{
+                      background: 'transparent',
+                      border: 0,
+                      color: storefrontColors.navy,
+                      cursor: 'pointer',
+                      fontSize: '0.98rem',
+                      fontWeight: 500,
+                      textDecoration: 'none',
+                    }}
+                    type="button"
                   >
                     Forgot Password?
-                  </Typography>
+                  </Box>
                 </Stack>
 
-                <Button disabled={isSubmitting} sx={drawerButtonSx} type="submit" variant="contained">
+                <Button
+                  disabled={isSubmitting}
+                  sx={drawerButtonSx}
+                  type="submit"
+                  variant="contained"
+                >
                   Sign In
                 </Button>
 
@@ -286,7 +362,9 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
 
                 <Stack direction="row" spacing={2.2} sx={{ alignItems: 'center', py: 1.2 }}>
                   <Divider sx={{ borderColor: alpha(storefrontColors.navy, 0.9), flex: 1 }} />
-                  <Typography sx={{ color: storefrontColors.navy, fontSize: '0.98rem', whiteSpace: 'nowrap' }}>
+                  <Typography
+                    sx={{ color: storefrontColors.navy, fontSize: '0.98rem', whiteSpace: 'nowrap' }}
+                  >
                     OR SIGN IN
                   </Typography>
                   <Divider sx={{ borderColor: alpha(storefrontColors.navy, 0.9), flex: 1 }} />
@@ -294,13 +372,43 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
 
                 <Stack spacing={2}>
                   {socialAuthButtons.map((button) => (
-                    <SocialAuthButton icon={button.icon} key={button.id} label={button.label} />
+                    <SocialAuthButton
+                      icon={button.icon}
+                      key={button.id}
+                      label={button.label}
+                      onClick={() => toast('Google sign-in is coming soon.')}
+                    />
                   ))}
                 </Stack>
               </Stack>
             ) : (
-              <Stack component="form" onSubmit={(event) => void handleRegisterSubmit(event)} spacing={2.4}>
+              <Stack
+                component="form"
+                onSubmit={(event) => void onRegisterSubmit(event)}
+                spacing={2.2}
+              >
+                <Box sx={{ mt: -1 }}>
+                  <Typography sx={{ color: '#69717e', fontSize: '1rem', lineHeight: 1.65 }}>
+                    Register once for faster checkout, order updates, and a more personal shopping
+                    experience.
+                  </Typography>
+                </Box>
+
+                <Typography
+                  sx={{
+                    color: storefrontColors.navy,
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.12em',
+                    pt: 0.8,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Your details
+                </Typography>
+
                 <TextField
+                  autoComplete="name"
                   error={Boolean(registerErrors.name)}
                   fullWidth
                   helperText={registerErrors.name?.message}
@@ -310,6 +418,7 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
                   {...registerRegisterField('name')}
                 />
                 <TextField
+                  autoComplete="email"
                   error={Boolean(registerErrors.email)}
                   fullWidth
                   helperText={registerErrors.email?.message}
@@ -319,52 +428,82 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
                   {...registerRegisterField('email')}
                 />
 
-                <TextField
-                  error={Boolean(registerErrors.phone)}
-                  fullWidth
-                  helperText={registerErrors.phone?.message}
-                  label="Phone Number"
-                  sx={drawerTextFieldSx}
-                  {...registerRegisterField('phone')}
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Stack direction="row" spacing={1.2} sx={{ alignItems: 'center', color: '#434955' }}>
-                            <Typography sx={{ fontSize: '1.5rem', lineHeight: 1 }}>🇦🇪</Typography>
-                            <Divider flexItem orientation="vertical" sx={{ borderColor: '#dde3ee' }} />
-                            <Typography sx={{ fontSize: '0.98rem', fontWeight: 500 }}>+971</Typography>
-                          </Stack>
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <Button
-                            sx={{
-                              alignSelf: 'stretch',
-                              backgroundColor: storefrontColors.navy,
-                              borderRadius: 0,
-                              color: storefrontColors.surface,
-                              fontSize: '0.95rem',
-                              fontWeight: 700,
-                              height: 60,
-                              px: 3,
-                              textTransform: 'none',
-                              '&:hover': {
-                                backgroundColor: storefrontColors.navyDark,
-                              },
+                <Box>
+                  <Typography
+                    sx={{ color: '#69717e', fontSize: '0.78rem', fontWeight: 700, mb: 0.75 }}
+                  >
+                    PHONE NUMBER
+                  </Typography>
+                  <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.2}>
+                    <Box sx={phoneInputSx}>
+                      <Controller
+                        control={control}
+                        name="phone"
+                        render={({ field }) => (
+                          <PhoneInput
+                            autocompleteSearch
+                            country="ae"
+                            countryCodeEditable={false}
+                            enableSearch
+                            enableTerritories
+                            inputProps={{
+                              autoComplete: 'tel',
+                              name: field.name,
                             }}
-                          >
-                            Send OTP
-                          </Button>
-                        </InputAdornment>
-                      ),
-                    },
-                    inputLabel: { shrink: true },
-                  }}
-                />
+                            onBlur={() => field.onBlur()}
+                            onChange={setPhone}
+                            placeholder="Enter phone number"
+                            preferredCountries={[
+                              'ae',
+                              'sa',
+                              'om',
+                              'qa',
+                              'bh',
+                              'kw',
+                              'in',
+                              'gb',
+                              'us',
+                            ]}
+                            searchPlaceholder="Search country"
+                            value={field.value}
+                          />
+                        )}
+                      />
+                    </Box>
+                    <Button
+                      disabled={!canRequestOtp || isOtpRequesting}
+                      onClick={requestOtp}
+                      sx={{
+                        borderRadius: 1.1,
+                        flexShrink: 0,
+                        fontSize: '0.9rem',
+                        fontWeight: 800,
+                        minHeight: 60,
+                        px: 2.4,
+                        textTransform: 'none',
+                      }}
+                      type="button"
+                      variant="contained"
+                    >
+                      {isOtpRequesting
+                        ? 'Sending...'
+                        : otpSecondsRemaining > 0
+                          ? `Resend in ${otpSecondsRemaining}s`
+                          : isOtpRequested
+                            ? 'Resend OTP'
+                            : 'Send OTP'}
+                    </Button>
+                  </Stack>
+                  {registerErrors.phone ? (
+                    <Typography sx={{ color: '#d32f2f', fontSize: '0.75rem', ml: 1.75, mt: 0.5 }}>
+                      {registerErrors.phone.message}
+                    </Typography>
+                  ) : null}
+                </Box>
 
                 <TextField
+                  autoComplete="one-time-code"
+                  disabled={!isOtpRequested}
                   error={Boolean(registerErrors.otp)}
                   fullWidth
                   helperText={registerErrors.otp?.message}
@@ -374,6 +513,7 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
                   {...registerRegisterField('otp')}
                 />
                 <TextField
+                  autoComplete="new-password"
                   error={Boolean(registerErrors.password)}
                   fullWidth
                   helperText={registerErrors.password?.message}
@@ -385,7 +525,10 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
                     input: {
                       endAdornment: (
                         <InputAdornment position="end">
-                          <IconButton edge="end" onClick={() => setRegisterPasswordVisible((current) => !current)}>
+                          <IconButton
+                            edge="end"
+                            onClick={() => setRegisterPasswordVisible((current) => !current)}
+                          >
                             {registerPasswordVisible ? (
                               <VisibilityOutlinedIcon sx={{ color: storefrontColors.navy }} />
                             ) : (
@@ -399,19 +542,30 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
                   }}
                 />
 
-                <Typography sx={{ color: '#2f3540', fontSize: '0.98rem', lineHeight: 1.65 }}>
+                <Typography sx={{ color: '#69717e', fontSize: '0.92rem', lineHeight: 1.65 }}>
                   By continuing, I agree to{' '}
-                  <Box component="span" sx={{ color: storefrontColors.navy, textDecoration: 'underline' }}>
+                  <Box
+                    component="span"
+                    sx={{ color: storefrontColors.navy, textDecoration: 'underline' }}
+                  >
                     Terms of Use
                   </Box>{' '}
                   and{' '}
-                  <Box component="span" sx={{ color: storefrontColors.navy, textDecoration: 'underline' }}>
+                  <Box
+                    component="span"
+                    sx={{ color: storefrontColors.navy, textDecoration: 'underline' }}
+                  >
                     Privacy Policy
                   </Box>
                 </Typography>
 
-                <Button disabled={isRegisterSubmitting} sx={drawerButtonSx} type="submit" variant="contained">
-                  Register User
+                <Button
+                  disabled={isRegisterSubmitting || isRegistering || !isOtpRequested}
+                  sx={drawerButtonSx}
+                  type="submit"
+                  variant="contained"
+                >
+                  {isRegistering ? 'Registering...' : 'Register User'}
                 </Button>
 
                 <Typography sx={{ color: '#4d525c', fontSize: '1rem', textAlign: 'center' }}>

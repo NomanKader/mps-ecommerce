@@ -4,6 +4,7 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
   Box,
+  Alert,
   Card,
   CardContent,
   Chip,
@@ -20,11 +21,15 @@ import {
   Typography,
 } from '@mui/material';
 import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 
-import type { Category } from '@entities/category/types/category.types';
+import { adminApi } from '@features/admin/api/adminApi';
+import type { AdminCategory } from '@features/admin/types/admin.types';
+import { useDebounce } from '@hooks/useDebounce';
+import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
-import { mockCategories } from '@shared/lib/mockData';
 
 type CategoryForm = {
   color: string;
@@ -52,45 +57,35 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
-const subcategoriesToText = (category: Category) =>
-  (category.subcategories ?? []).map((subcategory) => `${subcategory.icon} ${subcategory.name}`).join('\n');
-
-const toForm = (category: Category): CategoryForm => ({
+const toForm = (category: AdminCategory): CategoryForm => ({
   color: category.color ?? '#2db34b',
   icon: category.icon ?? '🛒',
   itemCount: String(category.itemCount),
   name: category.name,
-  subcategories: subcategoriesToText(category),
+  subcategories: category.subcategories.join('\n'),
 });
 
-const parseSubcategories = (value: string, categorySlug: string): Category['subcategories'] =>
+const parseSubcategories = (value: string) =>
   value
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => {
-      const parts = line.split(' ');
-      const iconCandidate = parts[0] ?? '•';
-      const nameParts = parts.slice(1);
-      const name = nameParts.join(' ').trim() || iconCandidate;
-      const icon = nameParts.length ? iconCandidate : '•';
-      const slug = slugify(name);
-
-      return {
-        icon,
-        id: `${categorySlug}-${slug}`,
-        name,
-        slug,
-      };
-    });
+    .map((line) => line.trim());
 
 export const CategoriesPage = () => {
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
+  const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminCategory | null>(null);
   const [filter, setFilter] = useState<CategoryFilter>('all');
   const [form, setForm] = useState<CategoryForm>(emptyForm);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search);
+  const categoriesQuery = useQuery({
+    queryFn: ({ signal }) => adminApi.listCategories({ search: debouncedSearch }, { signal }),
+    queryKey: ['admin', 'categories', debouncedSearch],
+  });
+  const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
 
   const filteredCategories = useMemo(
     () =>
@@ -100,11 +95,7 @@ export const CategoriesPage = () => {
           category.name,
           category.slug,
           category.icon,
-          ...(category.subcategories ?? []).flatMap((subcategory) => [
-            subcategory.name,
-            subcategory.slug,
-            subcategory.icon,
-          ]),
+          ...category.subcategories,
         ]
           .join(' ')
           .toLowerCase();
@@ -120,34 +111,46 @@ export const CategoriesPage = () => {
     [categories, filter, search],
   );
 
-  const saveCategory = () => {
-    const trimmedName = form.name.trim();
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const trimmedName = form.name.trim();
 
-    if (!trimmedName) {
-      return;
-    }
+      if (!trimmedName) {
+        throw new Error('Category name is required.');
+      }
 
-    const slug = slugify(trimmedName);
-    const categoryPayload: Category = {
-      color: form.color || '#2db34b',
-      icon: form.icon.trim() || '🛒',
-      id: editingId ?? slug,
-      itemCount: Number(form.itemCount) || 0,
-      name: trimmedName,
-      slug,
-      subcategories: parseSubcategories(form.subcategories, slug),
-    };
+      const slug = slugify(trimmedName);
+      const categoryPayload = {
+        color: form.color || '#2db34b',
+        icon: form.icon.trim() || '🛒',
+        itemCount: Number(form.itemCount) || 0,
+        name: trimmedName,
+        slug,
+        subcategories: parseSubcategories(form.subcategories),
+      };
 
-    setCategories((current) =>
-      editingId
-        ? current.map((category) => (category.id === editingId ? categoryPayload : category))
-        : [categoryPayload, ...current],
-    );
-
-    setEditingId(null);
-    setForm(emptyForm);
-    setIsCategoryDialogOpen(false);
-  };
+      return editingId
+        ? adminApi.updateCategory(editingId, categoryPayload)
+        : adminApi.createCategory(categoryPayload);
+    },
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
+      toast.success(result.message);
+      setEditingId(null);
+      setForm(emptyForm);
+      setIsCategoryDialogOpen(false);
+    },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: adminApi.deleteCategory,
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
+      toast.success(result.message);
+      setDeleteTarget(null);
+    },
+  });
 
   const openCreateDialog = () => {
     setEditingId(null);
@@ -155,7 +158,7 @@ export const CategoriesPage = () => {
     setIsCategoryDialogOpen(true);
   };
 
-  const openEditDialog = (category: Category) => {
+  const openEditDialog = (category: AdminCategory) => {
     setEditingId(category.id);
     setForm(toForm(category));
     setIsCategoryDialogOpen(true);
@@ -223,7 +226,10 @@ export const CategoriesPage = () => {
             <Card sx={{ borderRadius: 1, height: '100%' }}>
               <CardContent>
                 <Stack spacing={2}>
-                  <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                  <Stack
+                    direction="row"
+                    sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}
+                  >
                     <Stack direction="row" spacing={1.5} sx={{ minWidth: 0 }}>
                       <Box
                         sx={{
@@ -246,7 +252,8 @@ export const CategoriesPage = () => {
                           {category.name}
                         </Typography>
                         <Typography color="text.secondary" variant="body2">
-                          {category.itemCount} items · {(category.subcategories ?? []).length} subcategories
+                          {category.itemCount} items · {(category.subcategories ?? []).length}{' '}
+                          subcategories
                         </Typography>
                         <Typography color="text.secondary" variant="caption">
                           /{category.slug}
@@ -254,12 +261,15 @@ export const CategoriesPage = () => {
                       </Stack>
                     </Stack>
                     <Stack direction="row">
-                      <IconButton aria-label={`Edit ${category.name}`} onClick={() => openEditDialog(category)}>
+                      <IconButton
+                        aria-label={`Edit ${category.name}`}
+                        onClick={() => openEditDialog(category)}
+                      >
                         <EditRoundedIcon />
                       </IconButton>
                       <IconButton
                         aria-label={`Delete ${category.name}`}
-                        onClick={() => setCategories((current) => current.filter((item) => item.id !== category.id))}
+                        onClick={() => setDeleteTarget(category)}
                       >
                         <DeleteOutlineRoundedIcon />
                       </IconButton>
@@ -267,17 +277,14 @@ export const CategoriesPage = () => {
                   </Stack>
 
                   <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                    {(category.subcategories ?? []).slice(0, 8).map((subcategory) => (
-                      <Chip
-                        icon={<span>{subcategory.icon}</span>}
-                        key={subcategory.id}
-                        label={subcategory.name}
-                        size="small"
-                        variant="outlined"
-                      />
+                    {category.subcategories.slice(0, 8).map((subcategory) => (
+                      <Chip key={subcategory} label={subcategory} size="small" variant="outlined" />
                     ))}
                     {(category.subcategories ?? []).length > 8 ? (
-                      <Chip label={`+${(category.subcategories ?? []).length - 8} more`} size="small" />
+                      <Chip
+                        label={`+${(category.subcategories ?? []).length - 8} more`}
+                        size="small"
+                      />
                     ) : null}
                   </Stack>
                 </Stack>
@@ -286,6 +293,10 @@ export const CategoriesPage = () => {
           </Grid>
         ))}
       </Grid>
+      {categoriesQuery.isLoading ? <Alert severity="info">Loading categories...</Alert> : null}
+      {categoriesQuery.isError ? (
+        <Alert severity="error">{toApiError(categoriesQuery.error).message}</Alert>
+      ) : null}
 
       <Dialog
         fullWidth
@@ -302,7 +313,9 @@ export const CategoriesPage = () => {
                   autoFocus
                   fullWidth
                   label="Category name"
-                  onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, name: event.target.value }))
+                  }
                   value={form.name}
                 />
               </Grid>
@@ -310,7 +323,9 @@ export const CategoriesPage = () => {
                 <TextField
                   fullWidth
                   label="Icon"
-                  onChange={(event) => setForm((current) => ({ ...current, icon: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, icon: event.target.value }))
+                  }
                   value={form.icon}
                 />
               </Grid>
@@ -320,7 +335,9 @@ export const CategoriesPage = () => {
                 <TextField
                   fullWidth
                   label="Theme color"
-                  onChange={(event) => setForm((current) => ({ ...current, color: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, color: event.target.value }))
+                  }
                   value={form.color}
                 />
               </Grid>
@@ -328,7 +345,9 @@ export const CategoriesPage = () => {
                 <TextField
                   fullWidth
                   label="Item count"
-                  onChange={(event) => setForm((current) => ({ ...current, itemCount: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, itemCount: event.target.value }))
+                  }
                   type="number"
                   value={form.itemCount}
                 />
@@ -339,16 +358,49 @@ export const CategoriesPage = () => {
               label="Subcategories"
               minRows={6}
               multiline
-              onChange={(event) => setForm((current) => ({ ...current, subcategories: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, subcategories: event.target.value }))
+              }
               value={form.subcategories}
             />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <AppButton color="inherit" onClick={() => setIsCategoryDialogOpen(false)} variant="outlined">
+          <AppButton
+            color="inherit"
+            onClick={() => setIsCategoryDialogOpen(false)}
+            variant="outlined"
+          >
             Cancel
           </AppButton>
-          <AppButton onClick={saveCategory}>{editingId ? 'Save category' : 'Add category'}</AppButton>
+          <AppButton disabled={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
+            {editingId ? 'Save category' : 'Add category'}
+          </AppButton>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        onClose={() => setDeleteTarget(null)}
+        open={Boolean(deleteTarget)}
+      >
+        <DialogTitle>Delete Category?</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">
+            Delete {deleteTarget?.name} from the storefront categories?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <AppButton color="inherit" onClick={() => setDeleteTarget(null)} variant="outlined">
+            Cancel
+          </AppButton>
+          <AppButton
+            color="error"
+            disabled={deleteMutation.isPending}
+            onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+          >
+            Delete
+          </AppButton>
         </DialogActions>
       </Dialog>
     </PageSection>

@@ -3,6 +3,7 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
+  Alert,
   Chip,
   Dialog,
   DialogActions,
@@ -16,29 +17,25 @@ import {
   Typography,
 } from '@mui/material';
 import { GridActionsCellItem, type GridColDef } from '@mui/x-data-grid';
-import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 
+import { adminApi } from '@features/admin/api/adminApi';
+import type { AdminDeliveryFee } from '@features/admin/types/admin.types';
+import { useDebounce } from '@hooks/useDebounce';
+import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
 import { formatCurrency } from '@utils/formatCurrency';
-
-type DeliveryFee = {
-  estimatedDays: string;
-  fee: number;
-  freeDeliveryMinimum: number;
-  id: string;
-  region: string;
-  status: 'Active' | 'Paused';
-  township: string;
-};
 
 type DeliveryFeeForm = {
   estimatedDays: string;
   fee: string;
   freeDeliveryMinimum: string;
   region: string;
-  status: DeliveryFee['status'];
+  status: AdminDeliveryFee['status'];
   township: string;
 };
 
@@ -53,106 +50,42 @@ const myanmarRegions = [
   'Mon',
 ] as const;
 
-const initialDeliveryFees: DeliveryFee[] = [
-  {
-    estimatedDays: 'Same day',
-    fee: 2.5,
-    freeDeliveryMinimum: 50,
-    id: 'delivery-yangon-kamayut',
-    region: 'Yangon',
-    status: 'Active',
-    township: 'Kamayut',
-  },
-  {
-    estimatedDays: 'Same day',
-    fee: 3,
-    freeDeliveryMinimum: 60,
-    id: 'delivery-yangon-kyauktada',
-    region: 'Yangon',
-    status: 'Active',
-    township: 'Kyauktada',
-  },
-  {
-    estimatedDays: '1-2 days',
-    fee: 4.5,
-    freeDeliveryMinimum: 80,
-    id: 'delivery-mandalay-chanayethazan',
-    region: 'Mandalay',
-    status: 'Active',
-    township: 'Chanayethazan',
-  },
-  {
-    estimatedDays: '2-3 days',
-    fee: 5,
-    freeDeliveryMinimum: 90,
-    id: 'delivery-shan-taunggyi',
-    region: 'Shan',
-    status: 'Paused',
-    township: 'Taunggyi',
-  },
-  {
-    estimatedDays: '2-3 days',
-    fee: 4.75,
-    freeDeliveryMinimum: 85,
-    id: 'delivery-mon-mawlamyine',
-    region: 'Mon',
-    status: 'Active',
-    township: 'Mawlamyine',
-  },
-];
-
 const emptyForm: DeliveryFeeForm = {
   estimatedDays: 'Same day',
   fee: '2.50',
   freeDeliveryMinimum: '50',
   region: 'Yangon',
-  status: 'Active',
+  status: 'active',
   township: '',
 };
 
-const slugify = (value: string) =>
-  value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-
-const toForm = (deliveryFee: DeliveryFee): DeliveryFeeForm => ({
-  estimatedDays: deliveryFee.estimatedDays,
+const toForm = (deliveryFee: AdminDeliveryFee): DeliveryFeeForm => ({
+  estimatedDays: deliveryFee.eta,
   fee: String(deliveryFee.fee),
-  freeDeliveryMinimum: String(deliveryFee.freeDeliveryMinimum),
+  freeDeliveryMinimum: String(deliveryFee.freeOver),
   region: deliveryFee.region,
   status: deliveryFee.status,
   township: deliveryFee.township,
 });
 
 export const DeliveryFeesPage = () => {
-  const [deliveryFees, setDeliveryFees] = useState<DeliveryFee[]>(initialDeliveryFees);
+  const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminDeliveryFee | null>(null);
   const [form, setForm] = useState<DeliveryFeeForm>(emptyForm);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [regionFilter, setRegionFilter] = useState('all');
   const [search, setSearch] = useState('');
-
-  const filteredDeliveryFees = useMemo(
-    () =>
-      deliveryFees.filter((deliveryFee) => {
-        const normalizedSearch = search.trim().toLowerCase();
-        const searchableValue = [
-          deliveryFee.region,
-          deliveryFee.township,
-          deliveryFee.estimatedDays,
-          deliveryFee.status,
-        ]
-          .join(' ')
-          .toLowerCase();
-        const matchesSearch = normalizedSearch ? searchableValue.includes(normalizedSearch) : true;
-        const matchesRegion = regionFilter === 'all' || deliveryFee.region === regionFilter;
-
-        return matchesSearch && matchesRegion;
-      }),
-    [deliveryFees, regionFilter, search],
-  );
+  const debouncedSearch = useDebounce(search);
+  const deliveryFeesQuery = useQuery({
+    queryFn: ({ signal }) =>
+      adminApi.listDeliveryFees(
+        { region: regionFilter === 'all' ? undefined : regionFilter, search: debouncedSearch },
+        { signal },
+      ),
+    queryKey: ['admin', 'delivery-fees', debouncedSearch, regionFilter],
+  });
+  const deliveryFees = deliveryFeesQuery.data ?? [];
 
   const openCreateDialog = () => {
     setEditingId(null);
@@ -160,38 +93,58 @@ export const DeliveryFeesPage = () => {
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (deliveryFee: DeliveryFee) => {
+  const openEditDialog = (deliveryFee: AdminDeliveryFee) => {
     setEditingId(deliveryFee.id);
     setForm(toForm(deliveryFee));
     setIsDialogOpen(true);
   };
 
-  const saveDeliveryFee = () => {
-    const township = form.township.trim();
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const township = form.township.trim();
 
-    if (!township) {
-      return;
-    }
+      if (!township) {
+        throw new Error('Township is required.');
+      }
 
-    const payload: DeliveryFee = {
-      estimatedDays: form.estimatedDays.trim() || 'Same day',
-      fee: Number(form.fee) || 0,
-      freeDeliveryMinimum: Number(form.freeDeliveryMinimum) || 0,
-      id: editingId ?? `delivery-${slugify(form.region)}-${slugify(township)}`,
-      region: form.region,
-      status: form.status,
-      township,
-    };
+      const fee = Number(form.fee);
+      const freeOver = Number(form.freeDeliveryMinimum);
+      if (!Number.isFinite(fee) || fee < 0 || !Number.isFinite(freeOver) || freeOver < 0) {
+        throw new Error('Enter valid non-negative delivery fee values.');
+      }
+      const payload = {
+        eta: form.estimatedDays.trim() || 'Same day',
+        fee: Number(form.fee) || 0,
+        freeOver,
+        region: form.region,
+        status: form.status,
+        township,
+      };
 
-    setDeliveryFees((current) =>
-      editingId ? current.map((item) => (item.id === editingId ? payload : item)) : [payload, ...current],
-    );
-    setEditingId(null);
-    setForm(emptyForm);
-    setIsDialogOpen(false);
-  };
+      return editingId
+        ? adminApi.updateDeliveryFee(editingId, payload)
+        : adminApi.createDeliveryFee(payload);
+    },
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'delivery-fees'] });
+      toast.success(result.message);
+      setEditingId(null);
+      setForm(emptyForm);
+      setIsDialogOpen(false);
+    },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: adminApi.deleteDeliveryFee,
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'delivery-fees'] });
+      toast.success(result.message);
+      setDeleteTarget(null);
+    },
+  });
 
-  const columns: GridColDef<DeliveryFee>[] = [
+  const columns: GridColDef<AdminDeliveryFee>[] = [
     { field: 'region', flex: 1, headerName: 'Region', minWidth: 150 },
     { field: 'township', flex: 1, headerName: 'Township', minWidth: 180 },
     {
@@ -201,29 +154,38 @@ export const DeliveryFeesPage = () => {
       width: 150,
     },
     {
-      field: 'freeDeliveryMinimum',
+      field: 'freeOver',
       headerName: 'Free over',
       valueFormatter: (value: number) => formatCurrency(value),
       width: 140,
     },
-    { field: 'estimatedDays', headerName: 'ETA', width: 130 },
+    { field: 'eta', headerName: 'ETA', width: 130 },
     {
       field: 'status',
       headerName: 'Status',
       renderCell: (params) => (
-        <Chip color={params.value === 'Active' ? 'success' : 'default'} label={params.value} size="small" />
+        <Chip
+          color={params.value === 'active' ? 'success' : 'default'}
+          label={params.value}
+          size="small"
+        />
       ),
       width: 120,
     },
     {
       field: 'actions',
       getActions: ({ row }) => [
-        <GridActionsCellItem icon={<EditRoundedIcon />} key="edit" label="Edit" onClick={() => openEditDialog(row)} />,
+        <GridActionsCellItem
+          icon={<EditRoundedIcon />}
+          key="edit"
+          label="Edit"
+          onClick={() => openEditDialog(row)}
+        />,
         <GridActionsCellItem
           icon={<DeleteOutlineRoundedIcon />}
           key="delete"
           label="Delete"
-          onClick={() => setDeliveryFees((current) => current.filter((item) => item.id !== row.id))}
+          onClick={() => setDeleteTarget(row)}
         />,
       ],
       type: 'actions',
@@ -285,11 +247,14 @@ export const DeliveryFeesPage = () => {
           ))}
         </TextField>
         <Typography color="text.secondary" sx={{ ml: { lg: 'auto' } }} variant="body2">
-          Showing {filteredDeliveryFees.length} of {deliveryFees.length}
+          Showing {deliveryFees.length}
         </Typography>
       </Stack>
 
-      <AppDataTable columns={columns} rows={filteredDeliveryFees} />
+      {deliveryFeesQuery.isError ? (
+        <Alert severity="error">{toApiError(deliveryFeesQuery.error).message}</Alert>
+      ) : null}
+      <AppDataTable columns={columns} loading={deliveryFeesQuery.isLoading} rows={deliveryFees} />
 
       <Dialog fullWidth maxWidth="sm" onClose={() => setIsDialogOpen(false)} open={isDialogOpen}>
         <DialogTitle>{editingId ? 'Edit Delivery Fee' : 'Create Delivery Fee'}</DialogTitle>
@@ -300,7 +265,9 @@ export const DeliveryFeesPage = () => {
                 <TextField
                   fullWidth
                   label="Region"
-                  onChange={(event) => setForm((current) => ({ ...current, region: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, region: event.target.value }))
+                  }
                   select
                   value={form.region}
                 >
@@ -316,7 +283,9 @@ export const DeliveryFeesPage = () => {
                   autoFocus
                   fullWidth
                   label="Township"
-                  onChange={(event) => setForm((current) => ({ ...current, township: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, township: event.target.value }))
+                  }
                   value={form.township}
                 />
               </Grid>
@@ -326,7 +295,9 @@ export const DeliveryFeesPage = () => {
                 <TextField
                   fullWidth
                   label="Delivery fee"
-                  onChange={(event) => setForm((current) => ({ ...current, fee: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, fee: event.target.value }))
+                  }
                   type="number"
                   value={form.fee}
                 />
@@ -348,7 +319,9 @@ export const DeliveryFeesPage = () => {
                 <TextField
                   fullWidth
                   label="Estimated delivery"
-                  onChange={(event) => setForm((current) => ({ ...current, estimatedDays: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, estimatedDays: event.target.value }))
+                  }
                   value={form.estimatedDays}
                 />
               </Grid>
@@ -357,13 +330,16 @@ export const DeliveryFeesPage = () => {
                   fullWidth
                   label="Status"
                   onChange={(event) =>
-                    setForm((current) => ({ ...current, status: event.target.value as DeliveryFee['status'] }))
+                    setForm((current) => ({
+                      ...current,
+                      status: event.target.value as AdminDeliveryFee['status'],
+                    }))
                   }
                   select
                   value={form.status}
                 >
-                  <MenuItem value="Active">Active</MenuItem>
-                  <MenuItem value="Paused">Paused</MenuItem>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="paused">Paused</MenuItem>
                 </TextField>
               </Grid>
             </Grid>
@@ -373,7 +349,34 @@ export const DeliveryFeesPage = () => {
           <AppButton color="inherit" onClick={() => setIsDialogOpen(false)} variant="outlined">
             Cancel
           </AppButton>
-          <AppButton onClick={saveDeliveryFee}>{editingId ? 'Save fee' : 'Add fee'}</AppButton>
+          <AppButton disabled={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
+            {editingId ? 'Save fee' : 'Add fee'}
+          </AppButton>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        onClose={() => setDeleteTarget(null)}
+        open={Boolean(deleteTarget)}
+      >
+        <DialogTitle>Delete Delivery Fee?</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">
+            Delete the {deleteTarget?.township}, {deleteTarget?.region} delivery fee?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <AppButton color="inherit" onClick={() => setDeleteTarget(null)} variant="outlined">
+            Cancel
+          </AppButton>
+          <AppButton
+            color="error"
+            disabled={deleteMutation.isPending}
+            onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+          >
+            Delete
+          </AppButton>
         </DialogActions>
       </Dialog>
     </PageSection>

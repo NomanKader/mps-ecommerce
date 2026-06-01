@@ -22,8 +22,8 @@ export const authService = {
 
     return Boolean(payload?.sub);
   },
-  setAuthenticatedSession(token: string, _user?: User) {
-    tokenService.setAccessToken(token);
+  setAuthenticatedSession(token: string, _user?: User, rememberMe = false) {
+    tokenService.setAccessToken(token, rememberMe);
   },
   signOut() {
     tokenService.clear();

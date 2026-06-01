@@ -2,34 +2,31 @@ import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { AppBar, Avatar, Box, Button, IconButton, Stack, Toolbar, Typography } from '@mui/material';
 import { useSelector } from 'react-redux';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 
 import { PageContainer } from '@shared/components/ui/PageContainer/PageContainer';
 import { Sidebar } from '@widgets/Sidebar/Sidebar';
 import { createRouteLabel } from '@shared/utils';
-import { authService } from '@services/auth/auth.service';
-import { routePaths } from '@routes/routePaths';
+import { useSignOut } from '@features/auth/hooks/useSignOut';
 import type { RootState } from '@store/index';
-import { useAppDispatch } from '@store/hooks';
-import { clearSession } from '@store/slices/auth.slice';
 import logoImage from '@assets/images/logo.png';
 
 export const DashboardLayout = () => {
-  const dispatch = useAppDispatch();
+  const signOut = useSignOut();
   const location = useLocation();
-  const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth.user);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleSignOut = () => {
-    authService.signOut();
-    dispatch(clearSession());
-    void navigate(routePaths.auth.login);
-  };
-
   return (
-    <Box sx={{ bgcolor: 'background.default', display: 'flex', minHeight: '100vh', overflowX: 'hidden' }}>
+    <Box
+      sx={{
+        bgcolor: 'background.default',
+        display: 'flex',
+        minHeight: '100vh',
+        overflowX: 'hidden',
+      }}
+    >
       <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
       <Box
         sx={{
@@ -59,7 +56,12 @@ export const DashboardLayout = () => {
                 alt="AV's Store"
                 component="img"
                 src={logoImage}
-                sx={{ display: { md: 'none', xs: 'block' }, height: 44, maxWidth: 76, objectFit: 'contain' }}
+                sx={{
+                  display: { md: 'none', xs: 'block' },
+                  height: 44,
+                  maxWidth: 76,
+                  objectFit: 'contain',
+                }}
               />
               <Box sx={{ display: { sm: 'block', xs: 'none' }, minWidth: 0 }}>
                 <Typography noWrap variant="h6">
@@ -70,7 +72,11 @@ export const DashboardLayout = () => {
                 </Typography>
               </Box>
             </Stack>
-            <Stack direction="row" spacing={{ sm: 1.5, xs: 1 }} sx={{ alignItems: 'center', minWidth: 0 }}>
+            <Stack
+              direction="row"
+              spacing={{ sm: 1.5, xs: 1 }}
+              sx={{ alignItems: 'center', minWidth: 0 }}
+            >
               <Avatar sx={{ bgcolor: 'primary.main', height: 36, width: 36 }}>
                 {user?.firstName?.[0] ?? 'A'}
               </Avatar>
@@ -84,9 +90,14 @@ export const DashboardLayout = () => {
               </Box>
               <Button
                 color="inherit"
-                onClick={handleSignOut}
+                onClick={() => void signOut()}
                 startIcon={<LogoutRoundedIcon />}
-                sx={{ borderRadius: 999, minWidth: { xs: 40, sm: 96 }, px: { xs: 1, sm: 2 }, textTransform: 'none' }}
+                sx={{
+                  borderRadius: 999,
+                  minWidth: { xs: 40, sm: 96 },
+                  px: { xs: 1, sm: 2 },
+                  textTransform: 'none',
+                }}
               >
                 <Box component="span" sx={{ display: { sm: 'inline', xs: 'none' } }}>
                   Sign out

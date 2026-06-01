@@ -1,14 +1,18 @@
 import { STORAGE_KEYS } from '@shared/constants/app.constants';
-import { storageService } from '@services/storage/storage.service';
-
 export const tokenService = {
   clear() {
-    storageService.remove(STORAGE_KEYS.ACCESS_TOKEN);
+    window.localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    window.sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
   },
   getAccessToken() {
-    return storageService.get<string>(STORAGE_KEYS.ACCESS_TOKEN);
+    return (
+      window.localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ??
+      window.sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
+    );
   },
-  setAccessToken(token: string) {
-    storageService.set(STORAGE_KEYS.ACCESS_TOKEN, token);
+  setAccessToken(token: string, rememberMe = false) {
+    this.clear();
+    const storage = rememberMe ? window.localStorage : window.sessionStorage;
+    storage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
   },
 };

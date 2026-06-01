@@ -6,6 +6,7 @@ import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import {
   Box,
+  Alert,
   Chip,
   Dialog,
   DialogActions,
@@ -20,13 +21,17 @@ import {
   Typography,
 } from '@mui/material';
 import { GridActionsCellItem, type GridColDef } from '@mui/x-data-grid';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 
-import type { Product } from '@entities/product/types/product.types';
+import { adminApi } from '@features/admin/api/adminApi';
+import type { AdminProduct } from '@features/admin/types/admin.types';
+import { useDebounce } from '@hooks/useDebounce';
+import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
-import { mockCategories, mockProducts } from '@shared/lib/mockData';
 import { formatCurrency } from '@utils/formatCurrency';
 
 type ProductForm = {
@@ -45,9 +50,9 @@ const emptyForm: ProductForm = {
   sku: '',
 };
 
-const toForm = (product: Product): ProductForm => ({
-  categoryId: product.categoryId,
-  inventory: String(product.inventory),
+const toForm = (product: AdminProduct): ProductForm => ({
+  categoryId: product.categoryId ?? '',
+  inventory: String(product.stock),
   name: product.name,
   price: String(product.price),
   sku: product.sku,
@@ -71,22 +76,45 @@ type StockFilter = (typeof stockFilterOptions)[number]['value'];
 type RatingFilter = (typeof ratingFilterOptions)[number]['value'];
 
 export const ProductsPage = () => {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [bulkUploadFileName, setBulkUploadFileName] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
-  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminProduct | null>(null);
+  const [detailProduct, setDetailProduct] = useState<AdminProduct | null>(null);
   const [isBulkUploadDialogOpen, setIsBulkUploadDialogOpen] = useState(false);
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all');
   const [search, setSearch] = useState('');
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
+  const debouncedSearch = useDebounce(search);
+  const categoriesQuery = useQuery({
+    queryFn: ({ signal }) => adminApi.listCategories({}, { signal }),
+    queryKey: ['admin', 'categories', 'options'],
+  });
+  const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
+  const productsQuery = useQuery({
+    queryFn: ({ signal }) =>
+      adminApi.listProducts(
+        {
+          category:
+            categoryFilter === 'all'
+              ? undefined
+              : categories.find((category) => category.id === categoryFilter)?.name,
+          rating: ratingFilter === 'all' || ratingFilter === 'below-4.5' ? undefined : ratingFilter,
+          search: debouncedSearch,
+          stock: stockFilter === 'low-stock' ? 'low' : undefined,
+        },
+        { signal },
+      ),
+    queryKey: ['admin', 'products', debouncedSearch, categoryFilter, stockFilter, ratingFilter],
+  });
+  const products = useMemo(() => productsQuery.data ?? [], [productsQuery.data]);
 
   const categoryById = useMemo(
-    () => new Map(mockCategories.map((category) => [category.id, category.name])),
-    [],
+    () => new Map(categories.map((category) => [category.id, category.name])),
+    [categories],
   );
 
   const filteredProducts = useMemo(
@@ -102,9 +130,9 @@ export const ProductsPage = () => {
         const matchesCategory = categoryFilter === 'all' || product.categoryId === categoryFilter;
         const matchesStock =
           stockFilter === 'all' ||
-          (stockFilter === 'in-stock' && product.inventory > 20) ||
-          (stockFilter === 'low-stock' && product.inventory > 0 && product.inventory <= 20) ||
-          (stockFilter === 'out-of-stock' && product.inventory === 0);
+          (stockFilter === 'in-stock' && product.stock > 20) ||
+          (stockFilter === 'low-stock' && product.stock > 0 && product.stock <= 40) ||
+          (stockFilter === 'out-of-stock' && product.stock === 0);
         const matchesRating =
           ratingFilter === 'all' ||
           (ratingFilter === '4.8' && product.rating >= 4.8) ||
@@ -116,7 +144,7 @@ export const ProductsPage = () => {
     [categoryFilter, products, ratingFilter, search, stockFilter],
   );
 
-  const columns: GridColDef<Product>[] = [
+  const columns: GridColDef<AdminProduct>[] = [
     { field: 'sku', headerName: 'SKU', width: 140 },
     { field: 'name', flex: 1, headerName: 'Product', minWidth: 220 },
     {
@@ -131,7 +159,7 @@ export const ProductsPage = () => {
       valueFormatter: (value: number) => formatCurrency(value),
       width: 120,
     },
-    { field: 'inventory', headerName: 'Stock', type: 'number', width: 100 },
+    { field: 'stock', headerName: 'Stock', type: 'number', width: 100 },
     {
       field: 'rating',
       headerName: 'Rating',
@@ -168,63 +196,76 @@ export const ProductsPage = () => {
     },
   ];
 
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const category = categories.find((item) => item.id === form.categoryId);
+      const name = form.name.trim();
+      const sku = form.sku.trim();
+      const price = Number(form.price);
+      const stock = Number(form.inventory);
+
+      if (
+        !name ||
+        !sku ||
+        !Number.isFinite(price) ||
+        price < 0 ||
+        !Number.isInteger(stock) ||
+        stock < 0
+      ) {
+        throw new Error('Enter a product name, SKU, and valid non-negative price and stock.');
+      }
+
+      const existing = products.find((product) => product.id === editingId);
+      const payload = {
+        categoryId: form.categoryId || undefined,
+        categoryName: category?.name,
+        currency: existing?.currency ?? 'USD',
+        description: existing?.description ?? `${name} managed from the admin dashboard.`,
+        name,
+        price,
+        rating: existing?.rating ?? 0,
+        sku,
+        status: existing?.status ?? ('active' as const),
+        stock,
+        tags: existing?.tags ?? [],
+      };
+
+      return editingId
+        ? adminApi.updateProduct(editingId, payload)
+        : adminApi.createProduct(payload);
+    },
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      toast.success(result.message);
+      setEditingId(null);
+      setForm(emptyForm);
+      setIsProductDialogOpen(false);
+    },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: adminApi.deleteProduct,
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      toast.success(result.message);
+      setDeleteTarget(null);
+    },
+  });
+
   const handleConfirmDelete = () => {
     if (!deleteTarget) {
       return;
     }
 
-    setProducts((current) => current.filter((product) => product.id !== deleteTarget.id));
-    if (editingId === deleteTarget.id) {
-      setEditingId(null);
-      setForm(emptyForm);
-      setIsProductDialogOpen(false);
-    }
-    setDeleteTarget(null);
-  };
-
-  const handleSubmit = () => {
-    const name = form.name.trim();
-    const sku = form.sku.trim();
-
-    if (!name || !sku) {
-      return;
-    }
-
-    const productPayload: Product = {
-      categoryId: form.categoryId,
-      currency: 'USD',
-      description: `${name} managed from the demo admin dashboard.`,
-      id: editingId ?? `prd-${Date.now()}`,
-      imageUrl: '',
-      inventory: Number(form.inventory) || 0,
-      name,
-      price: Number(form.price) || 0,
-      rating: editingId ? products.find((product) => product.id === editingId)?.rating ?? 4.5 : 4.5,
-      sku,
-      slug: name.toLowerCase().replaceAll(' ', '-'),
-      tags: ['admin-managed'],
-      tenantId: 'tenant-demo',
-    };
-
-    setProducts((current) =>
-      editingId
-        ? current.map((product) => (product.id === editingId ? productPayload : product))
-        : [productPayload, ...current],
-    );
-    setEditingId(null);
-    setForm(emptyForm);
-    setIsProductDialogOpen(false);
+    deleteMutation.mutate(deleteTarget.id);
   };
 
   return (
     <PageSection
       action={
         <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
-          <AppButton
-            onClick={() => setIsBulkUploadDialogOpen(true)}
-            startIcon={<CloudUploadOutlinedIcon />}
-            variant="outlined"
-          >
+          <AppButton disabled startIcon={<CloudUploadOutlinedIcon />} variant="outlined">
             Bulk upload
           </AppButton>
           <AppButton
@@ -239,7 +280,7 @@ export const ProductsPage = () => {
           </AppButton>
         </Stack>
       }
-      description="Create, edit, and remove demo catalog items for the tenant storefront."
+      description="Create, edit, and remove catalog items for the tenant storefront."
       title="Products"
     >
       <Stack
@@ -279,7 +320,7 @@ export const ProductsPage = () => {
           value={categoryFilter}
         >
           <MenuItem value="all">All categories</MenuItem>
-          {mockCategories.map((category) => (
+          {categories.map((category) => (
             <MenuItem key={category.id} value={category.id}>
               {category.name}
             </MenuItem>
@@ -318,6 +359,9 @@ export const ProductsPage = () => {
         </Stack>
       </Stack>
 
+      {productsQuery.isError ? (
+        <Alert severity="error">{toApiError(productsQuery.error).message}</Alert>
+      ) : null}
       <AppDataTable
         columns={columns}
         initialState={{
@@ -326,6 +370,7 @@ export const ProductsPage = () => {
           },
         }}
         rows={filteredProducts}
+        loading={productsQuery.isLoading}
       />
 
       <Dialog
@@ -367,19 +412,31 @@ export const ProductsPage = () => {
               />
             </Box>
             {bulkUploadFileName ? (
-              <Chip color="primary" label={bulkUploadFileName} sx={{ alignSelf: 'flex-start' }} variant="outlined" />
+              <Chip
+                color="primary"
+                label={bulkUploadFileName}
+                sx={{ alignSelf: 'flex-start' }}
+                variant="outlined"
+              />
             ) : null}
             <Typography color="text.secondary" variant="body2">
-              This screen prepares the upload workflow. Connect the selected file to the product import API when the
-              backend endpoint is available.
+              This screen prepares the upload workflow. Connect the selected file to the product
+              import API when the backend endpoint is available.
             </Typography>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <AppButton color="inherit" onClick={() => setIsBulkUploadDialogOpen(false)} variant="outlined">
+          <AppButton
+            color="inherit"
+            onClick={() => setIsBulkUploadDialogOpen(false)}
+            variant="outlined"
+          >
             Cancel
           </AppButton>
-          <AppButton disabled={!bulkUploadFileName} onClick={() => setIsBulkUploadDialogOpen(false)}>
+          <AppButton
+            disabled={!bulkUploadFileName}
+            onClick={() => setIsBulkUploadDialogOpen(false)}
+          >
             Upload products
           </AppButton>
         </DialogActions>
@@ -407,11 +464,13 @@ export const ProductsPage = () => {
             />
             <TextField
               label="Category"
-              onChange={(event) => setForm((current) => ({ ...current, categoryId: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, categoryId: event.target.value }))
+              }
               select
               value={form.categoryId}
             >
-              {mockCategories.map((category) => (
+              {categories.map((category) => (
                 <MenuItem key={category.id} value={category.id}>
                   {category.name}
                 </MenuItem>
@@ -422,7 +481,9 @@ export const ProductsPage = () => {
                 <TextField
                   fullWidth
                   label="Price"
-                  onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, price: event.target.value }))
+                  }
                   type="number"
                   value={form.price}
                 />
@@ -431,7 +492,9 @@ export const ProductsPage = () => {
                 <TextField
                   fullWidth
                   label="Stock"
-                  onChange={(event) => setForm((current) => ({ ...current, inventory: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, inventory: event.target.value }))
+                  }
                   type="number"
                   value={form.inventory}
                 />
@@ -440,26 +503,45 @@ export const ProductsPage = () => {
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <AppButton color="inherit" onClick={() => setIsProductDialogOpen(false)} variant="outlined">
+          <AppButton
+            color="inherit"
+            onClick={() => setIsProductDialogOpen(false)}
+            variant="outlined"
+          >
             Cancel
           </AppButton>
-          <AppButton onClick={handleSubmit}>{editingId ? 'Save changes' : 'Add product'}</AppButton>
+          <AppButton disabled={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
+            {editingId ? 'Save changes' : 'Add product'}
+          </AppButton>
         </DialogActions>
       </Dialog>
 
-      <Dialog fullWidth maxWidth="sm" onClose={() => setDetailProduct(null)} open={Boolean(detailProduct)}>
+      <Dialog
+        fullWidth
+        maxWidth="sm"
+        onClose={() => setDetailProduct(null)}
+        open={Boolean(detailProduct)}
+      >
         <DialogTitle>Product Details</DialogTitle>
         <DialogContent>
           {detailProduct ? (
             <Stack spacing={2} sx={{ pt: 1 }}>
-              <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <Stack
+                direction="row"
+                sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}
+              >
                 <Stack spacing={0.5}>
                   <Typography variant="h6">{detailProduct.name}</Typography>
                   <Typography color="text.secondary" variant="body2">
                     {detailProduct.sku}
                   </Typography>
                 </Stack>
-                <Chip label={categoryById.get(detailProduct.categoryId) ?? 'Unassigned'} />
+                <Chip
+                  label={
+                    (detailProduct.categoryId && categoryById.get(detailProduct.categoryId)) ??
+                    'Unassigned'
+                  }
+                />
               </Stack>
               <Typography color="text.secondary">{detailProduct.description}</Typography>
               <Divider />
@@ -468,13 +550,15 @@ export const ProductsPage = () => {
                   <Typography color="text.secondary" variant="caption">
                     Price
                   </Typography>
-                  <Typography sx={{ fontWeight: 700 }}>{formatCurrency(detailProduct.price)}</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>
+                    {formatCurrency(detailProduct.price)}
+                  </Typography>
                 </Grid>
                 <Grid size={{ sm: 6, xs: 12 }}>
                   <Typography color="text.secondary" variant="caption">
                     Stock
                   </Typography>
-                  <Typography sx={{ fontWeight: 700 }}>{detailProduct.inventory}</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>{detailProduct.stock}</Typography>
                 </Grid>
                 <Grid size={{ sm: 6, xs: 12 }}>
                   <Typography color="text.secondary" variant="caption">
@@ -486,7 +570,7 @@ export const ProductsPage = () => {
                   <Typography color="text.secondary" variant="caption">
                     Slug
                   </Typography>
-                  <Typography sx={{ fontWeight: 700 }}>{detailProduct.slug}</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>{detailProduct.status}</Typography>
                 </Grid>
               </Grid>
               <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
@@ -502,18 +586,28 @@ export const ProductsPage = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog fullWidth maxWidth="xs" onClose={() => setDeleteTarget(null)} open={Boolean(deleteTarget)}>
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        onClose={() => setDeleteTarget(null)}
+        open={Boolean(deleteTarget)}
+      >
         <DialogTitle>Delete Product?</DialogTitle>
         <DialogContent>
           <Typography color="text.secondary">
-            Are you sure you want to delete {deleteTarget?.name}? This action removes it from the current product list.
+            Are you sure you want to delete {deleteTarget?.name}? This action removes it from the
+            current product list.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <AppButton color="inherit" onClick={() => setDeleteTarget(null)} variant="outlined">
             Cancel
           </AppButton>
-          <AppButton color="error" onClick={handleConfirmDelete}>
+          <AppButton
+            color="error"
+            disabled={deleteMutation.isPending}
+            onClick={handleConfirmDelete}
+          >
             Delete
           </AppButton>
         </DialogActions>
