@@ -1,0 +1,13 @@
+process.env.NODE_ENV = 'test';
+process.env.PORT = '5001';
+process.env.API_PREFIX = '/api/v1';
+process.env.MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/mps-ecommerce-test';
+process.env.JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? 'test-secret-key-12345';
+process.env.JWT_ACCESS_EXPIRES_IN = '1d';
+process.env.JWT_REMEMBER_ME_EXPIRES_IN = '30d';
+process.env.OTP_EXPIRES_IN_MINUTES = '5';
+process.env.OTP_RESEND_DELAY_SECONDS = '0';
+process.env.CORS_ORIGIN = '*';
+process.env.APP_NAME = 'Test API';
+process.env.LOG_LEVEL = 'error';
+process.env.TENANT_HEADER_KEY = 'x-tenant-id';

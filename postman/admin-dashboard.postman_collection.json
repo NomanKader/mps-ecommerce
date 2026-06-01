@@ -1,0 +1,438 @@
+{
+  "info": {
+    "name": "AV's Store Admin Dashboard API",
+    "_postman_id": "0e2ac15a-ec9b-47e4-99b4-cd5b2ed8f3d5",
+    "description": "Admin dashboard API collection for products, categories, orders, customers, promotions, delivery fees, and dashboard metrics.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api/v1" },
+    { "key": "tenantId", "value": "demo" },
+    { "key": "accessToken", "value": "" },
+    { "key": "otp", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "orderId", "value": "" },
+    { "key": "promotionId", "value": "" },
+    { "key": "deliveryFeeId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Request Registration OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data.developmentOtp) pm.collectionVariables.set('otp', json.data.developmentOtp);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "x-tenant-id", "value": "{{tenantId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+959123456789\"\n}" },
+            "url": "{{baseUrl}}/auth/otp/request"
+          }
+        },
+        {
+          "name": "Register Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data.accessToken) pm.collectionVariables.set('accessToken', json.data.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "x-tenant-id", "value": "{{tenantId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ayesha Rahman\",\n  \"email\": \"ayesha@example.com\",\n  \"phone\": \"+959123456789\",\n  \"otp\": \"{{otp}}\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Sign In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data.accessToken) pm.collectionVariables.set('accessToken', json.data.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "x-tenant-id", "value": "{{tenantId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ayesha@example.com\",\n  \"password\": \"password123\",\n  \"rememberMe\": true\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        },
+        {
+          "name": "Sign Out",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "url": "{{baseUrl}}/admin/dashboard"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "url": "{{baseUrl}}/admin/products?search=&category=&stock=&rating="
+          }
+        },
+        {
+          "name": "Create Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('productId', json.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "x-tenant-id", "value": "{{tenantId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Premium Green Apples\",\n  \"sku\": \"APL-GRN-001\",\n  \"categoryName\": \"Fruits\",\n  \"description\": \"Fresh green apples\",\n  \"tags\": [\"fruit\", \"fresh\"],\n  \"price\": 8.5,\n  \"currency\": \"USD\",\n  \"stock\": 120,\n  \"rating\": 4.8,\n  \"status\": \"active\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/products"
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "x-tenant-id", "value": "{{tenantId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Premium Green Apples\",\n  \"sku\": \"APL-GRN-001\",\n  \"categoryName\": \"Fruits\",\n  \"description\": \"Updated product description\",\n  \"tags\": [\"fruit\", \"fresh\", \"organic\"],\n  \"price\": 8.75,\n  \"currency\": \"USD\",\n  \"stock\": 115,\n  \"rating\": 4.9,\n  \"status\": \"active\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/products/{{productId}}"
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "url": "{{baseUrl}}/admin/products/{{productId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "url": "{{baseUrl}}/admin/categories?search="
+          }
+        },
+        {
+          "name": "Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('categoryId', json.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "x-tenant-id", "value": "{{tenantId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vegetables\",\n  \"slug\": \"vegetables\",\n  \"icon\": \"leafy-greens\",\n  \"color\": \"#2db34b\",\n  \"itemCount\": 58,\n  \"subcategories\": [\"Leafy Greens\", \"Root Vegetables\", \"Tomatoes\"]\n}"
+            },
+            "url": "{{baseUrl}}/admin/categories"
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "x-tenant-id", "value": "{{tenantId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Vegetables\",\n  \"slug\": \"vegetables\",\n  \"icon\": \"leafy-greens\",\n  \"color\": \"#2db34b\",\n  \"itemCount\": 60,\n  \"subcategories\": [\"Leafy Greens\", \"Root Vegetables\", \"Tomatoes\", \"Peppers\"]\n}"
+            },
+            "url": "{{baseUrl}}/admin/categories/{{categoryId}}"
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "url": "{{baseUrl}}/admin/categories/{{categoryId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Get Order Stats",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "url": "{{baseUrl}}/admin/orders/stats"
+          }
+        },
+        {
+          "name": "List Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "url": "{{baseUrl}}/admin/orders?search=&status=&from=&to="
+          }
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "x-tenant-id", "value": "{{tenantId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"shipped\"\n}" },
+            "url": "{{baseUrl}}/admin/orders/{{orderId}}/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "List Customers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "url": "{{baseUrl}}/admin/customers?search=&segment="
+          }
+        }
+      ]
+    },
+    {
+      "name": "Promotions",
+      "item": [
+        {
+          "name": "List Promotions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "url": "{{baseUrl}}/admin/promotions?search="
+          }
+        },
+        {
+          "name": "Create Promotion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('promotionId', json.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "x-tenant-id", "value": "{{tenantId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaign\": \"Fresh basket booster\",\n  \"code\": \"FRESH15\",\n  \"discount\": \"15% off produce\",\n  \"startsAt\": \"2026-04-10T00:00:00.000Z\",\n  \"endsAt\": \"2026-05-11T00:00:00.000Z\",\n  \"status\": \"active\",\n  \"uses\": 86\n}"
+            },
+            "url": "{{baseUrl}}/admin/promotions"
+          }
+        },
+        {
+          "name": "Update Promotion",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "x-tenant-id", "value": "{{tenantId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"campaign\": \"Fresh basket booster\",\n  \"code\": \"FRESH15\",\n  \"discount\": \"20% off produce\",\n  \"startsAt\": \"2026-04-10T00:00:00.000Z\",\n  \"endsAt\": \"2026-05-11T00:00:00.000Z\",\n  \"status\": \"active\",\n  \"uses\": 87\n}"
+            },
+            "url": "{{baseUrl}}/admin/promotions/{{promotionId}}"
+          }
+        },
+        {
+          "name": "Delete Promotion",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "url": "{{baseUrl}}/admin/promotions/{{promotionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delivery Fees",
+      "item": [
+        {
+          "name": "List Delivery Fees",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "url": "{{baseUrl}}/admin/delivery-fees?search=&region="
+          }
+        },
+        {
+          "name": "Create Delivery Fee",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('deliveryFeeId', json.data._id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "x-tenant-id", "value": "{{tenantId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"region\": \"Yangon\",\n  \"township\": \"Kamayut\",\n  \"fee\": 2.5,\n  \"freeOver\": 50,\n  \"eta\": \"Same day\",\n  \"status\": \"active\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/delivery-fees"
+          }
+        },
+        {
+          "name": "Update Delivery Fee",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "x-tenant-id", "value": "{{tenantId}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"region\": \"Yangon\",\n  \"township\": \"Kamayut\",\n  \"fee\": 3,\n  \"freeOver\": 60,\n  \"eta\": \"Same day\",\n  \"status\": \"active\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/delivery-fees/{{deliveryFeeId}}"
+          }
+        },
+        {
+          "name": "Delete Delivery Fee",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "url": "{{baseUrl}}/admin/delivery-fees/{{deliveryFeeId}}"
+          }
+        }
+      ]
+    }
+  ]
+}
