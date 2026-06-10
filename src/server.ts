@@ -11,6 +11,7 @@ const startServer = async (): Promise<void> => {
 
   const server = app.listen(env.PORT, () => {
     logger.info(`${env.APP_NAME} listening on port ${env.PORT}`);
+    logger.info(`API running at http://localhost:${env.PORT}${env.API_PREFIX}`);
   });
 
   const shutdown = async (signal: string): Promise<void> => {

@@ -1,49 +1,109 @@
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 
+import { Role } from '@common/enums/role.enum';
+import { HTTP_STATUS } from '@core/response/http-status';
+import { authMiddleware } from '@middlewares/auth.middleware';
+import { productImageUploadMiddleware } from '@middlewares/product-image-upload.middleware';
+import { roleMiddleware } from '@middlewares/role.middleware';
 import { validateMiddleware } from '@middlewares/validate.middleware';
-import { tenantMiddleware } from '@middlewares/tenant.middleware';
 import { AdminController } from '@modules/admin/admin.controller';
+import { ApiError } from '@utils/ApiError';
 import {
+  adminProfileBodySchema,
+  bulkProductsBodySchema,
   categoryBodySchema,
+  carouselBodySchema,
+  carouselQuerySchema,
+  customerQuerySchema,
   deliveryFeeBodySchema,
   idParamSchema,
   orderQuerySchema,
   orderStatusSchema,
   productBodySchema,
-  promotionBodySchema
+  productQuerySchema,
+  productSectionAssignmentBodySchema,
+  productSectionAssignmentUpdateSchema,
+  promotionBodySchema,
+  storefrontIconBodySchema,
+  storefrontIconQuerySchema
 } from '@modules/admin/admin.validation';
 
 const router = Router();
 const controller = new AdminController();
 
-router.use(tenantMiddleware);
+const useAuthenticatedTenant = (req: Request, _res: Response, next: NextFunction): void => {
+  const tokenTenant = req.auth?.tenantId;
 
-router.get('/dashboard', controller.dashboard);
+  if (!tokenTenant) {
+    next(new ApiError(HTTP_STATUS.FORBIDDEN, 'Tenant context is required'));
+    return;
+  }
 
-router.get('/products', controller.listProducts);
-router.post('/products', validateMiddleware(productBodySchema), controller.createProduct);
-router.put('/products/:id', validateMiddleware(productBodySchema), controller.updateProduct);
-router.delete('/products/:id', validateMiddleware(idParamSchema), controller.deleteProduct);
+  req.tenant = {
+    tenantId: tokenTenant,
+    tenantSource: 'token'
+  };
 
-router.get('/categories', controller.listCategories);
-router.post('/categories', validateMiddleware(categoryBodySchema), controller.createCategory);
-router.put('/categories/:id', validateMiddleware(categoryBodySchema), controller.updateCategory);
-router.delete('/categories/:id', validateMiddleware(idParamSchema), controller.deleteCategory);
+  next();
+};
 
-router.get('/orders', validateMiddleware(orderQuerySchema), controller.listOrders);
-router.get('/orders/stats', controller.orderStats);
-router.patch('/orders/:id/status', validateMiddleware(orderStatusSchema), controller.updateOrderStatus);
+const tenantAdminOnly = [authMiddleware, roleMiddleware(Role.TENANT_ADMIN), useAuthenticatedTenant];
 
-router.get('/customers', controller.listCustomers);
+router.get('/dashboard', tenantAdminOnly, controller.dashboard);
 
-router.get('/promotions', controller.listPromotions);
-router.post('/promotions', validateMiddleware(promotionBodySchema), controller.createPromotion);
-router.put('/promotions/:id', validateMiddleware(promotionBodySchema), controller.updatePromotion);
-router.delete('/promotions/:id', validateMiddleware(idParamSchema), controller.deletePromotion);
+router.get('/products', tenantAdminOnly, validateMiddleware(productQuerySchema), controller.listProducts);
+router.post('/products', tenantAdminOnly, productImageUploadMiddleware, validateMiddleware(productBodySchema), controller.createProduct);
+router.post('/products/bulk', tenantAdminOnly, validateMiddleware(bulkProductsBodySchema), controller.bulkImportProducts);
+router.put('/products/:id', tenantAdminOnly, productImageUploadMiddleware, validateMiddleware(productBodySchema), controller.updateProduct);
+router.delete('/products/:id', tenantAdminOnly, validateMiddleware(idParamSchema), controller.deleteProduct);
 
-router.get('/delivery-fees', controller.listDeliveryFees);
-router.post('/delivery-fees', validateMiddleware(deliveryFeeBodySchema), controller.createDeliveryFee);
-router.put('/delivery-fees/:id', validateMiddleware(deliveryFeeBodySchema), controller.updateDeliveryFee);
-router.delete('/delivery-fees/:id', validateMiddleware(idParamSchema), controller.deleteDeliveryFee);
+router.get('/profile', tenantAdminOnly, controller.getProfile);
+router.put('/profile', tenantAdminOnly, validateMiddleware(adminProfileBodySchema), controller.updateProfile);
+
+router.get('/carousel', tenantAdminOnly, validateMiddleware(carouselQuerySchema), controller.listCarousel);
+router.post('/carousel', tenantAdminOnly, productImageUploadMiddleware, validateMiddleware(carouselBodySchema), controller.createCarouselSlide);
+router.put('/carousel/:id', tenantAdminOnly, productImageUploadMiddleware, validateMiddleware(carouselBodySchema), controller.updateCarouselSlide);
+router.delete('/carousel/:id', tenantAdminOnly, validateMiddleware(idParamSchema), controller.deleteCarouselSlide);
+
+router.get('/storefront-icons', tenantAdminOnly, validateMiddleware(storefrontIconQuerySchema), controller.listStorefrontIcons);
+router.post('/storefront-icons', tenantAdminOnly, validateMiddleware(storefrontIconBodySchema), controller.createStorefrontIcon);
+router.put('/storefront-icons/:id', tenantAdminOnly, validateMiddleware(storefrontIconBodySchema), controller.updateStorefrontIcon);
+router.delete('/storefront-icons/:id', tenantAdminOnly, validateMiddleware(idParamSchema), controller.deleteStorefrontIcon);
+
+router.get('/product-sections', tenantAdminOnly, controller.listProductSections);
+router.post(
+  '/product-sections/assignments',
+  tenantAdminOnly,
+  validateMiddleware(productSectionAssignmentBodySchema),
+  controller.createProductSectionAssignment
+);
+router.put(
+  '/product-sections/assignments/:id',
+  tenantAdminOnly,
+  validateMiddleware(productSectionAssignmentUpdateSchema),
+  controller.updateProductSectionAssignment
+);
+router.delete('/product-sections/assignments/:id', tenantAdminOnly, validateMiddleware(idParamSchema), controller.deleteProductSectionAssignment);
+
+router.get('/categories', tenantAdminOnly, controller.listCategories);
+router.post('/categories', tenantAdminOnly, validateMiddleware(categoryBodySchema), controller.createCategory);
+router.put('/categories/:id', tenantAdminOnly, validateMiddleware(categoryBodySchema), controller.updateCategory);
+router.delete('/categories/:id', tenantAdminOnly, validateMiddleware(idParamSchema), controller.deleteCategory);
+
+router.get('/orders', tenantAdminOnly, validateMiddleware(orderQuerySchema), controller.listOrders);
+router.get('/orders/stats', tenantAdminOnly, controller.orderStats);
+router.patch('/orders/:id/status', tenantAdminOnly, validateMiddleware(orderStatusSchema), controller.updateOrderStatus);
+
+router.get('/customers', tenantAdminOnly, validateMiddleware(customerQuerySchema), controller.listCustomers);
+
+router.get('/promotions', tenantAdminOnly, controller.listPromotions);
+router.post('/promotions', tenantAdminOnly, validateMiddleware(promotionBodySchema), controller.createPromotion);
+router.put('/promotions/:id', tenantAdminOnly, validateMiddleware(promotionBodySchema), controller.updatePromotion);
+router.delete('/promotions/:id', tenantAdminOnly, validateMiddleware(idParamSchema), controller.deletePromotion);
+
+router.get('/delivery-fees', tenantAdminOnly, controller.listDeliveryFees);
+router.post('/delivery-fees', tenantAdminOnly, validateMiddleware(deliveryFeeBodySchema), controller.createDeliveryFee);
+router.put('/delivery-fees/:id', tenantAdminOnly, validateMiddleware(deliveryFeeBodySchema), controller.updateDeliveryFee);
+router.delete('/delivery-fees/:id', tenantAdminOnly, validateMiddleware(idParamSchema), controller.deleteDeliveryFee);
 
 export default router;

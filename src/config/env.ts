@@ -5,7 +5,7 @@ dotenv.config({ quiet: true });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number().default(5000),
+  PORT: z.coerce.number().default(5001),
   API_PREFIX: z.string().default('/api/v1'),
   MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
   JWT_ACCESS_SECRET: z.string().min(16, 'JWT_ACCESS_SECRET must be at least 16 characters'),
@@ -16,7 +16,10 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('*'),
   APP_NAME: z.string().default('MPS Ecommerce SaaS API'),
   LOG_LEVEL: z.string().default('info'),
-  TENANT_HEADER_KEY: z.string().default('x-tenant-id')
+  TENANT_HEADER_KEY: z.string().default('x-tenant-id'),
+  GOOGLE_DRIVE_PRODUCT_IMAGES_FOLDER_ID: z.string().default('1xSSxy-7Tk5NPj1ur5Gw8jCLx47Rl42Ym'),
+  GOOGLE_SERVICE_ACCOUNT_EMAIL: z.string().optional(),
+  GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: z.string().optional()
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

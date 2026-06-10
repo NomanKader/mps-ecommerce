@@ -5,8 +5,14 @@ export interface Product {
   sku: string;
   categoryId?: string;
   categoryName?: string;
+  subcategory?: string;
   description?: string;
   tags?: string[];
+  imageName?: string;
+  imageMimeType?: string;
+  imageSize?: number;
+  imageDriveFileId?: string;
+  imageUrl?: string | null;
   price: number;
   currency: string;
   stock: number;

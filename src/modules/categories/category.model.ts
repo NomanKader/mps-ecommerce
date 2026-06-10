@@ -9,10 +9,10 @@ const categorySchema = new Schema<Category>(
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, trim: true },
     parentId: { type: String, index: true },
-    icon: { type: String, trim: true },
+    icon: { type: String },
     color: { type: String, trim: true },
     itemCount: { type: Number, default: 0, min: 0 },
-    subcategories: [{ type: String, trim: true }]
+    subcategories: [{ type: String }]
   },
   baseSchemaOptions
 );

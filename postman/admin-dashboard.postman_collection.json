@@ -2,52 +2,172 @@
   "info": {
     "name": "AV's Store Admin Dashboard API",
     "_postman_id": "0e2ac15a-ec9b-47e4-99b4-cd5b2ed8f3d5",
-    "description": "Admin dashboard API collection for products, categories, orders, customers, promotions, delivery fees, and dashboard metrics.",
+    "description": "MPS Ecommerce API collection for auth, tenant admin dashboard, storefront, and access management. Admin requests use the tenant_admin JWT tenant context and do not require x-tenant-id after login.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:5000/api/v1" },
-    { "key": "tenantId", "value": "demo" },
-    { "key": "accessToken", "value": "" },
-    { "key": "otp", "value": "" },
-    { "key": "productId", "value": "" },
-    { "key": "categoryId", "value": "" },
-    { "key": "orderId", "value": "" },
-    { "key": "promotionId", "value": "" },
-    { "key": "deliveryFeeId", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001/api/v1"
+    },
+    {
+      "key": "tenantId",
+      "value": "demo"
+    },
+    {
+      "key": "adminEmail",
+      "value": "tenant.admin@av.com"
+    },
+    {
+      "key": "adminPassword",
+      "value": "password123"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "systemAdminToken",
+      "value": ""
+    },
+    {
+      "key": "otp",
+      "value": ""
+    },
+    {
+      "key": "productId",
+      "value": ""
+    },
+    {
+      "key": "categoryId",
+      "value": ""
+    },
+    {
+      "key": "orderId",
+      "value": ""
+    },
+    {
+      "key": "promotionId",
+      "value": ""
+    },
+    {
+      "key": "deliveryFeeId",
+      "value": ""
+    },
+    {
+      "key": "carouselId",
+      "value": ""
+    },
+    {
+      "key": "storefrontIconId",
+      "value": ""
+    },
+    {
+      "key": "sectionAssignmentId",
+      "value": ""
+    }
   ],
   "item": [
-    {
-      "name": "Health",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/health"
-      }
-    },
     {
       "name": "Authentication",
       "item": [
         {
-          "name": "Request Registration OTP",
+          "name": "Sign In Tenant Admin",
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
-                  "if (json.data.developmentOtp) pm.collectionVariables.set('otp', json.data.developmentOtp);"
-                ],
-                "type": "text/javascript"
+                  "if (json.data && json.data.accessToken) pm.collectionVariables.set('accessToken', json.data.accessToken);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const value = json.data && json.data.user && json.data.user.tenantId;",
+                  "if (value) pm.collectionVariables.set('tenantId', value);"
+                ]
               }
             }
           ],
           "request": {
             "method": "POST",
             "header": [
-              { "key": "x-tenant-id", "value": "{{tenantId}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
-            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+959123456789\"\n}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"rememberMe\": true\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        },
+        {
+          "name": "Sign Out",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        },
+        {
+          "name": "Request Registration OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const value = json.data && json.data.developmentOtp;",
+                  "if (value) pm.collectionVariables.set('otp', value);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+959123456789\"\n}"
+            },
             "url": "{{baseUrl}}/auth/otp/request"
           }
         },
@@ -57,19 +177,25 @@
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
-                  "if (json.data.accessToken) pm.collectionVariables.set('accessToken', json.data.accessToken);"
-                ],
-                "type": "text/javascript"
+                  "if (json.data && json.data.accessToken) pm.collectionVariables.set('accessToken', json.data.accessToken);"
+                ]
               }
             }
           ],
           "request": {
             "method": "POST",
             "header": [
-              { "key": "x-tenant-id", "value": "{{tenantId}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -79,46 +205,71 @@
           }
         },
         {
-          "name": "Sign In",
+          "name": "Sign In System User",
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
-                  "if (json.data.accessToken) pm.collectionVariables.set('accessToken', json.data.accessToken);"
-                ],
-                "type": "text/javascript"
+                  "if (json.data && json.data.accessToken) pm.collectionVariables.set('systemAdminToken', json.data.accessToken);"
+                ]
               }
             }
           ],
           "request": {
             "method": "POST",
             "header": [
-              { "key": "x-tenant-id", "value": "{{tenantId}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"ayesha@example.com\",\n  \"password\": \"password123\",\n  \"rememberMe\": true\n}"
+              "raw": "{\n  \"email\": \"system.admin@example.com\",\n  \"password\": \"password123\",\n  \"rememberMe\": true\n}"
             },
             "url": "{{baseUrl}}/auth/login"
           }
-        },
+        }
+      ]
+    },
+    {
+      "name": "Admin Profile",
+      "item": [
         {
-          "name": "Get Current User",
+          "name": "Get Profile",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/auth/me"
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/profile"
           }
         },
         {
-          "name": "Sign Out",
+          "name": "Update Profile",
           "request": {
-            "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": "{{baseUrl}}/auth/logout"
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Tenant\",\n  \"lastName\": \"Admin\",\n  \"email\": \"{{adminEmail}}\",\n  \"isActive\": true,\n  \"deliveryHeadline\": \"Delivery across Yangon\",\n  \"supportPhoneCountryCode\": \"+95\",\n  \"supportPhoneNumber\": \"09 123 456 789\",\n  \"topBarTagline\": \"Fresh groceries for modern households\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/profile"
           }
         }
       ]
@@ -130,7 +281,12 @@
           "name": "Get Dashboard Summary",
           "request": {
             "method": "GET",
-            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/admin/dashboard"
           }
         }
@@ -143,8 +299,13 @@
           "name": "List Products",
           "request": {
             "method": "GET",
-            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
-            "url": "{{baseUrl}}/admin/products?search=&category=&stock=&rating="
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/products?search=&status=&categoryId=&categoryName="
           }
         },
         {
@@ -153,23 +314,92 @@
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.collectionVariables.set('productId', json.data._id);"
-                ],
-                "type": "text/javascript"
+                  "const value = json.data && json.data._id;",
+                  "if (value) pm.collectionVariables.set('productId', value);"
+                ]
               }
             }
           ],
           "request": {
             "method": "POST",
             "header": [
-              { "key": "x-tenant-id", "value": "{{tenantId}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Premium Green Apples\",\n  \"sku\": \"APL-GRN-001\",\n  \"categoryName\": \"Fruits\",\n  \"description\": \"Fresh green apples\",\n  \"tags\": [\"fruit\", \"fresh\"],\n  \"price\": 8.5,\n  \"currency\": \"USD\",\n  \"stock\": 120,\n  \"rating\": 4.8,\n  \"status\": \"active\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Premium Green Apples",
+                  "type": "text"
+                },
+                {
+                  "key": "sku",
+                  "value": "APL-GRN-001",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryName",
+                  "value": "Fruits",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "subcategory",
+                  "value": "Apples & Pears",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Fresh green apples",
+                  "type": "text"
+                },
+                {
+                  "key": "tags",
+                  "value": "[\"fruit\",\"fresh\"]",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "8.5",
+                  "type": "text"
+                },
+                {
+                  "key": "currency",
+                  "value": "USD",
+                  "type": "text"
+                },
+                {
+                  "key": "stock",
+                  "value": "120",
+                  "type": "text"
+                },
+                {
+                  "key": "rating",
+                  "value": "4.8",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
             },
             "url": "{{baseUrl}}/admin/products"
           }
@@ -179,12 +409,85 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "x-tenant-id", "value": "{{tenantId}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Premium Green Apples\",\n  \"sku\": \"APL-GRN-001\",\n  \"categoryName\": \"Fruits\",\n  \"description\": \"Updated product description\",\n  \"tags\": [\"fruit\", \"fresh\", \"organic\"],\n  \"price\": 8.75,\n  \"currency\": \"USD\",\n  \"stock\": 115,\n  \"rating\": 4.9,\n  \"status\": \"active\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Premium Green Apples",
+                  "type": "text"
+                },
+                {
+                  "key": "sku",
+                  "value": "APL-GRN-001",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryName",
+                  "value": "Fruits",
+                  "type": "text"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "subcategory",
+                  "value": "Apples & Pears",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Updated fresh green apples",
+                  "type": "text"
+                },
+                {
+                  "key": "tags",
+                  "value": "[\"fruit\",\"fresh\",\"updated\"]",
+                  "type": "text"
+                },
+                {
+                  "key": "price",
+                  "value": "9",
+                  "type": "text"
+                },
+                {
+                  "key": "currency",
+                  "value": "USD",
+                  "type": "text"
+                },
+                {
+                  "key": "stock",
+                  "value": "100",
+                  "type": "text"
+                },
+                {
+                  "key": "rating",
+                  "value": "4.9",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "type": "text"
+                },
+                {
+                  "key": "removeImage",
+                  "value": "false",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
             },
             "url": "{{baseUrl}}/admin/products/{{productId}}"
           }
@@ -193,7 +496,12 @@
           "name": "Delete Product",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/admin/products/{{productId}}"
           }
         }
@@ -206,7 +514,12 @@
           "name": "List Categories",
           "request": {
             "method": "GET",
-            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/admin/categories?search="
           }
         },
@@ -216,23 +529,30 @@
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.collectionVariables.set('categoryId', json.data._id);"
-                ],
-                "type": "text/javascript"
+                  "const value = json.data && json.data._id;",
+                  "if (value) pm.collectionVariables.set('categoryId', value);"
+                ]
               }
             }
           ],
           "request": {
             "method": "POST",
             "header": [
-              { "key": "x-tenant-id", "value": "{{tenantId}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Vegetables\",\n  \"slug\": \"vegetables\",\n  \"icon\": \"leafy-greens\",\n  \"color\": \"#2db34b\",\n  \"itemCount\": 58,\n  \"subcategories\": [\"Leafy Greens\", \"Root Vegetables\", \"Tomatoes\"]\n}"
+              "raw": "{\n  \"name\": \"Fruits\",\n  \"slug\": \"fruits\",\n  \"icon\": \"🍎\",\n  \"color\": \"#2db34b\",\n  \"subcategories\": [\n    \"Apples & Pears\",\n    \"Citrus\",\n    \"Berries\"\n  ]\n}"
             },
             "url": "{{baseUrl}}/admin/categories"
           }
@@ -242,12 +562,18 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "x-tenant-id", "value": "{{tenantId}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Vegetables\",\n  \"slug\": \"vegetables\",\n  \"icon\": \"leafy-greens\",\n  \"color\": \"#2db34b\",\n  \"itemCount\": 60,\n  \"subcategories\": [\"Leafy Greens\", \"Root Vegetables\", \"Tomatoes\", \"Peppers\"]\n}"
+              "raw": "{\n  \"name\": \"Fruits\",\n  \"slug\": \"fruits\",\n  \"icon\": \"🍎\",\n  \"color\": \"#2db34b\",\n  \"subcategories\": [\n    \"Apples & Pears\",\n    \"Citrus\",\n    \"Berries\",\n    \"Tropical\"\n  ]\n}"
             },
             "url": "{{baseUrl}}/admin/categories/{{categoryId}}"
           }
@@ -256,7 +582,12 @@
           "name": "Delete Category",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/admin/categories/{{categoryId}}"
           }
         }
@@ -269,16 +600,39 @@
           "name": "Get Order Stats",
           "request": {
             "method": "GET",
-            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/admin/orders/stats"
           }
         },
         {
           "name": "List Orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const value = json.data && json.data[0] && json.data[0]._id;",
+                  "if (value) pm.collectionVariables.set('orderId', value);"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
-            "url": "{{baseUrl}}/admin/orders?search=&status=&from=&to="
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/orders?search=&status=&region=&township="
           }
         },
         {
@@ -286,10 +640,19 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "x-tenant-id", "value": "{{tenantId}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
-            "body": { "mode": "raw", "raw": "{\n  \"status\": \"shipped\"\n}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"processing\"\n}"
+            },
             "url": "{{baseUrl}}/admin/orders/{{orderId}}/status"
           }
         }
@@ -302,7 +665,12 @@
           "name": "List Customers",
           "request": {
             "method": "GET",
-            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/admin/customers?search=&segment="
           }
         }
@@ -315,7 +683,12 @@
           "name": "List Promotions",
           "request": {
             "method": "GET",
-            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/admin/promotions?search="
           }
         },
@@ -325,23 +698,30 @@
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.collectionVariables.set('promotionId', json.data._id);"
-                ],
-                "type": "text/javascript"
+                  "const value = json.data && json.data._id;",
+                  "if (value) pm.collectionVariables.set('promotionId', value);"
+                ]
               }
             }
           ],
           "request": {
             "method": "POST",
             "header": [
-              { "key": "x-tenant-id", "value": "{{tenantId}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"campaign\": \"Fresh basket booster\",\n  \"code\": \"FRESH15\",\n  \"discount\": \"15% off produce\",\n  \"startsAt\": \"2026-04-10T00:00:00.000Z\",\n  \"endsAt\": \"2026-05-11T00:00:00.000Z\",\n  \"status\": \"active\",\n  \"uses\": 86\n}"
+              "raw": "{\n  \"campaign\": \"Welcome Offer\",\n  \"code\": \"WELCOME10\",\n  \"discount\": \"10%\",\n  \"startsAt\": \"2026-06-09T00:00:00.000Z\",\n  \"endsAt\": \"2026-07-09T00:00:00.000Z\",\n  \"status\": \"active\",\n  \"uses\": 0\n}"
             },
             "url": "{{baseUrl}}/admin/promotions"
           }
@@ -351,12 +731,18 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "x-tenant-id", "value": "{{tenantId}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"campaign\": \"Fresh basket booster\",\n  \"code\": \"FRESH15\",\n  \"discount\": \"20% off produce\",\n  \"startsAt\": \"2026-04-10T00:00:00.000Z\",\n  \"endsAt\": \"2026-05-11T00:00:00.000Z\",\n  \"status\": \"active\",\n  \"uses\": 87\n}"
+              "raw": "{\n  \"campaign\": \"Welcome Offer\",\n  \"code\": \"WELCOME10\",\n  \"discount\": \"10%\",\n  \"startsAt\": \"2026-06-09T00:00:00.000Z\",\n  \"endsAt\": \"2026-07-09T00:00:00.000Z\",\n  \"status\": \"paused\",\n  \"uses\": 1\n}"
             },
             "url": "{{baseUrl}}/admin/promotions/{{promotionId}}"
           }
@@ -365,7 +751,12 @@
           "name": "Delete Promotion",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/admin/promotions/{{promotionId}}"
           }
         }
@@ -378,7 +769,12 @@
           "name": "List Delivery Fees",
           "request": {
             "method": "GET",
-            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/admin/delivery-fees?search=&region="
           }
         },
@@ -388,23 +784,30 @@
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.collectionVariables.set('deliveryFeeId', json.data._id);"
-                ],
-                "type": "text/javascript"
+                  "const value = json.data && json.data._id;",
+                  "if (value) pm.collectionVariables.set('deliveryFeeId', value);"
+                ]
               }
             }
           ],
           "request": {
             "method": "POST",
             "header": [
-              { "key": "x-tenant-id", "value": "{{tenantId}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"region\": \"Yangon\",\n  \"township\": \"Kamayut\",\n  \"fee\": 2.5,\n  \"freeOver\": 50,\n  \"eta\": \"Same day\",\n  \"status\": \"active\"\n}"
+              "raw": "{\n  \"region\": \"Yangon\",\n  \"township\": \"Bahan\",\n  \"fee\": 2,\n  \"freeOver\": 50,\n  \"eta\": \"45-60 min\",\n  \"status\": \"active\"\n}"
             },
             "url": "{{baseUrl}}/admin/delivery-fees"
           }
@@ -414,12 +817,18 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "x-tenant-id", "value": "{{tenantId}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"region\": \"Yangon\",\n  \"township\": \"Kamayut\",\n  \"fee\": 3,\n  \"freeOver\": 60,\n  \"eta\": \"Same day\",\n  \"status\": \"active\"\n}"
+              "raw": "{\n  \"region\": \"Yangon\",\n  \"township\": \"Bahan\",\n  \"fee\": 2.5,\n  \"freeOver\": 60,\n  \"eta\": \"40-55 min\",\n  \"status\": \"active\"\n}"
             },
             "url": "{{baseUrl}}/admin/delivery-fees/{{deliveryFeeId}}"
           }
@@ -428,8 +837,699 @@
           "name": "Delete Delivery Fee",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "x-tenant-id", "value": "{{tenantId}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": "{{baseUrl}}/admin/delivery-fees/{{deliveryFeeId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Carousel",
+      "item": [
+        {
+          "name": "List Carousel Slides",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/carousel?placement=all"
+          }
+        },
+        {
+          "name": "Create Carousel Slide",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const value = json.data && json.data._id;",
+                  "if (value) pm.collectionVariables.set('carouselId', value);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "placement",
+                  "value": "hero",
+                  "type": "text"
+                },
+                {
+                  "key": "title",
+                  "value": "Fresh picks for today",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Seasonal groceries delivered quickly.",
+                  "type": "text"
+                },
+                {
+                  "key": "eyebrow",
+                  "value": "Daily Market",
+                  "type": "text"
+                },
+                {
+                  "key": "cta",
+                  "value": "Shop Fresh",
+                  "type": "text"
+                },
+                {
+                  "key": "metric",
+                  "value": "10%",
+                  "type": "text"
+                },
+                {
+                  "key": "headline",
+                  "value": "Fresh groceries",
+                  "type": "text"
+                },
+                {
+                  "key": "partner",
+                  "value": "AV's Store",
+                  "type": "text"
+                },
+                {
+                  "key": "targetCategoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "targetSearch",
+                  "value": "fresh",
+                  "type": "text"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "type": "text"
+                },
+                {
+                  "key": "startsAt",
+                  "value": "2026-06-09T00:00:00.000Z",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/admin/carousel"
+          }
+        },
+        {
+          "name": "Update Carousel Slide",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "placement",
+                  "value": "hero",
+                  "type": "text"
+                },
+                {
+                  "key": "title",
+                  "value": "Fresh picks for the week",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Updated seasonal groceries.",
+                  "type": "text"
+                },
+                {
+                  "key": "eyebrow",
+                  "value": "Daily Market",
+                  "type": "text"
+                },
+                {
+                  "key": "cta",
+                  "value": "Shop Now",
+                  "type": "text"
+                },
+                {
+                  "key": "metric",
+                  "value": "15%",
+                  "type": "text"
+                },
+                {
+                  "key": "headline",
+                  "value": "Fresh groceries",
+                  "type": "text"
+                },
+                {
+                  "key": "partner",
+                  "value": "AV's Store",
+                  "type": "text"
+                },
+                {
+                  "key": "targetCategoryId",
+                  "value": "{{categoryId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "targetSearch",
+                  "value": "fresh",
+                  "type": "text"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "type": "text"
+                },
+                {
+                  "key": "startsAt",
+                  "value": "2026-06-09T00:00:00.000Z",
+                  "type": "text"
+                },
+                {
+                  "key": "removeImage",
+                  "value": "false",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/admin/carousel/{{carouselId}}"
+          }
+        },
+        {
+          "name": "Delete Carousel Slide",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/carousel/{{carouselId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product Sections",
+      "item": [
+        {
+          "name": "List Product Sections",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/product-sections"
+          }
+        },
+        {
+          "name": "Create Product Section Assignment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const value = json.data && json.data._id;",
+                  "if (value) pm.collectionVariables.set('sectionAssignmentId', value);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"sectionId\": \"top-offers\",\n  \"sortOrder\": 1,\n  \"status\": \"active\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/product-sections/assignments"
+          }
+        },
+        {
+          "name": "Update Product Section Assignment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sortOrder\": 2,\n  \"status\": \"active\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/product-sections/assignments/{{sectionAssignmentId}}"
+          }
+        },
+        {
+          "name": "Delete Product Section Assignment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/product-sections/assignments/{{sectionAssignmentId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Storefront Icons",
+      "item": [
+        {
+          "name": "List Storefront Icons",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/storefront-icons?section=all"
+          }
+        },
+        {
+          "name": "Create Storefront Icon",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const value = json.data && json.data._id;",
+                  "if (value) pm.collectionVariables.set('storefrontIconId', value);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"section\": \"featured\",\n  \"label\": \"Fresh Produce\",\n  \"icon\": \"🥬\",\n  \"color\": \"#166534\",\n  \"surfaceColor\": \"#dcfce7\",\n  \"textColor\": \"#14532d\",\n  \"targetCategoryId\": \"{{categoryId}}\",\n  \"targetSearch\": \"fresh\",\n  \"sortOrder\": 1,\n  \"status\": \"active\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/storefront-icons"
+          }
+        },
+        {
+          "name": "Update Storefront Icon",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"section\": \"featured\",\n  \"label\": \"Fresh Produce\",\n  \"icon\": \"🥬\",\n  \"color\": \"#166534\",\n  \"surfaceColor\": \"#dcfce7\",\n  \"textColor\": \"#14532d\",\n  \"targetCategoryId\": \"{{categoryId}}\",\n  \"targetSearch\": \"fresh\",\n  \"sortOrder\": 2,\n  \"status\": \"active\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/storefront-icons/{{storefrontIconId}}"
+          }
+        },
+        {
+          "name": "Delete Storefront Icon",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/storefront-icons/{{storefrontIconId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public Storefront",
+      "item": [
+        {
+          "name": "Header Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/storefront/header-settings"
+          }
+        },
+        {
+          "name": "Hero Carousel",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/storefront/carousel?placement=hero"
+          }
+        },
+        {
+          "name": "Showcase Carousel",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/storefront/carousel?placement=showcase"
+          }
+        },
+        {
+          "name": "Featured Icons",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/storefront/icons?section=featured"
+          }
+        },
+        {
+          "name": "Merchandising Icons",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/storefront/icons?section=merchandising"
+          }
+        },
+        {
+          "name": "Product Sections",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/storefront/product-sections"
+          }
+        },
+        {
+          "name": "Legacy List Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/products"
+          }
+        },
+        {
+          "name": "Legacy List Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}"
+              }
+            ],
+            "url": "{{baseUrl}}/categories"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer Storefront Authenticated",
+      "item": [
+        {
+          "name": "List Customer Carts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/carts"
+          }
+        },
+        {
+          "name": "List Customer Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/orders"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Access Management",
+      "item": [
+        {
+          "name": "List Tenants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{systemAdminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/tenants"
+          }
+        },
+        {
+          "name": "Create Tenant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{systemAdminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AV's Store\",\n  \"slug\": \"demo\",\n  \"status\": \"active\",\n  \"subscriptionPlan\": \"growth\",\n  \"settings\": {\n    \"locale\": \"en\",\n    \"currency\": \"USD\",\n    \"timezone\": \"Asia/Yangon\"\n  },\n  \"branding\": {\n    \"logoUrl\": \"\",\n    \"primaryColor\": \"#c92a2a\"\n  },\n  \"featureFlags\": []\n}"
+            },
+            "url": "{{baseUrl}}/tenants"
+          }
+        },
+        {
+          "name": "Get Tenant",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{systemAdminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/tenants/{{tenantId}}"
+          }
+        },
+        {
+          "name": "Update Tenant",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{systemAdminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AV's Store\",\n  \"slug\": \"demo\",\n  \"status\": \"active\",\n  \"subscriptionPlan\": \"growth\",\n  \"settings\": {\n    \"locale\": \"en\",\n    \"currency\": \"USD\",\n    \"timezone\": \"Asia/Yangon\"\n  },\n  \"branding\": {\n    \"logoUrl\": \"\",\n    \"primaryColor\": \"#c92a2a\"\n  },\n  \"featureFlags\": []\n}"
+            },
+            "url": "{{baseUrl}}/tenants/{{tenantId}}"
+          }
+        },
+        {
+          "name": "Create Tenant Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{systemAdminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantSlug\": \"demo\",\n  \"email\": \"{{adminEmail}}\",\n  \"firstName\": \"Tenant\",\n  \"lastName\": \"Admin\",\n  \"password\": \"{{adminPassword}}\",\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/tenants/admins"
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/users"
+          }
+        },
+        {
+          "name": "Create System User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"system.admin@example.com\",\n  \"firstName\": \"System\",\n  \"lastName\": \"Admin\",\n  \"password\": \"password123\",\n  \"role\": \"system_admin\",\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/users"
+          }
+        },
+        {
+          "name": "Delete Tenant",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{systemAdminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/tenants/{{tenantId}}"
           }
         }
       ]

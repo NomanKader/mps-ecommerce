@@ -38,6 +38,8 @@ Registration verifies and consumes the OTP, creates a customer account, and retu
 
 `POST /api/v1/auth/login`
 
+Do not send `x-tenant-id` for sign-in. The API resolves the account and tenant from the submitted email address, then returns the user's `tenantId` in the response.
+
 ```json
 {
   "email": "ayesha@example.com",
@@ -46,7 +48,7 @@ Registration verifies and consumes the OTP, creates a customer account, and retu
 }
 ```
 
-The response includes `user` and `accessToken`. `rememberMe: true` uses the longer token duration configured by `JWT_REMEMBER_ME_EXPIRES_IN`.
+The response includes `user` and `accessToken`. Store `user.tenantId` after login and send it as `x-tenant-id` for later tenant-scoped requests. `rememberMe: true` uses the longer token duration configured by `JWT_REMEMBER_ME_EXPIRES_IN`.
 
 ### Restore Session
 

@@ -6,7 +6,8 @@ export const createProductSchema = z.object({
     name: z.string().min(2),
     sku: z.string().min(2),
     categoryId: z.string().optional(),
-    price: z.number().nonnegative(),
+    subcategory: z.string().optional(),
+    price: z.coerce.number().nonnegative(),
     currency: z.string().default('USD')
   })
 });

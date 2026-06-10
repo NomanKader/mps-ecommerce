@@ -3,16 +3,24 @@
 ## Functionality From Screens
 
 - Dashboard: tenant summary, catalog count, order count, revenue, weekly sales chart, work queue, low stock alerts, recent orders.
-- Products: search/filter products, list SKU/name/category/price/stock/rating, create product, update product, soft-delete product.
+- Products: search/filter products, list SKU/name/category/subcategory/price/stock/rating, create product, update product, soft-delete product.
 - Categories: search categories, list storefront category cards with icon/color/item count/subcategories, create category, update category, soft-delete category.
 - Orders: order KPIs, search/filter by status/date/customer/township, list orders, update fulfillment status, cancel orders through status update.
 - Customers: search/filter customers by name/email/segment/date fields, list segment/order/spend/last-order data.
 - Promotions: search promotions, list code/discount/date/status/uses, create promotion, update promotion, soft-delete promotion.
 - Delivery fees: search/filter delivery fees by region, list township/fee/free-over/ETA/status, create delivery fee, update delivery fee, soft-delete delivery fee.
+- Admin user/header settings: edit tenant admin name/email/active status and storefront top-bar copy/phone fields.
+- Carousel: manage tenant-scoped hero/showcase slides with optional uploaded images.
+- Storefront icons: manage featured/merchandising highlight icons with labels, colors, targets, order, and status.
+- Product sections: assign existing tenant products into homepage sections.
 
 ## Routes
 
 All routes are tenant-aware. Send `x-tenant-id: demo` unless using token/subdomain tenancy.
+
+Product create/update supports `multipart/form-data` with an optional `image` file field. Images must be `image/*` and no larger than 5MB. Product image files are uploaded to Google Drive folder `1xSSxy-7Tk5NPj1ur5Gw8jCLx47Rl42Ym` by default; configure `GOOGLE_DRIVE_PRODUCT_IMAGES_FOLDER_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, and `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` for server-side Drive uploads.
+
+Admin routes require `Authorization: Bearer <tenant_admin token>` and an `x-tenant-id` header matching the token tenant. Storefront routes require tenant context from `x-tenant-id` or subdomain and only return active storefront records.
 
 | Method | Route | Purpose |
 | --- | --- | --- |
@@ -21,6 +29,20 @@ All routes are tenant-aware. Send `x-tenant-id: demo` unless using token/subdoma
 | POST | `/api/v1/admin/products` | Create product |
 | PUT | `/api/v1/admin/products/:id` | Update product |
 | DELETE | `/api/v1/admin/products/:id` | Soft-delete product |
+| GET | `/api/v1/admin/profile` | Fetch current tenant admin and header settings |
+| PUT | `/api/v1/admin/profile` | Update current tenant admin and header settings |
+| GET | `/api/v1/admin/carousel?placement=hero` | List carousel slides |
+| POST | `/api/v1/admin/carousel` | Create carousel slide, optional multipart `image` |
+| PUT | `/api/v1/admin/carousel/:id` | Update carousel slide, optional multipart `image` or `removeImage=true` |
+| DELETE | `/api/v1/admin/carousel/:id` | Soft-delete carousel slide |
+| GET | `/api/v1/admin/storefront-icons?section=featured` | List storefront icons |
+| POST | `/api/v1/admin/storefront-icons` | Create storefront icon |
+| PUT | `/api/v1/admin/storefront-icons/:id` | Update storefront icon |
+| DELETE | `/api/v1/admin/storefront-icons/:id` | Soft-delete storefront icon |
+| GET | `/api/v1/admin/product-sections` | List section definitions and assignments |
+| POST | `/api/v1/admin/product-sections/assignments` | Assign an existing product to a section |
+| PUT | `/api/v1/admin/product-sections/assignments/:id` | Update section assignment |
+| DELETE | `/api/v1/admin/product-sections/assignments/:id` | Soft-delete section assignment |
 | GET | `/api/v1/admin/categories` | List categories with `search` filter |
 | POST | `/api/v1/admin/categories` | Create category |
 | PUT | `/api/v1/admin/categories/:id` | Update category |
@@ -37,3 +59,74 @@ All routes are tenant-aware. Send `x-tenant-id: demo` unless using token/subdoma
 | POST | `/api/v1/admin/delivery-fees` | Create delivery fee |
 | PUT | `/api/v1/admin/delivery-fees/:id` | Update delivery fee |
 | DELETE | `/api/v1/admin/delivery-fees/:id` | Soft-delete delivery fee |
+
+## Storefront Routes
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/storefront/header-settings` | Header admin/profile settings for current tenant |
+| GET | `/api/v1/storefront/carousel?placement=hero` | Active hero slides sorted by `sortOrder` |
+| GET | `/api/v1/storefront/carousel?placement=showcase` | Active showcase slides sorted by `sortOrder` |
+| GET | `/api/v1/storefront/icons?section=featured` | Active featured icons sorted by `sortOrder` |
+| GET | `/api/v1/storefront/icons?section=merchandising` | Active merchandising icons sorted by `sortOrder` |
+| GET | `/api/v1/storefront/product-sections` | Active products grouped by homepage section |
+
+## Merchandising Payloads
+
+`PUT /api/v1/admin/profile`
+
+```json
+{
+  "firstName": "Tenant",
+  "lastName": "Admin",
+  "email": "admin@demo.com",
+  "isActive": true,
+  "deliveryHeadline": "Delivery all over UAE",
+  "supportPhoneCountryCode": "+971",
+  "supportPhoneNumber": "800 287",
+  "topBarTagline": "Sustainable Grocery Shopping"
+}
+```
+
+`POST /api/v1/admin/carousel` accepts JSON or multipart form data:
+
+```json
+{
+  "placement": "hero",
+  "title": "Fresh organic picks",
+  "description": "Seasonal produce delivered fast.",
+  "eyebrow": "New",
+  "cta": "Shop now",
+  "targetCategoryId": "produce",
+  "targetSearch": "organic",
+  "sortOrder": 1,
+  "status": "active",
+  "startsAt": "2026-06-09T00:00:00.000Z"
+}
+```
+
+`POST /api/v1/admin/storefront-icons`
+
+```json
+{
+  "section": "featured",
+  "label": "New arrivals",
+  "icon": "🆕",
+  "color": "#166534",
+  "surfaceColor": "#dcfce7",
+  "targetCategoryId": "produce",
+  "sortOrder": 1,
+  "status": "active"
+}
+```
+
+`POST /api/v1/admin/product-sections/assignments`
+
+```json
+{
+  "sectionId": "top-offers",
+  "productId": "PRODUCT_ID",
+  "sortOrder": 1,
+  "status": "active"
+}
+```

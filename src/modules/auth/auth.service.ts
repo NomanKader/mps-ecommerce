@@ -87,10 +87,10 @@ export class AuthService {
   }
 
   async login(payload: LoginInput): Promise<{ user: UserResponse; accessToken: string }> {
-    const user = await this.authRepository.findUserByEmail(
-      payload.email.trim().toLowerCase(),
-      payload.tenantId || 'demo'
-    );
+    const email = payload.email.trim().toLowerCase();
+    const user = payload.tenantId
+      ? await this.authRepository.findUserByEmail(email, payload.tenantId)
+      : await this.resolveUserByEmail(email);
 
     if (!user || user.isDeleted || !user.isActive || !(await comparePassword(payload.password, user.password))) {
       throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Invalid credentials');
@@ -109,6 +109,27 @@ export class AuthService {
         payload.rememberMe
       )
     };
+  }
+
+  private async resolveUserByEmail(email: string) {
+    const users = await this.authRepository.findUsersByEmail(email);
+    const usableUsers = users.filter((user) => !user.isDeleted && user.isActive);
+
+    if (usableUsers.length === 1) {
+      return usableUsers[0];
+    }
+
+    const systemUser = usableUsers.find((user) => !user.tenantId && user.role === Role.SYSTEM_ADMIN);
+
+    if (systemUser && usableUsers.length === 1) {
+      return systemUser;
+    }
+
+    if (usableUsers.length > 1) {
+      throw new ApiError(HTTP_STATUS.CONFLICT, 'Multiple accounts found for this email');
+    }
+
+    return null;
   }
 
   async me(userId?: string): Promise<UserResponse> {

@@ -6,7 +6,10 @@ export interface Order {
   customerName: string;
   customerEmail?: string;
   customerPhone?: string;
+  deliveryAddress?: string;
+  region?: string;
   township?: string;
+  itemCount?: number;
   itemsCount: number;
   totalAmount: number;
   currency: string;

@@ -112,7 +112,7 @@ The starter already prepares the codebase for:
 
 - tenant resolution through header, subdomain, or token claims
 - tenant-aware data models with `tenantId`
-- RBAC roles: `super_admin`, `tenant_admin`, `staff`, `customer`
+- RBAC roles: `system_admin`, `super_admin`, `tenant_admin`, `staff`, `customer`
 - future subscription plans, tenant settings, branding, and feature flags
 - clean separation between route, controller, service, and repository responsibilities
 
@@ -125,7 +125,7 @@ npm start
 
 ## Testing
 
-The project includes Jest + Supertest setup and a basic health route test. Expand `src/tests/unit` and `src/tests/integration` as modules gain business logic.
+The project includes Jest + Supertest setup. Expand `src/tests/unit` and `src/tests/integration` as modules gain business logic.
 
 ## Future Extension Notes
 

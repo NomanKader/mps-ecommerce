@@ -19,7 +19,14 @@ export const validateMiddleware =
       };
 
       if (result.body) req.body = result.body;
-      if (result.query) req.query = result.query;
+      if (result.query) {
+        Object.defineProperty(req, 'query', {
+          configurable: true,
+          enumerable: true,
+          value: result.query,
+          writable: true
+        });
+      }
       if (result.params) req.params = result.params;
 
       next();

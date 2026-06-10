@@ -1,3 +1,4 @@
+import { Role } from '@common/enums/role.enum';
 import { UserRepository } from '@modules/users/user.repository';
 import { User } from '@modules/users/user.types';
 import { PhoneOtp, PhoneOtpModel } from '@modules/auth/phone-otp.model';
@@ -7,6 +8,14 @@ export class AuthRepository {
 
   async findUserByEmail(email: string, tenantId?: string): Promise<User | null> {
     return this.userRepository.findOne({ email, ...(tenantId ? { tenantId } : {}) });
+  }
+
+  async findSystemUserByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ email, tenantId: { $exists: false }, role: Role.SYSTEM_ADMIN });
+  }
+
+  async findUsersByEmail(email: string): Promise<User[]> {
+    return this.userRepository.findManyByEmail(email);
   }
 
   async findUserByPhone(tenantId: string, phone: string): Promise<User | null> {
