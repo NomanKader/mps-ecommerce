@@ -19,6 +19,7 @@ describe('ProtectedRoute', () => {
           id: 'user-1',
           lastName: 'Customer',
           role: 'customer',
+          tenantId: 'av',
         },
       }),
     );
@@ -27,9 +28,7 @@ describe('ProtectedRoute', () => {
       <Provider store={store}>
         <MemoryRouter initialEntries={['/admin/dashboard']}>
           <Routes>
-            <Route
-              element={<ProtectedRoute allowedRoles={['tenant_admin', 'staff', 'super_admin']} />}
-            >
+            <Route element={<ProtectedRoute allowedRoles={['tenant_admin']} />}>
               <Route element={<div>Admin dashboard</div>} path="/admin/dashboard" />
             </Route>
             <Route element={<div>Storefront home</div>} path="/" />

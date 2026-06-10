@@ -5,6 +5,10 @@ import type {
   PromoTile,
   ShowcaseBanner,
   ShopBrand,
+  StorefrontHighlightItem,
+  StorefrontCarouselSlide,
+  StorefrontProductSection,
+  StorefrontProductSectionAssignment,
   StoreCategory,
   StoreCategoryMenuItem,
   StoreProduct,
@@ -183,12 +187,30 @@ export const featuredCategoryHighlights: FeatureHighlight[] = [
   { color: '#7e7b74', icon: '📦', id: 'bulk', label: 'Buy Bulk', surfaceColor: '#f0efeb' },
   { color: '#62c5f0', icon: '❄️', id: 'frozen', label: 'Frozen', surfaceColor: '#eefaff' },
   { color: '#1fa44d', icon: '🌿', id: 'organic', label: 'Organic', surfaceColor: '#ebf8ef' },
-  { color: '#e43224', icon: '🌾', id: 'gluten-free', label: 'Gluten-free', surfaceColor: '#fff2b8' },
-  { color: '#e43224', icon: '🍬', id: 'no-sugar', label: 'No Added Sugar', surfaceColor: '#fff2b8' },
+  {
+    color: '#e43224',
+    icon: '🌾',
+    id: 'gluten-free',
+    label: 'Gluten-free',
+    surfaceColor: '#fff2b8',
+  },
+  {
+    color: '#e43224',
+    icon: '🍬',
+    id: 'no-sugar',
+    label: 'No Added Sugar',
+    surfaceColor: '#fff2b8',
+  },
   { color: '#21af44', icon: '🥗', id: 'vegan', label: 'Vegan', surfaceColor: '#ebf8ef' },
   { color: '#7a3db8', icon: '🥣', id: 'keto', label: 'Keto', surfaceColor: '#f4edff' },
   { color: '#e43224', icon: '👨‍🍳', id: 'recipes', label: 'Recipes', surfaceColor: '#fff2b8' },
-  { color: '#d2aa2d', icon: '🎀', id: 'gift-cards', label: 'E-Gift Cards', surfaceColor: '#fff9e8' },
+  {
+    color: '#d2aa2d',
+    icon: '🎀',
+    id: 'gift-cards',
+    label: 'E-Gift Cards',
+    surfaceColor: '#fff9e8',
+  },
 ];
 
 export const quickHighlights: FeatureHighlight[] = [
@@ -199,9 +221,67 @@ export const quickHighlights: FeatureHighlight[] = [
   { color: '#2fa84f', icon: '🎁', id: 'rewards', label: 'Earn Real Rewards' },
 ];
 
+export const defaultHighlightItems: StorefrontHighlightItem[] = [
+  ...featuredCategoryHighlights.map((item, index) => ({
+    ...item,
+    section: 'featured' as const,
+    sortOrder: index + 1,
+    status: 'active' as const,
+    targetCategoryId: 'all',
+    targetSearch: item.id === 'promotion' ? 'offer' : item.label,
+  })),
+  ...[
+    ...featuredCategoryHighlights,
+    {
+      color: '#d2aa2d',
+      icon: '🎁',
+      id: 'custom-gift-boxes',
+      label: 'Customised Gift Boxes',
+      surfaceColor: '#fff9e8',
+    },
+    { color: '#e43224', icon: '👍', id: 'must-try', label: 'Must Try', surfaceColor: '#fff2b8' },
+    { color: '#b9263d', icon: '🏬', id: 'local', label: 'Local', surfaceColor: '#fff0f3' },
+    {
+      color: '#e43224',
+      icon: '⏳',
+      id: 'coming-soon',
+      label: 'Coming Soon',
+      surfaceColor: '#fff2b8',
+    },
+  ].map((item, index) => ({
+    ...item,
+    section: 'merchandising' as const,
+    sortOrder: index + 1,
+    status: 'active' as const,
+    targetCategoryId:
+      item.id === 'bulk'
+        ? 'pantry'
+        : item.id === 'custom-gift-boxes' || item.id === 'gift-cards'
+          ? 'gifts'
+          : item.id === 'frozen'
+            ? 'frozen'
+            : item.id === 'imperfect' || item.id === 'gluten-free'
+              ? 'vegetables'
+              : item.id === 'keto' || item.id === 'recipes' || item.id === 'vegan'
+                ? 'quick-meals'
+                : 'all',
+    targetSearch:
+      item.id === 'promotion'
+        ? 'offer'
+        : item.id === 'coming-soon'
+          ? 'new'
+          : item.id === 'must-try'
+            ? 'fresh'
+            : item.id === 'custom-gift-boxes'
+              ? 'gift'
+              : item.label,
+  })),
+];
+
 export const heroBanner: HeroBannerContent = {
   cta: 'Find out more',
-  description: 'Curated seasonal groceries, pantry favourites, and household essentials delivered with care.',
+  description:
+    'Curated seasonal groceries, pantry favourites, and household essentials delivered with care.',
   eyebrow: 'Fresh picks for your home',
   imageUrl:
     'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80',
@@ -233,6 +313,77 @@ export const showcaseBanners: ShowcaseBanner[] = [
       'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1000&q=80',
     title: 'Weekly offers deserve a carousel section with stronger imagery.',
   },
+];
+
+export const defaultCarouselSlides: StorefrontCarouselSlide[] = [
+  {
+    cta: heroBanner.cta,
+    description: heroBanner.description,
+    eyebrow: heroBanner.eyebrow,
+    headline: 'Cashback',
+    id: 'cashback',
+    imageUrl: heroBanner.imageUrl,
+    metric: '10%',
+    partner: 'Wio Personal',
+    placement: 'hero',
+    sortOrder: 1,
+    startsAt: '2026-04-27',
+    status: 'active',
+    targetCategoryId: 'all',
+    targetSearch: 'cashback',
+    title: heroBanner.title,
+  },
+  {
+    cta: 'Shop now',
+    description: showcaseBanners[0]?.description ?? heroBanner.description,
+    eyebrow: 'Fresh picks',
+    headline: 'Picks',
+    id: showcaseBanners[0]?.id ?? 'fresh-picks',
+    imageUrl: showcaseBanners[0]?.imageUrl ?? heroBanner.imageUrl,
+    metric: 'Fresh',
+    partner: 'Seasonal picks',
+    placement: 'hero',
+    sortOrder: 2,
+    startsAt: '2026-04-27',
+    status: 'active',
+    targetCategoryId: 'fruits',
+    targetSearch: 'fresh',
+    title: showcaseBanners[0]?.title ?? heroBanner.title,
+  },
+  {
+    cta: 'Explore more',
+    description: showcaseBanners[1]?.description ?? heroBanner.description,
+    eyebrow: 'Weekly edit',
+    headline: 'In Store',
+    id: showcaseBanners[1]?.id ?? 'weekly-edit',
+    imageUrl: showcaseBanners[1]?.imageUrl ?? heroBanner.imageUrl,
+    metric: 'New',
+    partner: 'Storefront edit',
+    placement: 'hero',
+    sortOrder: 3,
+    startsAt: '2026-04-27',
+    status: 'active',
+    targetCategoryId: 'vegetables',
+    targetSearch: 'organic',
+    title: showcaseBanners[1]?.title ?? heroBanner.title,
+  },
+  ...showcaseBanners.map((banner, index) => ({
+    cta: index === 0 ? 'Shop seasonal' : 'Explore more',
+    description: banner.description,
+    eyebrow: index === 0 ? 'Storefront system' : index === 1 ? 'Weekly edit' : 'Promotion edit',
+    headline: index === 0 ? 'Fresh' : index === 1 ? 'Organic' : 'Offers',
+    id: `showcase-${banner.id}`,
+    imageUrl: banner.imageUrl,
+    metric: index === 0 ? 'New' : index === 1 ? 'This week' : 'Promo',
+    partner: index === 0 ? 'Homepage feature' : index === 1 ? 'Curated this week' : 'Store offer',
+    placement: 'showcase' as const,
+    sortOrder: index + 1,
+    startsAt: '2026-04-27',
+    status: 'active' as const,
+    targetCategoryId: index === 1 ? 'vegetables' : index === 2 ? 'all' : 'fruits',
+    targetSearch: index === 1 ? 'organic' : index === 2 ? 'offer' : 'fresh',
+    title: banner.title,
+  })),
 ];
 
 export const shopBrands: ShopBrand[] = [
@@ -729,8 +880,88 @@ export const topBlooms: StoreProduct[] = [
   },
 ];
 
+export const storefrontProductSections: StorefrontProductSection[] = [
+  {
+    description:
+      'Promo-led pricing blocks inspired by the provided design, implemented as reusable card and section primitives.',
+    id: 'top-offers',
+    title: 'Top Offers',
+  },
+  {
+    description:
+      'Fresh-cut bouquets and floral gift picks presented in the same storefront card style for quick browsing.',
+    id: 'top-blooms',
+    title: 'Top Blooms',
+  },
+  {
+    description:
+      'Seasonal, produce-led content blocks stay separate from the catalog API and can later be replaced with CMS or backend-fed content.',
+    id: 'new-season',
+    title: 'New In Season',
+  },
+  {
+    description:
+      'Prepared meals, bakery, and pantry modules can reuse the exact same card component and only swap data.',
+    id: 'pantry-ready',
+    title: 'Pantry & Ready Meals',
+  },
+];
+
+export const allStorefrontSectionProducts: StoreProduct[] = [
+  ...topOffers,
+  ...topBlooms,
+  ...seasonalProducts,
+  ...pantryProducts,
+].filter(
+  (product, index, products) =>
+    products.findIndex((currentProduct) => currentProduct.id === product.id) === index,
+);
+
+export const defaultProductSectionAssignments: StorefrontProductSectionAssignment[] = [
+  ...topOffers.map((product, index) => ({
+    id: `top-offers-${product.id}`,
+    productId: product.id,
+    sectionId: 'top-offers' as const,
+    sortOrder: index + 1,
+    status: 'active' as const,
+  })),
+  ...topBlooms.map((product, index) => ({
+    id: `top-blooms-${product.id}`,
+    productId: product.id,
+    sectionId: 'top-blooms' as const,
+    sortOrder: index + 1,
+    status: 'active' as const,
+  })),
+  ...seasonalProducts.map((product, index) => ({
+    id: `new-season-${product.id}`,
+    productId: product.id,
+    sectionId: 'new-season' as const,
+    sortOrder: index + 1,
+    status: 'active' as const,
+  })),
+  ...pantryProducts.map((product, index) => ({
+    id: `pantry-ready-${product.id}`,
+    productId: product.id,
+    sectionId: 'pantry-ready' as const,
+    sortOrder: index + 1,
+    status: 'active' as const,
+  })),
+];
+
 export const footerLinkGroups: FooterLinkGroup[] = [
-  { id: 'account', links: ['My Account', 'My Addresses', 'My Orders', 'FAQs'], title: 'Account Details' },
-  { id: 'brand', links: ['Our Story', 'Our Vision', 'Our Quality', 'Media'], title: 'Sustainable Shopping' },
-  { id: 'care', links: ["AV's Store Cares", 'Kitchen', 'Privacy Policy', 'Terms & Conditions'], title: 'Support' },
+  {
+    id: 'account',
+    links: ['My Account', 'My Addresses', 'My Orders', 'FAQs'],
+    title: 'Account Details',
+  },
+  {
+    id: 'brand',
+    links: ['Our Story', 'Our Vision', 'Our Quality', 'Media'],
+    title: 'Sustainable Shopping',
+  },
+  {
+    id: 'care',
+    links: ["AV's Store Cares", 'Kitchen', 'Privacy Policy', 'Terms & Conditions'],
+    title: 'Support',
+  },
 ];

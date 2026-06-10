@@ -2,7 +2,9 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import StarRoundedIcon from '@mui/icons-material/StarRounded';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import {
   Box,
@@ -21,12 +23,19 @@ import {
   Typography,
 } from '@mui/material';
 import { GridActionsCellItem, type GridColDef } from '@mui/x-data-grid';
+import { alpha } from '@mui/material/styles';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 
 import { adminApi } from '@features/admin/api/adminApi';
-import type { AdminProduct } from '@features/admin/types/admin.types';
+import type {
+  AdminCategory,
+  AdminProduct,
+  AdminProductBulkItem,
+  AdminProductBulkPayload,
+} from '@features/admin/types/admin.types';
 import { useDebounce } from '@hooks/useDebounce';
 import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
@@ -36,26 +45,42 @@ import { formatCurrency } from '@utils/formatCurrency';
 
 type ProductForm = {
   categoryId: string;
+  imageFile?: File;
+  imageFileName: string;
+  imagePreviewUrl: string;
+  removeImage: boolean;
   inventory: string;
   name: string;
   price: string;
   sku: string;
+  subcategory: string;
 };
 
 const emptyForm: ProductForm = {
-  categoryId: 'fruits',
+  categoryId: '',
+  imageFileName: '',
+  imagePreviewUrl: '',
+  removeImage: false,
   inventory: '25',
   name: '',
   price: '9.99',
   sku: '',
+  subcategory: '',
 };
 
-const toForm = (product: AdminProduct): ProductForm => ({
-  categoryId: product.categoryId ?? '',
+const toForm = (product: AdminProduct, categories: AdminCategory[]): ProductForm => ({
+  categoryId:
+    product.categoryId ??
+    categories.find((category) => category.name === product.categoryName)?.id ??
+    '',
+  imageFileName: '',
+  imagePreviewUrl: product.imageUrl ?? '',
+  removeImage: false,
   inventory: String(product.stock),
   name: product.name,
   price: String(product.price),
   sku: product.sku,
+  subcategory: product.subcategory ?? '',
 });
 
 const stockFilterOptions = [
@@ -74,11 +99,184 @@ const ratingFilterOptions = [
 
 type StockFilter = (typeof stockFilterOptions)[number]['value'];
 type RatingFilter = (typeof ratingFilterOptions)[number]['value'];
+const maxProductImageBytes = 5 * 1024 * 1024;
+const requiredBulkColumns = ['SKU', 'Product name', 'Price', 'Stock'];
+const optionalBulkColumns = [
+  'Category',
+  'Subcategory',
+  'Rating',
+  'Tags',
+  'Description',
+  'Currency',
+  'Status',
+];
+
+const normalizeHeader = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const splitCsvLine = (line: string) => {
+  const values: string[] = [];
+  let current = '';
+  let isQuoted = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    const nextCharacter = line[index + 1];
+
+    if (character === '"' && nextCharacter === '"') {
+      current += '"';
+      index += 1;
+      continue;
+    }
+
+    if (character === '"') {
+      isQuoted = !isQuoted;
+      continue;
+    }
+
+    if (character === ',' && !isQuoted) {
+      values.push(current.trim());
+      current = '';
+      continue;
+    }
+
+    current += character;
+  }
+
+  values.push(current.trim());
+  return values;
+};
+
+const parseTags = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map(String).map((tag) => tag.trim()).filter(Boolean);
+  }
+
+  if (typeof value !== 'string') {
+    return [];
+  }
+
+  return value
+    .split(/[|,]/)
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+};
+
+const readField = (row: Record<string, unknown>, keys: string[]) => {
+  for (const key of keys) {
+    const value = row[key];
+
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      return value;
+    }
+  }
+
+  return undefined;
+};
+
+const normalizeBulkRow = (row: Record<string, unknown>): AdminProductBulkItem => {
+  const normalizedRow = Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [normalizeHeader(key), value]),
+  );
+  const price = Number(readField(normalizedRow, ['price', 'unitprice', 'saleprice']) ?? 0);
+  const stock = Number(readField(normalizedRow, ['stock', 'inventory', 'quantity', 'qty']) ?? 0);
+  const rating = Number(readField(normalizedRow, ['rating']) ?? 0);
+  const status = String(readField(normalizedRow, ['status']) ?? 'active').toLowerCase();
+
+  return {
+    categoryId: String(readField(normalizedRow, ['categoryid']) ?? '') || undefined,
+    categoryName:
+      String(readField(normalizedRow, ['categoryname', 'category', 'department']) ?? '') ||
+      undefined,
+    currency: String(readField(normalizedRow, ['currency']) ?? 'USD') || 'USD',
+    description: String(readField(normalizedRow, ['description', 'desc']) ?? ''),
+    name: String(readField(normalizedRow, ['name', 'productname', 'title']) ?? '').trim(),
+    price: Number.isFinite(price) ? price : 0,
+    rating: Number.isFinite(rating) ? rating : 0,
+    sku: String(readField(normalizedRow, ['sku', 'itemcode', 'productcode']) ?? '').trim(),
+    status: ['draft', 'active', 'archived'].includes(status)
+      ? (status as AdminProductBulkItem['status'])
+      : 'active',
+    stock: Number.isFinite(stock) ? Math.trunc(stock) : 0,
+    subcategory:
+      String(readField(normalizedRow, ['subcategory', 'subCategory', 'subdepartment']) ?? '') ||
+      undefined,
+    tags: parseTags(readField(normalizedRow, ['tags', 'tag'])),
+  };
+};
+
+const parseCsvProducts = (content: string): AdminProductBulkItem[] => {
+  const lines = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const headers = splitCsvLine(lines[0] ?? '');
+
+  return lines.slice(1).map((line) => {
+    const values = splitCsvLine(line);
+    const row = Object.fromEntries(headers.map((header, index) => [header, values[index] ?? '']));
+
+    return normalizeBulkRow(row);
+  });
+};
+
+const parseExcelProducts = async (file: File): Promise<AdminProductBulkItem[]> => {
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+  const firstSheetName = workbook.SheetNames[0];
+  const firstSheet = firstSheetName ? workbook.Sheets[firstSheetName] : undefined;
+
+  if (!firstSheet) {
+    return [];
+  }
+
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, {
+    defval: '',
+    raw: false,
+  });
+
+  return rows.map(normalizeBulkRow);
+};
+
+const parseBulkProductFile = async (file: File): Promise<AdminProductBulkItem[]> => {
+  const fileName = file.name.toLowerCase();
+
+  if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+    return parseExcelProducts(file);
+  }
+
+  if (fileName.endsWith('.csv')) {
+    return parseCsvProducts(await file.text());
+  }
+
+  return [];
+};
+
+const columnText = (columns: string[]) => columns.join(', ');
+
+const getStockChip = (stock: number) => {
+  if (stock === 0) {
+    return { color: 'error' as const, label: 'Out' };
+  }
+
+  if (stock <= 40) {
+    return { color: 'warning' as const, label: 'Low' };
+  }
+
+  return { color: 'success' as const, label: 'In stock' };
+};
+
+const revokeImagePreview = (previewUrl: string) => {
+  if (previewUrl.startsWith('blob:')) {
+    URL.revokeObjectURL(previewUrl);
+  }
+};
 
 export const ProductsPage = () => {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm);
+  const [bulkImportMode, setBulkImportMode] = useState<AdminProductBulkPayload['mode']>('upsert');
+  const [bulkProducts, setBulkProducts] = useState<AdminProductBulkItem[]>([]);
+  const [bulkUploadError, setBulkUploadError] = useState('');
   const [bulkUploadFileName, setBulkUploadFileName] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [deleteTarget, setDeleteTarget] = useState<AdminProduct | null>(null);
@@ -98,13 +296,8 @@ export const ProductsPage = () => {
     queryFn: ({ signal }) =>
       adminApi.listProducts(
         {
-          category:
-            categoryFilter === 'all'
-              ? undefined
-              : categories.find((category) => category.id === categoryFilter)?.name,
-          rating: ratingFilter === 'all' || ratingFilter === 'below-4.5' ? undefined : ratingFilter,
+          categoryId: categoryFilter === 'all' ? undefined : categoryFilter,
           search: debouncedSearch,
-          stock: stockFilter === 'low-stock' ? 'low' : undefined,
         },
         { signal },
       ),
@@ -116,13 +309,28 @@ export const ProductsPage = () => {
     () => new Map(categories.map((category) => [category.id, category.name])),
     [categories],
   );
+  const categoryByIdMap = useMemo(
+    () => new Map(categories.map((category) => [category.id, category])),
+    [categories],
+  );
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.id === form.categoryId),
+    [categories, form.categoryId],
+  );
+  const subcategoryOptions = useMemo(() => {
+    const options = selectedCategory?.subcategories ?? [];
+
+    return form.subcategory && !options.includes(form.subcategory)
+      ? [form.subcategory, ...options]
+      : options;
+  }, [form.subcategory, selectedCategory?.subcategories]);
 
   const filteredProducts = useMemo(
     () =>
       products.filter((product) => {
         const normalizedSearch = search.trim().toLowerCase();
         const matchesSearch = normalizedSearch
-          ? [product.name, product.sku, product.description, ...product.tags]
+          ? [product.name, product.sku, product.description, product.subcategory, ...product.tags]
               .join(' ')
               .toLowerCase()
               .includes(normalizedSearch)
@@ -145,25 +353,123 @@ export const ProductsPage = () => {
   );
 
   const columns: GridColDef<AdminProduct>[] = [
-    { field: 'sku', headerName: 'SKU', width: 140 },
-    { field: 'name', flex: 1, headerName: 'Product', minWidth: 220 },
+    {
+      field: 'sku',
+      headerName: 'SKU',
+      renderCell: ({ value }) => (
+        <Chip
+          label={value}
+          size="small"
+          sx={{
+            bgcolor: (theme) => alpha(theme.palette.text.primary, 0.06),
+            fontWeight: 800,
+            letterSpacing: 0,
+          }}
+        />
+      ),
+      width: 120,
+    },
+    {
+      field: 'name',
+      flex: 1,
+      headerName: 'Product',
+      minWidth: 250,
+      renderCell: ({ row }) => (
+        <Typography noWrap sx={{ fontWeight: 800 }} variant="body2">
+          {row.name}
+        </Typography>
+      ),
+    },
     {
       field: 'categoryId',
       headerName: 'Category',
-      valueGetter: (value: string) => categoryById.get(value) ?? 'Unassigned',
-      width: 160,
+      renderCell: ({ row }) => {
+        const category = row.categoryId ? categoryByIdMap.get(row.categoryId) : undefined;
+        const label = category?.name ?? 'Unassigned';
+        const categoryColor = category?.color;
+
+        return (
+          <Chip
+            label={label}
+            size="small"
+            sx={{
+              bgcolor: categoryColor
+                ? alpha(categoryColor, 0.14)
+                : (theme) => alpha(theme.palette.text.primary, 0.06),
+              borderColor: categoryColor
+                ? alpha(categoryColor, 0.3)
+                : (theme) => alpha(theme.palette.text.primary, 0.18),
+              color: categoryColor ?? 'text.secondary',
+              fontWeight: 800,
+              '& .MuiChip-label': {
+                px: 1.4,
+              },
+            }}
+            variant="outlined"
+          />
+        );
+      },
+      width: 150,
+    },
+    {
+      field: 'subcategory',
+      headerName: 'Subcategory',
+      renderCell: ({ row }) => (
+        <Chip
+          label={row.subcategory || 'Unassigned'}
+          size="small"
+          sx={{
+            maxWidth: '100%',
+            '& .MuiChip-label': {
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            },
+          }}
+          variant={row.subcategory ? 'outlined' : 'filled'}
+        />
+      ),
+      width: 210,
     },
     {
       field: 'price',
       headerName: 'Price',
-      valueFormatter: (value: number) => formatCurrency(value),
+      renderCell: ({ value }) => (
+        <Typography sx={{ fontWeight: 800 }} variant="body2">
+          {formatCurrency(Number(value))}
+        </Typography>
+      ),
       width: 120,
     },
-    { field: 'stock', headerName: 'Stock', type: 'number', width: 100 },
+    {
+      field: 'stock',
+      headerName: 'Stock',
+      renderCell: ({ value }) => {
+        const stock = Number(value);
+        const chip = getStockChip(stock);
+
+        return (
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            <Typography sx={{ fontWeight: 800, minWidth: 28 }} variant="body2">
+              {stock}
+            </Typography>
+            <Chip color={chip.color} label={chip.label} size="small" variant="outlined" />
+          </Stack>
+        );
+      },
+      width: 140,
+    },
     {
       field: 'rating',
       headerName: 'Rating',
-      width: 100,
+      renderCell: ({ value }) => (
+        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+          <StarRoundedIcon sx={{ color: '#f6a609', fontSize: 18 }} />
+          <Typography sx={{ fontWeight: 800 }} variant="body2">
+            {Number(value).toFixed(1)}
+          </Typography>
+        </Stack>
+      ),
+      width: 96,
     },
     {
       field: 'actions',
@@ -180,7 +486,7 @@ export const ProductsPage = () => {
           label="Edit"
           onClick={() => {
             setEditingId(row.id);
-            setForm(toForm(row));
+            setForm(toForm(row, categories));
             setIsProductDialogOpen(true);
           }}
         />,
@@ -221,13 +527,16 @@ export const ProductsPage = () => {
         categoryName: category?.name,
         currency: existing?.currency ?? 'USD',
         description: existing?.description ?? `${name} managed from the admin dashboard.`,
+        image: form.imageFile,
         name,
         price,
         rating: existing?.rating ?? 0,
         sku,
         status: existing?.status ?? ('active' as const),
         stock,
+        subcategory: form.subcategory || undefined,
         tags: existing?.tags ?? [],
+        removeImage: form.removeImage || undefined,
       };
 
       return editingId
@@ -252,6 +561,20 @@ export const ProductsPage = () => {
       setDeleteTarget(null);
     },
   });
+  const bulkImportMutation = useMutation({
+    mutationFn: adminApi.bulkImportProducts,
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      toast.success(
+        `Imported ${result.data.created} new and ${result.data.updated} updated products.`,
+      );
+      setBulkProducts([]);
+      setBulkUploadError('');
+      setBulkUploadFileName('');
+      setIsBulkUploadDialogOpen(false);
+    },
+  });
 
   const handleConfirmDelete = () => {
     if (!deleteTarget) {
@@ -261,11 +584,121 @@ export const ProductsPage = () => {
     deleteMutation.mutate(deleteTarget.id);
   };
 
+  const handleBulkFileChange = async (file: File | undefined) => {
+    setBulkProducts([]);
+    setBulkUploadError('');
+    setBulkUploadFileName(file?.name ?? '');
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const fileName = file.name.toLowerCase();
+
+      if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls') && !fileName.endsWith('.csv')) {
+        setBulkUploadError('Upload an Excel workbook (.xlsx or .xls) or a CSV file.');
+        return;
+      }
+
+      const productsToImport = await parseBulkProductFile(file);
+      const invalidRows = productsToImport
+        .map((product, index) => ({ index: index + 1, product }))
+        .filter(
+          ({ product }) =>
+            !product.name ||
+            !product.sku ||
+            !Number.isFinite(product.price) ||
+            product.price < 0 ||
+            !Number.isInteger(product.stock) ||
+            product.stock < 0,
+        );
+
+      if (invalidRows.length > 0) {
+        setBulkUploadError(
+          `Rows ${invalidRows.map((row) => row.index).join(', ')} need SKU, Product name, Price, and Stock. Price and Stock must be zero or higher.`,
+        );
+        return;
+      }
+
+      if (productsToImport.length === 0) {
+        setBulkUploadError('No product rows were found. Use the first row for column headings.');
+        return;
+      }
+
+      setBulkProducts(productsToImport);
+    } catch {
+      setBulkUploadError('Could not read this file. Upload an Excel or CSV file with a header row.');
+    }
+  };
+
+  const handleBulkImport = () => {
+    if (bulkProducts.length === 0) {
+      setBulkUploadError('Choose a valid Excel or CSV product file first.');
+      return;
+    }
+
+    bulkImportMutation.mutate({ mode: bulkImportMode, products: bulkProducts });
+  };
+
+  const handleProductImageChange = (file: File | undefined) => {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Only image files are allowed.');
+      return;
+    }
+
+    if (file.size > maxProductImageBytes) {
+      toast.error('Image is too large. Please upload an image under 5MB.');
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+
+    setForm((current) => {
+      revokeImagePreview(current.imagePreviewUrl);
+
+      return {
+        ...current,
+        imageFile: file,
+        imageFileName: file.name,
+        imagePreviewUrl: previewUrl,
+        removeImage: false,
+      };
+    });
+  };
+
+  const clearProductImage = () => {
+    setForm((current) => {
+      revokeImagePreview(current.imagePreviewUrl);
+
+      return {
+        ...current,
+        imageFile: undefined,
+        imageFileName: '',
+        imagePreviewUrl: '',
+        removeImage: editingId ? Boolean(current.imagePreviewUrl) : false,
+      };
+    });
+  };
+
   return (
     <PageSection
       action={
         <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
-          <AppButton disabled startIcon={<CloudUploadOutlinedIcon />} variant="outlined">
+          <AppButton
+            onClick={() => {
+              setBulkProducts([]);
+              setBulkUploadError('');
+              setBulkUploadFileName('');
+              setIsBulkUploadDialogOpen(true);
+            }}
+            startIcon={<CloudUploadOutlinedIcon />}
+            variant="outlined"
+          >
             Bulk upload
           </AppButton>
           <AppButton
@@ -364,12 +797,14 @@ export const ProductsPage = () => {
       ) : null}
       <AppDataTable
         columns={columns}
+        columnHeaderHeight={60}
         initialState={{
           pagination: {
             paginationModel: { page: 0, pageSize: 10 },
           },
         }}
         rows={filteredProducts}
+        rowHeight={60}
         loading={productsQuery.isLoading}
       />
 
@@ -382,6 +817,21 @@ export const ProductsPage = () => {
         <DialogTitle>Bulk Upload Products</DialogTitle>
         <DialogContent>
           <Stack spacing={2.5} sx={{ pt: 1 }}>
+            <Alert severity="info">
+              Upload an Excel or CSV file with one product per row. Existing SKUs are updated by
+              default.
+            </Alert>
+            <TextField
+              label="Import mode"
+              onChange={(event) =>
+                setBulkImportMode(event.target.value as AdminProductBulkPayload['mode'])
+              }
+              select
+              value={bulkImportMode}
+            >
+              <MenuItem value="upsert">Create new and update existing</MenuItem>
+              <MenuItem value="create-only">Create new only</MenuItem>
+            </TextField>
             <Box
               component="label"
               sx={{
@@ -402,40 +852,64 @@ export const ProductsPage = () => {
               <CloudUploadOutlinedIcon color="primary" fontSize="large" />
               <Typography sx={{ fontWeight: 700 }}>Choose Excel or CSV file</Typography>
               <Typography color="text.secondary" variant="body2">
-                Accepted columns: SKU, Product name, Category, Price, Stock, Rating.
+                Use the first row for column headings.
               </Typography>
               <input
                 accept=".xlsx,.xls,.csv"
                 hidden
-                onChange={(event) => setBulkUploadFileName(event.target.files?.[0]?.name ?? '')}
+                onChange={(event) => void handleBulkFileChange(event.target.files?.[0])}
                 type="file"
               />
             </Box>
+            <Stack spacing={1}>
+              <Typography sx={{ fontWeight: 800 }} variant="body2">
+                Required columns
+              </Typography>
+              <Typography color="text.secondary" variant="body2">
+                {columnText(requiredBulkColumns)}
+              </Typography>
+              <Typography sx={{ fontWeight: 800, pt: 0.5 }} variant="body2">
+                Optional columns
+              </Typography>
+              <Typography color="text.secondary" variant="body2">
+                {columnText(optionalBulkColumns)}
+              </Typography>
+              <Typography color="text.secondary" variant="caption">
+                For Tags, separate multiple values with commas or vertical bars, for example:
+                organic, leafy.
+              </Typography>
+            </Stack>
+            {bulkUploadError ? <Alert severity="error">{bulkUploadError}</Alert> : null}
             {bulkUploadFileName ? (
               <Chip
-                color="primary"
-                label={bulkUploadFileName}
+                color={bulkProducts.length > 0 ? 'success' : 'primary'}
+                label={
+                  bulkProducts.length > 0
+                    ? `${bulkUploadFileName} - ${bulkProducts.length} rows ready`
+                    : bulkUploadFileName
+                }
                 sx={{ alignSelf: 'flex-start' }}
                 variant="outlined"
               />
             ) : null}
-            <Typography color="text.secondary" variant="body2">
-              This screen prepares the upload workflow. Connect the selected file to the product
-              import API when the backend endpoint is available.
-            </Typography>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <AppButton
             color="inherit"
-            onClick={() => setIsBulkUploadDialogOpen(false)}
+            onClick={() => {
+              setBulkProducts([]);
+              setBulkUploadError('');
+              setBulkUploadFileName('');
+              setIsBulkUploadDialogOpen(false);
+            }}
             variant="outlined"
           >
             Cancel
           </AppButton>
           <AppButton
-            disabled={!bulkUploadFileName}
-            onClick={() => setIsBulkUploadDialogOpen(false)}
+            disabled={bulkProducts.length === 0 || bulkImportMutation.isPending}
+            onClick={handleBulkImport}
           >
             Upload products
           </AppButton>
@@ -451,6 +925,87 @@ export const ProductsPage = () => {
         <DialogTitle>{editingId ? 'Edit Product' : 'Create Product'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2.25} sx={{ pt: 1 }}>
+            <Box
+              component="label"
+              sx={{
+                alignItems: 'center',
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.035),
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 1,
+                cursor: 'pointer',
+                display: 'grid',
+                gap: 2,
+                gridTemplateColumns: { sm: '132px 1fr', xs: '1fr' },
+                minHeight: 132,
+                p: 1.5,
+              }}
+            >
+              <Box
+                sx={{
+                  alignItems: 'center',
+                  bgcolor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  display: 'flex',
+                  height: 112,
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  width: { sm: 132, xs: '100%' },
+                }}
+              >
+                {form.imagePreviewUrl ? (
+                  <Box
+                    alt={form.name || 'Product image preview'}
+                    component="img"
+                    src={form.imagePreviewUrl}
+                    sx={{ height: '100%', objectFit: 'cover', width: '100%' }}
+                  />
+                ) : (
+                  <ImageOutlinedIcon color="primary" sx={{ fontSize: 42 }} />
+                )}
+              </Box>
+              <Stack spacing={1} sx={{ minWidth: 0 }}>
+                <Typography sx={{ fontWeight: 800 }} variant="body1">
+                  Product image
+                </Typography>
+                <Typography color="text.secondary" variant="body2">
+                  Upload a clear product photo under 5MB so admins can identify this item quickly.
+                </Typography>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                  <AppButton component="span" size="small" startIcon={<CloudUploadOutlinedIcon />}>
+                    Choose image
+                  </AppButton>
+                  {form.imageFileName ? (
+                    <Chip label={form.imageFileName} size="small" variant="outlined" />
+                  ) : null}
+                  {form.imagePreviewUrl ? (
+                    <AppButton
+                      color="inherit"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        clearProductImage();
+                      }}
+                      size="small"
+                      variant="text"
+                    >
+                      Remove
+                    </AppButton>
+                  ) : null}
+                </Stack>
+              </Stack>
+              <input
+                accept="image/*"
+                hidden
+                onChange={(event) => {
+                  handleProductImageChange(event.target.files?.[0]);
+                  event.target.value = '';
+                }}
+                type="file"
+              />
+            </Box>
             <TextField
               autoFocus
               label="Product name"
@@ -464,15 +1019,50 @@ export const ProductsPage = () => {
             />
             <TextField
               label="Category"
-              onChange={(event) =>
-                setForm((current) => ({ ...current, categoryId: event.target.value }))
-              }
+              onChange={(event) => {
+                const nextCategoryId = event.target.value;
+                const nextSubcategories =
+                  categories.find((category) => category.id === nextCategoryId)?.subcategories ??
+                  [];
+
+                setForm((current) => ({
+                  ...current,
+                  categoryId: nextCategoryId,
+                  subcategory: nextSubcategories.includes(current.subcategory)
+                    ? current.subcategory
+                    : '',
+                }));
+              }}
               select
               value={form.categoryId}
             >
+              <MenuItem value="">Unassigned</MenuItem>
               {categories.map((category) => (
                 <MenuItem key={category.id} value={category.id}>
                   {category.name}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              disabled={!form.categoryId || subcategoryOptions.length === 0}
+              helperText={
+                form.categoryId
+                  ? subcategoryOptions.length > 0
+                    ? 'Select a subcategory for this product.'
+                    : 'This category has no subcategories.'
+                  : 'Select a category before choosing a subcategory.'
+              }
+              label="Subcategory"
+              onChange={(event) =>
+                setForm((current) => ({ ...current, subcategory: event.target.value }))
+              }
+              select
+              value={form.subcategory}
+            >
+              <MenuItem value="">No subcategory</MenuItem>
+              {subcategoryOptions.map((subcategory) => (
+                <MenuItem key={subcategory} value={subcategory}>
+                  {subcategory}
                 </MenuItem>
               ))}
             </TextField>
@@ -526,6 +1116,19 @@ export const ProductsPage = () => {
         <DialogContent>
           {detailProduct ? (
             <Stack spacing={2} sx={{ pt: 1 }}>
+              {detailProduct.imageUrl ? (
+                <Box
+                  alt={detailProduct.name}
+                  component="img"
+                  src={detailProduct.imageUrl}
+                  sx={{
+                    aspectRatio: '16 / 9',
+                    borderRadius: 1,
+                    objectFit: 'cover',
+                    width: '100%',
+                  }}
+                />
+              ) : null}
               <Stack
                 direction="row"
                 sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}
@@ -543,6 +1146,14 @@ export const ProductsPage = () => {
                   }
                 />
               </Stack>
+              {detailProduct.subcategory ? (
+                <Chip
+                  label={detailProduct.subcategory}
+                  size="small"
+                  sx={{ alignSelf: 'flex-start' }}
+                  variant="outlined"
+                />
+              ) : null}
               <Typography color="text.secondary">{detailProduct.description}</Typography>
               <Divider />
               <Grid container spacing={2}>

@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 
 import { authApi } from '@features/auth/api/authApi';
+import { isKnownRole } from '@features/auth/utils/auth.utils';
 import { tokenService } from '@services/auth/token.service';
 import { useAppDispatch } from '@store/hooks';
 import { clearSession, finishInitialization, setSession } from '@store/slices/auth.slice';
@@ -28,6 +29,11 @@ export const AuthInitializer = ({ children }: { children: ReactNode }) => {
         const result = await authApi.getCurrentUser();
 
         if (active) {
+          if (!isKnownRole(result.data.role)) {
+            clearStoredSession();
+            return;
+          }
+
           dispatch(setSession({ accessToken, user: result.data }));
         }
       } catch {

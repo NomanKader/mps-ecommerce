@@ -22,6 +22,7 @@ describe('authApi', () => {
           firstName: 'Demo',
           lastName: 'Customer',
           role: 'customer' as const,
+          tenantId: 'av',
         },
       },
       message: 'User authenticated',
@@ -58,6 +59,7 @@ describe('authApi', () => {
           firstName: 'Demo',
           lastName: 'Customer',
           role: 'customer',
+          tenantId: 'av',
         },
         message: 'Current user fetched',
         success: true,
@@ -98,6 +100,12 @@ describe('authApi', () => {
 
     await authApi.register(payload);
 
-    expect(apiClient.post).toHaveBeenCalledWith(endpoints.auth.register, payload);
+    expect(apiClient.post).toHaveBeenCalledWith(endpoints.auth.register, {
+      email: 'customer@example.com',
+      name: 'Demo Customer',
+      otp: '123456',
+      password: 'password123',
+      phone: '+959123456789',
+    });
   });
 });

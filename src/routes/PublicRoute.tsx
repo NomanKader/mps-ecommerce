@@ -17,9 +17,11 @@ export const PublicRoute = () => {
   }
 
   const redirectTo =
-    user?.role === 'tenant_admin' || user?.role === 'staff' || user?.role === 'super_admin'
+    user?.role === 'tenant_admin'
       ? routePaths.tenantAdmin.dashboard
-      : routePaths.account;
+      : user?.role === 'customer'
+        ? routePaths.account
+        : routePaths.home;
 
   return <Navigate replace to={redirectTo} />;
 };

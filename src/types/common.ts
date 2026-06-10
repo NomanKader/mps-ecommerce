@@ -7,4 +7,4 @@ export type PaginatedResult<T> = {
   total: number;
 };
 
-export type Role = 'super_admin' | 'tenant_admin' | 'staff' | 'customer';
+export type Role = 'tenant_admin' | 'staff' | 'customer';

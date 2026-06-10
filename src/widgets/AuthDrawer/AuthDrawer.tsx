@@ -155,6 +155,55 @@ const SocialAuthButton = ({
   </Button>
 );
 
+const LoginActions = ({
+  isSubmitting,
+  onRegister,
+}: {
+  isSubmitting: boolean;
+  onRegister: () => void;
+}) => (
+  <Stack spacing={2.6}>
+    <Button disabled={isSubmitting} sx={drawerButtonSx} type="submit" variant="contained">
+      Sign In
+    </Button>
+
+    <Stack direction="row" spacing={2.2} sx={{ alignItems: 'center', py: 1.2 }}>
+      <Divider sx={{ borderColor: alpha(storefrontColors.navy, 0.9), flex: 1 }} />
+      <Typography sx={{ color: storefrontColors.navy, fontSize: '0.98rem', whiteSpace: 'nowrap' }}>
+        OR
+      </Typography>
+      <Divider sx={{ borderColor: alpha(storefrontColors.navy, 0.9), flex: 1 }} />
+    </Stack>
+
+    <Button
+      onClick={onRegister}
+      sx={{
+        ...drawerButtonSx,
+        backgroundColor: storefrontColors.surface,
+        border: `1px solid ${alpha(storefrontColors.navy, 0.14)}`,
+        color: storefrontColors.navy,
+        '&:hover': {
+          backgroundColor: '#f8fafe',
+        },
+      }}
+      variant="outlined"
+    >
+      Register
+    </Button>
+
+    <Stack spacing={2}>
+      {socialAuthButtons.map((button) => (
+        <SocialAuthButton
+          icon={button.icon}
+          key={button.id}
+          label={button.label}
+          onClick={() => toast('Google sign-in is coming soon.')}
+        />
+      ))}
+    </Stack>
+  </Stack>
+);
+
 export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerProps) => {
   const [mode, setMode] = useState<AuthDrawerMode>(initialMode);
   const [loginPasswordVisible, setLoginPasswordVisible] = useState(false);
@@ -262,8 +311,14 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
             </Typography>
 
             {mode === 'login' ? (
-              <Stack component="form" onSubmit={(event) => void onSubmit(event)} spacing={2.6}>
+              <Stack
+                autoComplete="off"
+                component="form"
+                onSubmit={(event) => void onSubmit(event)}
+                spacing={2.6}
+              >
                 <TextField
+                  autoComplete="off"
                   error={Boolean(loginErrors.email)}
                   fullWidth
                   helperText={loginErrors.email?.message}
@@ -273,6 +328,7 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
                   {...registerLoginField('email')}
                 />
                 <TextField
+                  autoComplete="new-password"
                   error={Boolean(loginErrors.password)}
                   fullWidth
                   helperText={loginErrors.password?.message}
@@ -335,51 +391,10 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
                   </Box>
                 </Stack>
 
-                <Button
-                  disabled={isSubmitting}
-                  sx={drawerButtonSx}
-                  type="submit"
-                  variant="contained"
-                >
-                  Sign In
-                </Button>
-
-                <Button
-                  onClick={() => handleSwitchMode('register')}
-                  sx={{
-                    ...drawerButtonSx,
-                    backgroundColor: storefrontColors.surface,
-                    border: `1px solid ${alpha(storefrontColors.navy, 0.14)}`,
-                    color: storefrontColors.navy,
-                    '&:hover': {
-                      backgroundColor: '#f8fafe',
-                    },
-                  }}
-                  variant="outlined"
-                >
-                  Register
-                </Button>
-
-                <Stack direction="row" spacing={2.2} sx={{ alignItems: 'center', py: 1.2 }}>
-                  <Divider sx={{ borderColor: alpha(storefrontColors.navy, 0.9), flex: 1 }} />
-                  <Typography
-                    sx={{ color: storefrontColors.navy, fontSize: '0.98rem', whiteSpace: 'nowrap' }}
-                  >
-                    OR SIGN IN
-                  </Typography>
-                  <Divider sx={{ borderColor: alpha(storefrontColors.navy, 0.9), flex: 1 }} />
-                </Stack>
-
-                <Stack spacing={2}>
-                  {socialAuthButtons.map((button) => (
-                    <SocialAuthButton
-                      icon={button.icon}
-                      key={button.id}
-                      label={button.label}
-                      onClick={() => toast('Google sign-in is coming soon.')}
-                    />
-                  ))}
-                </Stack>
+                <LoginActions
+                  isSubmitting={isSubmitting}
+                  onRegister={() => handleSwitchMode('register')}
+                />
               </Stack>
             ) : (
               <Stack
@@ -561,7 +576,13 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
 
                 <Button
                   disabled={isRegisterSubmitting || isRegistering || !isOtpRequested}
-                  sx={drawerButtonSx}
+                  sx={{
+                    ...drawerButtonSx,
+                    color: '#ffffff',
+                    '&.Mui-disabled': {
+                      color: '#ffffff',
+                    },
+                  }}
                   type="submit"
                   variant="contained"
                 >

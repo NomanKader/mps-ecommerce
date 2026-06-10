@@ -4,16 +4,39 @@ export type AdminProduct = {
   currency: string;
   description: string;
   id: string;
+  imageUrl?: string;
   name: string;
   price: number;
   rating: number;
   sku: string;
   status: 'draft' | 'active' | 'archived';
   stock: number;
+  subcategory?: string;
   tags: string[];
 };
 
-export type AdminProductPayload = Omit<AdminProduct, 'id'>;
+export type AdminProductPayload = Omit<AdminProduct, 'id' | 'imageUrl'> & {
+  image?: File;
+  removeImage?: boolean;
+};
+
+export type AdminProductBulkItem = Omit<AdminProductPayload, 'image' | 'removeImage'>;
+
+export type AdminProductBulkPayload = {
+  mode: 'upsert' | 'create-only';
+  products: AdminProductBulkItem[];
+};
+
+export type AdminProductBulkResult = {
+  created: number;
+  skipped: Array<{
+    reason: string;
+    row: number;
+    sku?: string;
+  }>;
+  total: number;
+  updated: number;
+};
 
 export type AdminCategory = {
   color?: string;
@@ -95,3 +118,39 @@ export type AdminDeliveryFee = {
 };
 
 export type AdminDeliveryFeePayload = Omit<AdminDeliveryFee, 'id'>;
+
+export type AdminDashboard = {
+  inventoryAlerts: Array<{
+    id: string;
+    name: string;
+    sku: string;
+    stock: number;
+  }>;
+  recentOrders: Array<{
+    currency: string;
+    customerName: string;
+    id: string;
+    orderNumber: string;
+    placedAt: string;
+    totalAmount: number;
+  }>;
+  tenant: {
+    name: string;
+    plan: string;
+  };
+  totals: {
+    catalogItems: number;
+    customers: number;
+    orders: number;
+    revenue: number;
+  };
+  weeklySales: Array<{
+    day: string;
+    sales: number;
+  }>;
+  workQueue: {
+    activePromotions: number;
+    lowStockSkus: number;
+    ordersToFulfill: number;
+  };
+};

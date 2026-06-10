@@ -2,10 +2,17 @@ import type { Role } from '../../../types/common';
 
 import { routePaths } from '@routes/routePaths';
 
-const adminRoles: Role[] = ['tenant_admin', 'staff', 'super_admin'];
+const adminRoles: Role[] = ['tenant_admin'];
+const knownRoles: Role[] = ['tenant_admin', 'staff', 'customer'];
 
 export const getAuthenticatedRedirect = (role: Role) =>
-  adminRoles.includes(role) ? routePaths.tenantAdmin.dashboard : routePaths.home;
+  adminRoles.includes(role)
+    ? routePaths.tenantAdmin.dashboard
+    : role === 'customer'
+      ? routePaths.account
+      : routePaths.home;
+
+export const isKnownRole = (role: string): role is Role => knownRoles.includes(role as Role);
 
 export const normalizeInternationalPhone = (phone: string) => {
   const digits = phone.replace(/\D/g, '');

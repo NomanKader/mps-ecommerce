@@ -5,12 +5,15 @@ import type {
   AdminCategory,
   AdminCategoryPayload,
   AdminCustomer,
+  AdminDashboard,
   AdminDeliveryFee,
   AdminDeliveryFeePayload,
   AdminOrder,
   AdminOrderStats,
   AdminOrderStatus,
   AdminProduct,
+  AdminProductBulkPayload,
+  AdminProductBulkResult,
   AdminProductPayload,
   AdminPromotion,
   AdminPromotionPayload,
@@ -24,6 +27,45 @@ type Query = Record<string, string | undefined>;
 const mapId = <T extends MongoEntity>({ _id, ...entity }: T) => ({ ...entity, id: _id });
 const params = (query: Query) =>
   Object.fromEntries(Object.entries(query).filter(([, value]) => value && value !== 'all'));
+const productFormData = (payload: AdminProductPayload) => {
+  const formData = new FormData();
+
+  formData.append('name', payload.name);
+  formData.append('sku', payload.sku);
+
+  if (payload.categoryName) {
+    formData.append('categoryName', payload.categoryName);
+  }
+
+  if (payload.categoryId) {
+    formData.append('categoryId', payload.categoryId);
+  }
+
+  if (payload.subcategory) {
+    formData.append('subcategory', payload.subcategory);
+  }
+
+  if (payload.description) {
+    formData.append('description', payload.description);
+  }
+
+  formData.append('tags', JSON.stringify(payload.tags ?? []));
+  formData.append('price', String(payload.price));
+  formData.append('currency', payload.currency || 'USD');
+  formData.append('stock', String(payload.stock || 0));
+  formData.append('rating', String(payload.rating || 0));
+  formData.append('status', payload.status || 'active');
+
+  if (payload.image) {
+    formData.append('image', payload.image);
+  }
+
+  if (payload.removeImage) {
+    formData.append('removeImage', 'true');
+  }
+
+  return formData;
+};
 
 export const adminApi = {
   async createCategory(payload: AdminCategoryPayload) {
@@ -43,9 +85,14 @@ export const adminApi = {
   async createProduct(payload: AdminProductPayload) {
     const response = await apiClient.post<ApiResponse<BackendEntity<AdminProduct>>>(
       endpoints.admin.products,
-      payload,
+      productFormData(payload),
     );
     return { ...response.data, data: mapId(response.data.data) };
+  },
+  async bulkImportProducts(payload: AdminProductBulkPayload) {
+    return (
+      await apiClient.post<ApiResponse<AdminProductBulkResult>>(endpoints.admin.productBulk, payload)
+    ).data;
   },
   async createPromotion(payload: AdminPromotionPayload) {
     const response = await apiClient.post<ApiResponse<BackendEntity<AdminPromotion>>>(
@@ -81,6 +128,24 @@ export const adminApi = {
       { params: params(query), signal: options.signal },
     );
     return response.data.data.map(mapId);
+  },
+  async getDashboard(options: ListOptions = {}) {
+    const response = await apiClient.get<
+      ApiResponse<
+        Omit<AdminDashboard, 'inventoryAlerts' | 'recentOrders'> & {
+          inventoryAlerts: Array<
+            Omit<AdminDashboard['inventoryAlerts'][number], 'id'> & MongoEntity
+          >;
+          recentOrders: Array<Omit<AdminDashboard['recentOrders'][number], 'id'> & MongoEntity>;
+        }
+      >
+    >(endpoints.admin.dashboard, { signal: options.signal });
+
+    return {
+      ...response.data.data,
+      inventoryAlerts: response.data.data.inventoryAlerts.map(mapId),
+      recentOrders: response.data.data.recentOrders.map(mapId),
+    };
   },
   async listDeliveryFees(query: Query, options: ListOptions = {}) {
     const response = await apiClient.get<ApiResponse<Array<BackendEntity<AdminDeliveryFee>>>>(
@@ -148,7 +213,7 @@ export const adminApi = {
   async updateProduct(id: string, payload: AdminProductPayload) {
     const response = await apiClient.put<ApiResponse<BackendEntity<AdminProduct>>>(
       endpoints.admin.product(id),
-      payload,
+      productFormData(payload),
     );
     return { ...response.data, data: mapId(response.data.data) };
   },

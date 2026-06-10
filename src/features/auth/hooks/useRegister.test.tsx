@@ -79,6 +79,7 @@ describe('useRegister', () => {
           id: 'user-1',
           lastName: 'Customer',
           role: 'customer',
+          tenantId: 'av',
         },
       },
       message: 'User registered',

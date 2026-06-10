@@ -2,6 +2,7 @@ import { jwtDecode } from 'jwt-decode';
 
 import type { User } from '@entities/user/types/user.types';
 import { tokenService } from '@services/auth/token.service';
+import { tenantService } from '@services/tenant/tenant.service';
 
 type JwtPayload = {
   exp?: number;
@@ -22,8 +23,11 @@ export const authService = {
 
     return Boolean(payload?.sub);
   },
-  setAuthenticatedSession(token: string, _user?: User, rememberMe = false) {
+  setAuthenticatedSession(token: string, user: User, rememberMe = false) {
     tokenService.setAccessToken(token, rememberMe);
+    if (user.tenantId) {
+      tenantService.setTenantId(user.tenantId, rememberMe);
+    }
   },
   signOut() {
     tokenService.clear();

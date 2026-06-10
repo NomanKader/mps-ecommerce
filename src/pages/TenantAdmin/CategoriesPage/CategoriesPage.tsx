@@ -7,6 +7,7 @@ import {
   Alert,
   Card,
   CardContent,
+  Checkbox,
   Chip,
   Dialog,
   DialogActions,
@@ -15,6 +16,7 @@ import {
   Grid,
   IconButton,
   InputAdornment,
+  ListItemText,
   MenuItem,
   Stack,
   TextField,
@@ -36,17 +38,181 @@ type CategoryForm = {
   icon: string;
   itemCount: string;
   name: string;
-  subcategories: string;
+  subcategories: string[];
 };
 
 type CategoryFilter = 'all' | 'with-subcategories' | 'large-assortment' | 'small-assortment';
+type SubcategoryOption = {
+  icon: string;
+  label: string;
+};
+
+const categoryIconOptions = [
+  { icon: '🥬', label: 'Leafy greens' },
+  { icon: '🍎', label: 'Fruits' },
+  { icon: '🥦', label: 'Vegetables' },
+  { icon: '🥕', label: 'Root vegetables' },
+  { icon: '🍞', label: 'Bakery' },
+  { icon: '🥛', label: 'Dairy' },
+  { icon: '🥚', label: 'Eggs' },
+  { icon: '🥩', label: 'Meat' },
+  { icon: '🐟', label: 'Seafood' },
+  { icon: '🍚', label: 'Rice & grains' },
+  { icon: '🧂', label: 'Pantry' },
+  { icon: '🥫', label: 'Canned goods' },
+  { icon: '🍪', label: 'Snacks' },
+  { icon: '🧃', label: 'Beverages' },
+  { icon: '🧊', label: 'Frozen' },
+  { icon: '🧴', label: 'Household' },
+  { icon: '🛒', label: 'General grocery' },
+];
+
+const categorySubcategoryOptions: Record<string, SubcategoryOption[]> = {
+  '🥬': [
+    { icon: '🥬', label: 'Lettuce' },
+    { icon: '🌱', label: 'Spinach' },
+    { icon: '🥬', label: 'Kale' },
+    { icon: '🥬', label: 'Cabbage' },
+    { icon: '🥬', label: 'Bok Choy' },
+    { icon: '🌿', label: 'Fresh Herbs' },
+    { icon: '🥗', label: 'Salad Mixes' },
+  ],
+  '🍎': [
+    { icon: '🍎', label: 'Apples & Pears' },
+    { icon: '🍊', label: 'Citrus' },
+    { icon: '🫐', label: 'Berries' },
+    { icon: '🍌', label: 'Bananas' },
+    { icon: '🍈', label: 'Melons' },
+    { icon: '🥭', label: 'Tropical Fruits' },
+    { icon: '🍑', label: 'Stone Fruits' },
+  ],
+  '🥦': [
+    { icon: '🥦', label: 'Broccoli' },
+    { icon: '🥦', label: 'Cauliflower' },
+    { icon: '🍅', label: 'Tomatoes' },
+    { icon: '🥒', label: 'Cucumbers' },
+    { icon: '🫑', label: 'Peppers' },
+    { icon: '🍄', label: 'Mushrooms' },
+    { icon: '🥗', label: 'Mixed Vegetables' },
+  ],
+  '🥕': [
+    { icon: '🥕', label: 'Carrots' },
+    { icon: '🥔', label: 'Potatoes' },
+    { icon: '🧅', label: 'Onions' },
+    { icon: '🧄', label: 'Garlic' },
+    { icon: '🫜', label: 'Beetroot' },
+    { icon: '🫜', label: 'Radish' },
+    { icon: '🍠', label: 'Sweet Potatoes' },
+  ],
+  '🍞': [
+    { icon: '🍞', label: 'Bread' },
+    { icon: '🥖', label: 'Buns & Rolls' },
+    { icon: '🥐', label: 'Pastries' },
+    { icon: '🍰', label: 'Cakes' },
+    { icon: '🫓', label: 'Tortillas' },
+    { icon: '🥯', label: 'Breakfast Bakery' },
+  ],
+  '🥛': [
+    { icon: '🥛', label: 'Milk' },
+    { icon: '🧀', label: 'Cheese' },
+    { icon: '🥣', label: 'Yogurt' },
+    { icon: '🧈', label: 'Butter' },
+    { icon: '🥛', label: 'Cream' },
+    { icon: '🌱', label: 'Plant-Based Dairy' },
+  ],
+  '🥚': [
+    { icon: '🥚', label: 'Chicken Eggs' },
+    { icon: '🥚', label: 'Duck Eggs' },
+    { icon: '🌿', label: 'Organic Eggs' },
+    { icon: '🐔', label: 'Free-Range Eggs' },
+  ],
+  '🥩': [
+    { icon: '🥩', label: 'Beef' },
+    { icon: '🍗', label: 'Chicken' },
+    { icon: '🥓', label: 'Pork' },
+    { icon: '🥩', label: 'Lamb' },
+    { icon: '🌭', label: 'Sausages' },
+    { icon: '🥩', label: 'Marinated Meat' },
+  ],
+  '🐟': [
+    { icon: '🐟', label: 'Fish' },
+    { icon: '🦐', label: 'Shrimp' },
+    { icon: '🦀', label: 'Crab' },
+    { icon: '🦑', label: 'Squid' },
+    { icon: '🦪', label: 'Shellfish' },
+    { icon: '🐟', label: 'Seafood Packs' },
+  ],
+  '🍚': [
+    { icon: '🍚', label: 'Rice' },
+    { icon: '🍜', label: 'Noodles' },
+    { icon: '🍝', label: 'Pasta' },
+    { icon: '🌾', label: 'Flour' },
+    { icon: '🫘', label: 'Beans' },
+    { icon: '🫘', label: 'Lentils' },
+    { icon: '🥣', label: 'Breakfast Grains' },
+  ],
+  '🧂': [
+    { icon: '🫙', label: 'Cooking Oil' },
+    { icon: '🥫', label: 'Sauces' },
+    { icon: '🌶️', label: 'Spices' },
+    { icon: '🧂', label: 'Condiments' },
+    { icon: '🍬', label: 'Sugar' },
+    { icon: '🧂', label: 'Salt' },
+    { icon: '🥣', label: 'Baking Essentials' },
+  ],
+  '🥫': [
+    { icon: '🐟', label: 'Canned Fish' },
+    { icon: '🥫', label: 'Canned Vegetables' },
+    { icon: '🍑', label: 'Canned Fruit' },
+    { icon: '🍲', label: 'Soup' },
+    { icon: '🍱', label: 'Ready Meals' },
+  ],
+  '🍪': [
+    { icon: '🍪', label: 'Biscuits' },
+    { icon: '🍟', label: 'Chips' },
+    { icon: '🥜', label: 'Nuts' },
+    { icon: '🍫', label: 'Chocolate' },
+    { icon: '🍬', label: 'Candy' },
+    { icon: '🥨', label: 'Crackers' },
+  ],
+  '🧃': [
+    { icon: '🧃', label: 'Juice' },
+    { icon: '🥤', label: 'Soft Drinks' },
+    { icon: '💧', label: 'Water' },
+    { icon: '🍵', label: 'Tea' },
+    { icon: '☕', label: 'Coffee' },
+    { icon: '⚡', label: 'Energy Drinks' },
+  ],
+  '🧊': [
+    { icon: '🥦', label: 'Frozen Vegetables' },
+    { icon: '🥩', label: 'Frozen Meat' },
+    { icon: '🐟', label: 'Frozen Seafood' },
+    { icon: '🍨', label: 'Ice Cream' },
+    { icon: '🍱', label: 'Frozen Meals' },
+  ],
+  '🧴': [
+    { icon: '🧽', label: 'Cleaning' },
+    { icon: '🧺', label: 'Laundry' },
+    { icon: '🧻', label: 'Paper Goods' },
+    { icon: '🧴', label: 'Personal Care' },
+    { icon: '🍽️', label: 'Kitchen Supplies' },
+  ],
+  '🛒': [
+    { icon: '🥬', label: 'Fresh Food' },
+    { icon: '🧂', label: 'Pantry' },
+    { icon: '🧴', label: 'Household' },
+    { icon: '🧃', label: 'Beverages' },
+    { icon: '🍪', label: 'Snacks' },
+    { icon: '🛒', label: 'Daily Essentials' },
+  ],
+};
 
 const emptyForm: CategoryForm = {
   color: '#2db34b',
   icon: '🥬',
   itemCount: '0',
   name: '',
-  subcategories: '',
+  subcategories: [],
 };
 
 const slugify = (value: string) =>
@@ -57,20 +223,39 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
-const toForm = (category: AdminCategory): CategoryForm => ({
-  color: category.color ?? '#2db34b',
-  icon: category.icon ?? '🛒',
-  itemCount: String(category.itemCount),
-  name: category.name,
-  subcategories: category.subcategories.join('\n'),
-});
+const subcategoryValue = (option: SubcategoryOption) =>
+  option.icon ? `${option.icon} ${option.label}` : option.label;
 
-const parseSubcategories = (value: string) =>
-  value
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => line.trim());
+const normalizeSubcategory = (categoryIcon: string, value: string) => {
+  const match = (categorySubcategoryOptions[categoryIcon] ?? []).find(
+    (option) => value === option.label || value === subcategoryValue(option),
+  );
+
+  return match ? subcategoryValue(match) : value;
+};
+
+const toForm = (category: AdminCategory): CategoryForm => {
+  const icon = category.icon ?? '🛒';
+
+  return {
+    color: category.color ?? '#2db34b',
+    icon,
+    itemCount: String(category.itemCount),
+    name: category.name,
+    subcategories: category.subcategories.map((subcategory) =>
+      normalizeSubcategory(icon, subcategory),
+    ),
+  };
+};
+
+const mergeOptions = (primary: SubcategoryOption[], selected: string[]) => {
+  const primaryValues = new Set(primary.map(subcategoryValue));
+  const savedOptions = selected
+    .filter((value) => !primaryValues.has(value))
+    .map((value) => ({ icon: '', label: value }));
+
+  return [...savedOptions, ...primary];
+};
 
 export const CategoriesPage = () => {
   const queryClient = useQueryClient();
@@ -86,6 +271,17 @@ export const CategoriesPage = () => {
     queryKey: ['admin', 'categories', debouncedSearch],
   });
   const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
+  const iconOptions = useMemo(
+    () =>
+      form.icon && !categoryIconOptions.some((option) => option.icon === form.icon)
+        ? [{ icon: form.icon, label: 'Saved icon' }, ...categoryIconOptions]
+        : categoryIconOptions,
+    [form.icon],
+  );
+  const subcategoryOptions = useMemo(
+    () => mergeOptions(categorySubcategoryOptions[form.icon] ?? [], form.subcategories),
+    [form.icon, form.subcategories],
+  );
 
   const filteredCategories = useMemo(
     () =>
@@ -126,7 +322,7 @@ export const CategoriesPage = () => {
         itemCount: Number(form.itemCount) || 0,
         name: trimmedName,
         slug,
-        subcategories: parseSubcategories(form.subcategories),
+        subcategories: form.subcategories,
       };
 
       return editingId
@@ -278,7 +474,12 @@ export const CategoriesPage = () => {
 
                   <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
                     {category.subcategories.slice(0, 8).map((subcategory) => (
-                      <Chip key={subcategory} label={subcategory} size="small" variant="outlined" />
+                      <Chip
+                        key={subcategory}
+                        label={normalizeSubcategory(category.icon ?? '🛒', subcategory)}
+                        size="small"
+                        variant="outlined"
+                      />
                     ))}
                     {(category.subcategories ?? []).length > 8 ? (
                       <Chip
@@ -323,11 +524,27 @@ export const CategoriesPage = () => {
                 <TextField
                   fullWidth
                   label="Icon"
+                  select
                   onChange={(event) =>
-                    setForm((current) => ({ ...current, icon: event.target.value }))
+                    setForm((current) => ({
+                      ...current,
+                      icon: event.target.value,
+                      subcategories: [],
+                    }))
                   }
                   value={form.icon}
-                />
+                >
+                  {iconOptions.map((option) => (
+                    <MenuItem key={`${option.icon}-${option.label}`} value={option.icon}>
+                      <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
+                        <Box component="span" sx={{ fontSize: 22, lineHeight: 1 }}>
+                          {option.icon}
+                        </Box>
+                        <Typography variant="body2">{option.label}</Typography>
+                      </Stack>
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Grid>
             </Grid>
             <Grid container spacing={2}>
@@ -354,15 +571,39 @@ export const CategoriesPage = () => {
               </Grid>
             </Grid>
             <TextField
-              helperText="Use one subcategory per line, for example: 🍎 Apples & Pears"
+              helperText="Select the related subcategories for the chosen main category."
               label="Subcategories"
-              minRows={6}
-              multiline
-              onChange={(event) =>
-                setForm((current) => ({ ...current, subcategories: event.target.value }))
-              }
+              select
+              onChange={(event) => {
+                const value = event.target.value;
+                const subcategories = typeof value === 'string' ? value.split(',') : value;
+                setForm((current) => ({ ...current, subcategories }));
+              }}
+              slotProps={{
+                select: {
+                  multiple: true,
+                  renderValue: (selected) => (selected as string[]).join(', '),
+                },
+              }}
               value={form.subcategories}
-            />
+            >
+              {subcategoryOptions.map((subcategory) => {
+                const value = subcategoryValue(subcategory);
+
+                return (
+                  <MenuItem key={value} value={value}>
+                    <Checkbox checked={form.subcategories.includes(value)} />
+                    <Box
+                      component="span"
+                      sx={{ display: 'inline-block', fontSize: 20, lineHeight: 1, minWidth: 30 }}
+                    >
+                      {subcategory.icon}
+                    </Box>
+                    <ListItemText primary={subcategory.label} />
+                  </MenuItem>
+                );
+              })}
+            </TextField>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>

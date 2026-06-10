@@ -26,12 +26,14 @@ export const toApiError = (error: unknown) => {
     const status = error.response?.status;
     const fallbackMessage =
       status === 401
-        ? 'Invalid credentials'
-        : status === 429
-          ? 'Please wait before trying again.'
-          : status && status >= 500
-            ? 'Something went wrong. Please try again.'
-            : 'Unable to complete your request.';
+        ? 'Your session has expired. Please sign in again.'
+        : status === 403
+          ? 'You do not have access to this tenant or action.'
+          : status === 429
+            ? 'Please wait before trying again.'
+            : status && status >= 500
+              ? 'Something went wrong. Please try again.'
+              : 'Unable to complete your request.';
 
     return new ApiError(
       error.response?.data?.message ?? fallbackMessage,

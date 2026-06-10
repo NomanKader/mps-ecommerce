@@ -1,26 +1,22 @@
-import AcUnitRoundedIcon from '@mui/icons-material/AcUnitRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
-import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
-import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
-import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
-import SpaOutlinedIcon from '@mui/icons-material/SpaOutlined';
 import { Box, Button, Grid, IconButton, Stack, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { routePaths } from '@routes/routePaths';
 import { storefrontColors, storefrontGradients } from '@app/providers/theme/tokens';
 import { useCart } from '@features/cart/hooks/useCart';
+import { merchandisingApi } from '@features/home/api/merchandisingApi';
 import {
-  featuredCategoryHighlights,
-  heroBanner,
+  defaultCarouselSlides,
+  defaultHighlightItems,
   pantryProducts,
   promoTiles,
   seasonalProducts,
-  showcaseBanners,
   shopBrands,
   storefrontCategories,
   topBlooms,
@@ -33,7 +29,14 @@ import {
 } from '@shared/components/storefront/StoreProductCard';
 import { StorefrontSectionHeader } from '@shared/components/storefront/StorefrontSectionHeader';
 import { storefrontMutedPanelSx, storefrontPanelSx } from '@shared/styles/storefront';
-import type { StoreProduct } from '@features/home/types/home.types';
+import type {
+  StoreProduct,
+  StorefrontCarouselPlacement,
+  StorefrontCarouselSlide,
+  StorefrontHighlightItem,
+  StorefrontHighlightSection,
+  StorefrontProductSectionId,
+} from '@features/home/types/home.types';
 
 const promoTileThemes: Record<string, { accent: string; icon: string }> = {
   beauty: { accent: '#ab3a1e', icon: '🔪' },
@@ -82,7 +85,25 @@ const highlightCatalogTargets: Record<
   vegan: { category: 'quick-meals', search: 'vegan', title: 'Vegan' },
 };
 
-const getHighlightCatalogPath = (item: { id: string; label: string }) => {
+const getHighlightCatalogPath = (item: {
+  id: string;
+  label: string;
+  targetCategoryId?: string;
+  targetSearch?: string;
+}) => {
+  if (item.targetCategoryId || item.targetSearch) {
+    const params = new URLSearchParams({
+      category: item.targetCategoryId ?? 'all',
+      title: item.label,
+    });
+
+    if (item.targetSearch) {
+      params.set('search', item.targetSearch);
+    }
+
+    return `${routePaths.catalog}?${params.toString()}`;
+  }
+
   const target = highlightCatalogTargets[item.id] ?? { search: item.label, title: item.label };
   const params = new URLSearchParams({
     category: target.category ?? 'all',
@@ -257,327 +278,38 @@ const getShopCatalogPath = (brandLabel: string, categoryId = 'all', itemLabel?: 
   return `${routePaths.catalog}?${params.toString()}`;
 };
 
-const merchandisingHighlights = [
-  ...featuredCategoryHighlights,
-  {
-    color: '#d2aa2d',
-    icon: '🎁',
-    id: 'custom-gift-boxes',
-    label: 'Customised Gift Boxes',
-    surfaceColor: '#fff9e8',
-  },
-  { color: '#e43224', icon: '👍', id: 'must-try', label: 'Must Try', surfaceColor: '#fff2b8' },
-  { color: '#b9263d', icon: '🏬', id: 'local', label: 'Local', surfaceColor: '#fff0f3' },
-  {
-    color: '#e43224',
-    icon: '⏳',
-    id: 'coming-soon',
-    label: 'Coming Soon',
-    surfaceColor: '#fff2b8',
-  },
-];
+const fallbackCarouselSlide = defaultCarouselSlides[0] as StorefrontCarouselSlide;
 
-type HomeHeroSlide = {
-  cta: string;
-  description: string;
-  eyebrow: string;
-  headline: string;
-  id: string;
-  imageUrl: string;
-  metric: string;
-  partner: string;
-  title: string;
-};
+const defaultHomeHeroSlide =
+  defaultCarouselSlides.find((slide) => slide.placement === 'hero' && slide.status === 'active') ??
+  fallbackCarouselSlide;
 
-const defaultHomeHeroSlide: HomeHeroSlide = {
-  cta: heroBanner.cta,
-  description: heroBanner.description,
-  eyebrow: heroBanner.eyebrow,
-  headline: 'Cashback',
-  id: 'cashback',
-  imageUrl: heroBanner.imageUrl,
-  metric: '10%',
-  partner: 'Wio Personal',
-  title: heroBanner.title,
-};
+const defaultShowcaseSlide =
+  defaultCarouselSlides.find(
+    (slide) => slide.placement === 'showcase' && slide.status === 'active',
+  ) ?? fallbackCarouselSlide;
 
-const homeHeroSlides: HomeHeroSlide[] = [
-  defaultHomeHeroSlide,
-  {
-    cta: 'Shop now',
-    description: showcaseBanners[0]?.description ?? heroBanner.description,
-    eyebrow: 'Fresh picks',
-    headline: 'Picks',
-    id: showcaseBanners[0]?.id ?? 'fresh-picks',
-    imageUrl: showcaseBanners[0]?.imageUrl ?? heroBanner.imageUrl,
-    metric: 'Fresh',
-    partner: 'Seasonal picks',
-    title: showcaseBanners[0]?.title ?? heroBanner.title,
-  },
-  {
-    cta: 'Explore more',
-    description: showcaseBanners[1]?.description ?? heroBanner.description,
-    eyebrow: 'Weekly edit',
-    headline: 'In Store',
-    id: showcaseBanners[1]?.id ?? 'weekly-edit',
-    imageUrl: showcaseBanners[1]?.imageUrl ?? heroBanner.imageUrl,
-    metric: 'New',
-    partner: 'Storefront edit',
-    title: showcaseBanners[1]?.title ?? heroBanner.title,
-  },
-];
+const getDefaultCarouselSlides = (placement: StorefrontCarouselPlacement) =>
+  defaultCarouselSlides
+    .filter((slide) => slide.placement === placement && slide.status === 'active')
+    .sort((first, second) => first.sortOrder - second.sortOrder);
 
-const renderMerchandisingBadge = (itemId: string) => {
-  const iconSx = { color: '#ffffff', fontSize: 32 };
+const getDefaultHighlightItems = (section: StorefrontHighlightSection) =>
+  defaultHighlightItems
+    .filter((item) => item.section === section && item.status === 'active')
+    .sort((first, second) => first.sortOrder - second.sortOrder);
 
-  switch (itemId) {
-    case 'promotion':
-      return <LocalOfferOutlinedIcon sx={{ color: '#ffffff', fontSize: 30 }} />;
-    case 'bulk':
-      return <Inventory2OutlinedIcon sx={iconSx} />;
-    case 'frozen':
-      return <AcUnitRoundedIcon sx={iconSx} />;
-    case 'organic':
-      return <SpaOutlinedIcon sx={iconSx} />;
-    case 'recipes':
-      return <MenuBookRoundedIcon sx={iconSx} />;
-    case 'new':
-      return (
-        <Typography
-          sx={{
-            color: '#ffffff',
-            fontSize: '1.02rem',
-            fontWeight: 900,
-            letterSpacing: '-0.03em',
-            lineHeight: 1,
-          }}
-        >
-          NEW
-        </Typography>
-      );
-    case 'imperfect':
-      return (
-        <Stack spacing={0.15} sx={{ alignItems: 'center' }}>
-          <Typography sx={{ color: '#ffffff', fontSize: '1.55rem', lineHeight: 1 }}>🍓</Typography>
-          <Typography
-            sx={{
-              color: '#ffffff',
-              fontSize: '0.48rem',
-              fontWeight: 800,
-              letterSpacing: '0.06em',
-              lineHeight: 1,
-            }}
-          >
-            IMPERFECT
-          </Typography>
-        </Stack>
-      );
-    case 'gluten-free':
-      return (
-        <Stack spacing={0.1} sx={{ alignItems: 'center' }}>
-          <Typography
-            sx={{
-              color: '#ffffff',
-              fontSize: '0.56rem',
-              fontWeight: 800,
-              letterSpacing: '0.08em',
-              lineHeight: 1,
-            }}
-          >
-            GLUTEN
-          </Typography>
-          <Typography sx={{ color: '#ffffff', fontSize: '1.45rem', lineHeight: 1 }}>🌾</Typography>
-          <Typography
-            sx={{
-              color: '#ffffff',
-              fontSize: '0.54rem',
-              fontWeight: 800,
-              letterSpacing: '0.06em',
-              lineHeight: 1,
-            }}
-          >
-            FREE
-          </Typography>
-        </Stack>
-      );
-    case 'no-sugar':
-      return (
-        <Stack spacing={0.05} sx={{ alignItems: 'center' }}>
-          <Typography
-            sx={{
-              color: '#ffffff',
-              fontSize: '0.44rem',
-              fontWeight: 800,
-              letterSpacing: '0.07em',
-              lineHeight: 1,
-            }}
-          >
-            NO ADDED
-          </Typography>
-          <Typography sx={{ color: '#ffffff', fontSize: '1.25rem', lineHeight: 1 }}>🍬</Typography>
-          <Typography
-            sx={{
-              color: '#ffffff',
-              fontSize: '0.5rem',
-              fontWeight: 800,
-              letterSpacing: '0.07em',
-              lineHeight: 1,
-            }}
-          >
-            SUGAR
-          </Typography>
-        </Stack>
-      );
-    case 'vegan':
-      return (
-        <Stack spacing={0.05} sx={{ alignItems: 'center' }}>
-          <Typography
-            sx={{
-              color: '#ffffff',
-              fontSize: '1.35rem',
-              fontStyle: 'italic',
-              fontWeight: 900,
-              letterSpacing: '-0.04em',
-              lineHeight: 1,
-            }}
-          >
-            Vegan
-          </Typography>
-          <Typography
-            sx={{
-              color: alpha('#ffffff', 0.92),
-              fontSize: '0.5rem',
-              fontWeight: 700,
-              letterSpacing: '0.14em',
-              lineHeight: 1,
-            }}
-          >
-            CHOICE
-          </Typography>
-        </Stack>
-      );
-    case 'keto':
-      return (
-        <Typography
-          sx={{
-            color: '#ffffff',
-            fontSize: '1.1rem',
-            fontWeight: 900,
-            letterSpacing: '-0.04em',
-            lineHeight: 1,
-          }}
-        >
-          KETO
-        </Typography>
-      );
-    case 'gift-cards':
-      return (
-        <Stack spacing={0.12} sx={{ alignItems: 'center' }}>
-          <Typography sx={{ color: '#ffffff', fontSize: '1.35rem', lineHeight: 1 }}>🎁</Typography>
-          <Typography
-            sx={{
-              color: '#ffffff',
-              fontSize: '0.5rem',
-              fontWeight: 800,
-              letterSpacing: '0.08em',
-              lineHeight: 1,
-            }}
-          >
-            GIFT
-          </Typography>
-        </Stack>
-      );
-    case 'custom-gift-boxes':
-      return (
-        <Typography sx={{ color: '#ffffff', fontSize: '1.45rem', lineHeight: 1 }}>🎁</Typography>
-      );
-    case 'must-try':
-      return (
-        <Stack spacing={0.02} sx={{ alignItems: 'center' }}>
-          <Typography
-            sx={{
-              color: '#fff4bf',
-              fontSize: '0.68rem',
-              fontStyle: 'italic',
-              fontWeight: 700,
-              lineHeight: 1,
-            }}
-          >
-            Must
-          </Typography>
-          <Typography
-            sx={{
-              color: '#ffffff',
-              fontSize: '1.28rem',
-              fontWeight: 900,
-              letterSpacing: '-0.05em',
-              lineHeight: 1,
-            }}
-          >
-            TRY
-          </Typography>
-        </Stack>
-      );
-    case 'local':
-      return (
-        <Stack spacing={0.05} sx={{ alignItems: 'center' }}>
-          <Typography
-            sx={{
-              color: '#ffffff',
-              fontSize: '0.5rem',
-              fontWeight: 800,
-              letterSpacing: '0.1em',
-              lineHeight: 1,
-            }}
-          >
-            PROUDLY
-          </Typography>
-          <Typography sx={{ color: '#ffffff', fontSize: '1.15rem', lineHeight: 1 }}>🏬</Typography>
-          <Typography
-            sx={{
-              color: '#ffffff',
-              fontSize: '0.5rem',
-              fontWeight: 800,
-              letterSpacing: '0.08em',
-              lineHeight: 1,
-            }}
-          >
-            LOCAL
-          </Typography>
-        </Stack>
-      );
-    case 'coming-soon':
-      return (
-        <Stack spacing={0.02} sx={{ alignItems: 'center' }}>
-          <Typography
-            sx={{
-              color: '#ffffff',
-              fontSize: '0.92rem',
-              fontStyle: 'italic',
-              fontWeight: 800,
-              lineHeight: 1,
-            }}
-          >
-            Coming
-          </Typography>
-          <Typography
-            sx={{
-              color: '#ffffff',
-              fontSize: '0.9rem',
-              fontStyle: 'italic',
-              fontWeight: 800,
-              lineHeight: 1,
-            }}
-          >
-            Soon
-          </Typography>
-        </Stack>
-      );
-    default:
-      return (
-        <Typography sx={{ color: '#ffffff', fontSize: '1.35rem', lineHeight: 1 }}>•</Typography>
-      );
+const getCarouselSlidePath = (slide: StorefrontCarouselSlide) => {
+  const params = new URLSearchParams({
+    category: slide.targetCategoryId || 'all',
+    title: slide.cta || slide.title,
+  });
+
+  if (slide.targetSearch) {
+    params.set('search', slide.targetSearch);
   }
+
+  return `${routePaths.catalog}?${params.toString()}`;
 };
 
 type ProductSectionGridSize = {
@@ -714,9 +446,10 @@ const LazyProductSection = ({
 type MobileHomeLandingProps = {
   activeSlideIndex: number;
   onSlideChange: (index: number) => void;
+  slides: StorefrontCarouselSlide[];
 };
 
-const MobileHomeLanding = ({ activeSlideIndex, onSlideChange }: MobileHomeLandingProps) => {
+const MobileHomeLanding = ({ activeSlideIndex, onSlideChange, slides }: MobileHomeLandingProps) => {
   return (
     <Stack
       spacing={2.7}
@@ -753,10 +486,10 @@ const MobileHomeLanding = ({ activeSlideIndex, onSlideChange }: MobileHomeLandin
               display: 'flex',
               transform: `translateX(-${activeSlideIndex * 100}%)`,
               transition: 'transform 260ms ease',
-              width: `${homeHeroSlides.length * 100}%`,
+              width: `${slides.length * 100}%`,
             }}
           >
-            {homeHeroSlides.map((slide) => (
+            {slides.map((slide) => (
               <Box
                 component={Link}
                 key={slide.id}
@@ -764,14 +497,14 @@ const MobileHomeLanding = ({ activeSlideIndex, onSlideChange }: MobileHomeLandin
                   background: storefrontGradients.hero,
                   color: '#ffffff',
                   display: 'grid',
-                  flex: `0 0 ${100 / homeHeroSlides.length}%`,
+                  flex: `0 0 ${100 / slides.length}%`,
                   gridTemplateColumns: '1.03fr 0.97fr',
                   minHeight: 292,
                   overflow: 'hidden',
                   position: 'relative',
                   textDecoration: 'none',
                 }}
-                to={routePaths.catalog}
+                to={getCarouselSlidePath(slide)}
               >
                 <Box
                   alt={slide.title}
@@ -852,7 +585,7 @@ const MobileHomeLanding = ({ activeSlideIndex, onSlideChange }: MobileHomeLandin
           </Box>
         </Box>
         <Stack direction="row" spacing={1.2} sx={{ justifyContent: 'center', pt: 1.8 }}>
-          {homeHeroSlides.map((slide, dot) => (
+          {slides.map((slide, dot) => (
             <Box
               aria-label={`Go to banner ${dot + 1}`}
               component="button"
@@ -938,29 +671,64 @@ const MobileHomeLanding = ({ activeSlideIndex, onSlideChange }: MobileHomeLandin
 
 export const HomePage = () => {
   const { addToCart } = useCart();
+  const heroCarouselQuery = useQuery({
+    queryFn: ({ signal }) => merchandisingApi.listStorefrontCarousel('hero', { signal }),
+    queryKey: ['storefront', 'carousel', 'hero'],
+  });
+  const showcaseCarouselQuery = useQuery({
+    queryFn: ({ signal }) => merchandisingApi.listStorefrontCarousel('showcase', { signal }),
+    queryKey: ['storefront', 'carousel', 'showcase'],
+  });
+  const featuredIconsQuery = useQuery({
+    queryFn: ({ signal }) => merchandisingApi.listStorefrontIcons('featured', { signal }),
+    queryKey: ['storefront', 'icons', 'featured'],
+  });
+  const merchandisingIconsQuery = useQuery({
+    queryFn: ({ signal }) => merchandisingApi.listStorefrontIcons('merchandising', { signal }),
+    queryKey: ['storefront', 'icons', 'merchandising'],
+  });
+  const productSectionsQuery = useQuery({
+    queryFn: ({ signal }) => merchandisingApi.listStorefrontProductSections({ signal }),
+    queryKey: ['storefront', 'product-sections'],
+  });
+
+  const homeHeroSlides = heroCarouselQuery.data?.length
+    ? heroCarouselQuery.data
+    : getDefaultCarouselSlides('hero');
+  const showcaseSlides = showcaseCarouselQuery.data?.length
+    ? showcaseCarouselQuery.data
+    : getDefaultCarouselSlides('showcase');
+  const featuredHighlights: StorefrontHighlightItem[] = featuredIconsQuery.data?.length
+    ? featuredIconsQuery.data
+    : getDefaultHighlightItems('featured');
+  const merchandisingHighlights: StorefrontHighlightItem[] = merchandisingIconsQuery.data?.length
+    ? merchandisingIconsQuery.data
+    : getDefaultHighlightItems('merchandising');
+  const getBackendSectionProducts = (sectionId: StorefrontProductSectionId) =>
+    productSectionsQuery.data?.sections.find((section) => section.id === sectionId)?.products ?? [];
+  const assignedTopOffers = getBackendSectionProducts('top-offers');
+  const assignedTopBlooms = getBackendSectionProducts('top-blooms');
+  const assignedSeasonalProducts = getBackendSectionProducts('new-season');
+  const assignedPantryProducts = getBackendSectionProducts('pantry-ready');
+  const visibleHeroSlides = homeHeroSlides.length ? homeHeroSlides : [defaultHomeHeroSlide];
+  const visibleShowcaseSlides = showcaseSlides.length ? showcaseSlides : [defaultShowcaseSlide];
   const [activeHeroSlideIndex, setActiveHeroSlideIndex] = useState(0);
   const [activeShowcaseIndex, setActiveShowcaseIndex] = useState(0);
   const [activeShopBrandId, setActiveShopBrandId] = useState<string | null>(null);
-  const activeHeroSlide = homeHeroSlides[activeHeroSlideIndex] ?? defaultHomeHeroSlide;
+  const activeHeroSlide = visibleHeroSlides[activeHeroSlideIndex] ?? defaultHomeHeroSlide;
   const activeShopBrand = shopBrands.find((brand) => brand.id === activeShopBrandId);
   const activeShopBrandIndex = shopBrands.findIndex((brand) => brand.id === activeShopBrandId);
-  const activeShowcase = showcaseBanners[activeShowcaseIndex] ??
-    showcaseBanners[0] ?? {
-      description: '',
-      id: 'fallback-showcase',
-      imageUrl: '',
-      title: '',
-    };
+  const activeShowcase = visibleShowcaseSlides[activeShowcaseIndex] ?? defaultShowcaseSlide;
 
   const goToPreviousShowcase = () => {
     setActiveShowcaseIndex((currentIndex) =>
-      currentIndex === 0 ? showcaseBanners.length - 1 : currentIndex - 1,
+      currentIndex === 0 ? visibleShowcaseSlides.length - 1 : currentIndex - 1,
     );
   };
 
   const goToNextShowcase = () => {
     setActiveShowcaseIndex((currentIndex) =>
-      currentIndex === showcaseBanners.length - 1 ? 0 : currentIndex + 1,
+      currentIndex === visibleShowcaseSlides.length - 1 ? 0 : currentIndex + 1,
     );
   };
 
@@ -969,6 +737,7 @@ export const HomePage = () => {
       <MobileHomeLanding
         activeSlideIndex={activeHeroSlideIndex}
         onSlideChange={setActiveHeroSlideIndex}
+        slides={visibleHeroSlides}
       />
       <Stack spacing={{ md: 5.5, xs: 2.5 }}>
         <Grid container spacing={3} sx={{ display: { md: 'flex', xs: 'none' } }}>
@@ -1045,6 +814,7 @@ export const HomePage = () => {
                       sx={{ alignItems: { sm: 'center', xs: 'stretch' }, pt: 0.5 }}
                     >
                       <Button
+                        component={Link}
                         endIcon={<ArrowForwardRoundedIcon />}
                         sx={{
                           alignSelf: 'flex-start',
@@ -1057,11 +827,13 @@ export const HomePage = () => {
                           px: 3,
                           py: 1.15,
                           textTransform: 'uppercase',
+                          textDecoration: 'none',
                           '&:hover': {
                             backgroundColor: '#eef3ff',
                             transform: 'translateY(-1px)',
                           },
                         }}
+                        to={getCarouselSlidePath(activeHeroSlide)}
                       >
                         {activeHeroSlide.cta}
                       </Button>
@@ -1076,7 +848,7 @@ export const HomePage = () => {
                       </Typography>
                     </Stack>
                     <Stack direction="row" spacing={1} sx={{ pt: 0.5 }}>
-                      {homeHeroSlides.map((slide, index) => (
+                      {visibleHeroSlides.map((slide, index) => (
                         <Box
                           aria-label={`Go to hero banner ${index + 1}`}
                           component="button"
@@ -1376,7 +1148,7 @@ export const HomePage = () => {
 
         <Box sx={{ ...storefrontMutedPanelSx, borderRadius: 2, px: { md: 3, xs: 2 }, py: 3 }}>
           <Stack direction="row" spacing={{ md: 1.5, xs: 1.25 }} sx={{ overflowX: 'auto', pb: 1 }}>
-            {featuredCategoryHighlights.map((item) => (
+            {featuredHighlights.map((item) => (
               <Stack
                 component={Link}
                 key={item.id}
@@ -1544,7 +1316,7 @@ export const HomePage = () => {
           gridSize={{ lg: 2.4, md: 4, sm: 6, xs: 12 }}
           mobileHorizontal
           onAddToCart={(item) => addToCart(mapHomeProductToProduct(item))}
-          products={topOffers}
+          products={assignedTopOffers.length ? assignedTopOffers : topOffers}
           title="Top Offers"
         />
 
@@ -1567,7 +1339,7 @@ export const HomePage = () => {
                   {activeShowcase.description}
                 </Typography>
                 <Stack direction="row" spacing={1} sx={{ pt: 1 }}>
-                  {showcaseBanners.map((banner, index) => (
+                  {visibleShowcaseSlides.map((banner, index) => (
                     <Box
                       aria-label={`Go to showcase banner ${index + 1}`}
                       component="button"
@@ -1657,7 +1429,7 @@ export const HomePage = () => {
           description="Fresh-cut bouquets and floral gift picks presented in the same storefront card style for quick browsing."
           gridSize={{ lg: 2, md: 4, sm: 6, xs: 12 }}
           onAddToCart={(item) => addToCart(mapHomeProductToProduct(item))}
-          products={topBlooms}
+          products={assignedTopBlooms.length ? assignedTopBlooms : topBlooms}
           title="Top Blooms"
         />
 
@@ -1665,7 +1437,7 @@ export const HomePage = () => {
           description="Seasonal, produce-led content blocks stay separate from the catalog API and can later be replaced with CMS or backend-fed content."
           gridSize={{ lg: 2, md: 4, sm: 6, xs: 12 }}
           onAddToCart={(item) => addToCart(mapHomeProductToProduct(item))}
-          products={seasonalProducts}
+          products={assignedSeasonalProducts.length ? assignedSeasonalProducts : seasonalProducts}
           title="New In Season"
         />
 
@@ -1853,7 +1625,9 @@ export const HomePage = () => {
                       zIndex: 1,
                     }}
                   >
-                    {renderMerchandisingBadge(item.id)}
+                    <Typography sx={{ color: '#ffffff', fontSize: '1.55rem', lineHeight: 1 }}>
+                      {item.icon}
+                    </Typography>
                   </Box>
                 </Box>
                 <Typography
@@ -1888,7 +1662,7 @@ export const HomePage = () => {
           description="Prepared meals, bakery, and pantry modules can reuse the exact same card component and only swap data."
           gridSize={{ lg: 3, md: 6, xs: 6 }}
           onAddToCart={(item) => addToCart(mapHomeProductToProduct(item))}
-          products={pantryProducts}
+          products={assignedPantryProducts.length ? assignedPantryProducts : pantryProducts}
           title="Pantry & Ready Meals"
         />
       </Stack>

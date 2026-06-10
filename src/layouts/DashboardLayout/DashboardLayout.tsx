@@ -68,7 +68,7 @@ export const DashboardLayout = () => {
                   {createRouteLabel(location.pathname)}
                 </Typography>
                 <Typography color="text.secondary" variant="body2">
-                  Tenant operations, merchandising, and SaaS controls
+                  Tenant operations and merchandising
                 </Typography>
               </Box>
             </Stack>
@@ -85,7 +85,7 @@ export const DashboardLayout = () => {
                   {user ? `${user.firstName} ${user.lastName}` : 'Admin'}
                 </Typography>
                 <Typography color="text.secondary" variant="caption">
-                  Demo tenant admin
+                  Tenant admin
                 </Typography>
               </Box>
               <Button

@@ -65,7 +65,11 @@ export const lightTheme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 999,
+          height: 48,
+          lineHeight: 1.2,
+          minHeight: 48,
           textTransform: 'none',
+          whiteSpace: 'nowrap',
         },
         outlined: {
           borderColor: storefrontColors.border,

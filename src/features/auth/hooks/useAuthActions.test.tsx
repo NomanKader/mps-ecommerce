@@ -37,6 +37,7 @@ const authenticatedResult = {
       id: 'user-1',
       lastName: 'Customer',
       role: 'customer' as const,
+      tenantId: 'av',
     },
   },
   message: 'User authenticated',

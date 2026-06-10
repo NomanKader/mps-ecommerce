@@ -37,12 +37,16 @@ export const routePaths = {
   orders: '/orders',
   productDetails: '/products/:productId',
   tenantAdmin: {
+    adminUser: '/admin/admin-user',
+    carousel: '/admin/carousel',
     categories: '/admin/categories',
     customers: '/admin/customers',
     dashboard: '/admin/dashboard',
     deliveryFees: '/admin/delivery-fees',
+    storefrontIcons: '/admin/storefront-icons',
     orders: '/admin/orders',
     products: '/admin/products',
+    productSections: '/admin/product-sections',
     promotions: '/admin/promotions',
   },
 } as const;

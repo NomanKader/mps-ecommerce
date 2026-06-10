@@ -15,13 +15,17 @@ import { HomePage } from '@pages/HomePage/HomePage';
 import { NotFoundPage } from '@pages/NotFoundPage/NotFoundPage';
 import { OrdersPage } from '@pages/OrdersPage/OrdersPage';
 import { ProductDetailsPage } from '@pages/ProductDetailsPage/ProductDetailsPage';
+import { AdminUserPage } from '@pages/TenantAdmin/AdminUserPage/AdminUserPage';
+import { CarouselPage } from '@pages/TenantAdmin/CarouselPage/CarouselPage';
 import { CategoriesPage } from '@pages/TenantAdmin/CategoriesPage/CategoriesPage';
 import { CustomersPage } from '@pages/TenantAdmin/CustomersPage/CustomersPage';
 import { DashboardPage } from '@pages/TenantAdmin/DashboardPage/DashboardPage';
 import { DeliveryFeesPage } from '@pages/TenantAdmin/DeliveryFeesPage/DeliveryFeesPage';
 import { OrdersManagementPage } from '@pages/TenantAdmin/OrdersManagementPage/OrdersManagementPage';
 import { ProductsPage } from '@pages/TenantAdmin/ProductsPage/ProductsPage';
+import { ProductSectionsPage } from '@pages/TenantAdmin/ProductSectionsPage/ProductSectionsPage';
 import { PromotionsPage } from '@pages/TenantAdmin/PromotionsPage/PromotionsPage';
+import { StorefrontIconsPage } from '@pages/TenantAdmin/StorefrontIconsPage/StorefrontIconsPage';
 import { ProtectedRoute } from '@routes/ProtectedRoute';
 import { PublicRoute } from '@routes/PublicRoute';
 import { routePaths } from '@routes/routePaths';
@@ -80,7 +84,7 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        element: <ProtectedRoute allowedRoles={['customer', 'tenant_admin', 'staff', 'super_admin']} />,
+        element: <ProtectedRoute allowedRoles={['customer', 'tenant_admin']} />,
         children: [
           {
             element: <MainLayout />,
@@ -101,16 +105,20 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        element: <ProtectedRoute allowedRoles={['tenant_admin', 'staff', 'super_admin']} />,
+        element: <ProtectedRoute allowedRoles={['tenant_admin']} />,
         children: [
           {
             element: <DashboardLayout />,
             children: [
               { element: <DashboardPage />, path: routePaths.tenantAdmin.dashboard },
+              { element: <AdminUserPage />, path: routePaths.tenantAdmin.adminUser },
               { element: <ProductsPage />, path: routePaths.tenantAdmin.products },
               { element: <CategoriesPage />, path: routePaths.tenantAdmin.categories },
               { element: <OrdersManagementPage />, path: routePaths.tenantAdmin.orders },
               { element: <CustomersPage />, path: routePaths.tenantAdmin.customers },
+              { element: <ProductSectionsPage />, path: routePaths.tenantAdmin.productSections },
+              { element: <CarouselPage />, path: routePaths.tenantAdmin.carousel },
+              { element: <StorefrontIconsPage />, path: routePaths.tenantAdmin.storefrontIcons },
               { element: <PromotionsPage />, path: routePaths.tenantAdmin.promotions },
               { element: <DeliveryFeesPage />, path: routePaths.tenantAdmin.deliveryFees },
             ],

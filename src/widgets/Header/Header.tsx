@@ -15,6 +15,7 @@ import { alpha } from '@mui/material/styles';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { useQuery } from '@tanstack/react-query';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
 import logoImage from '@assets/images/logo.png';
@@ -25,6 +26,7 @@ import {
   storefrontCategoryMenuItems,
 } from '@features/home/data/homePage.data';
 import { useCart } from '@features/cart/hooks/useCart';
+import { merchandisingApi } from '@features/home/api/merchandisingApi';
 import { useSignOut } from '@features/auth/hooks/useSignOut';
 import { storefrontIconButtonSx } from '@shared/styles/storefront';
 import type { RootState } from '@store/index';
@@ -51,12 +53,25 @@ export const Header = () => {
   const [isAuthDrawerOpen, setIsAuthDrawerOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const headerSettingsQuery = useQuery({
+    queryFn: ({ signal }) => merchandisingApi.getHeaderSettings({ signal }),
+    queryKey: ['storefront', 'header-settings'],
+  });
   const scrollFrameRef = useRef<number | null>(null);
   const activeCategory = storefrontCategories.find((category) => category.id === activeCategoryId);
   const activeMenuItems = activeCategoryId
     ? (storefrontCategoryMenuItems[activeCategoryId] ?? [])
     : [];
   const isCustomer = isAuthenticated && user?.role === 'customer';
+  const deliveryHeadline =
+    headerSettingsQuery.data?.deliveryHeadline ?? user?.deliveryHeadline ?? 'Delivery all over UAE';
+  const supportPhoneLabel = headerSettingsQuery.data
+    ? `${headerSettingsQuery.data.supportPhoneCountryCode} ${headerSettingsQuery.data.supportPhoneNumber}`.trim()
+    : (user?.supportPhoneLabel ?? '800 AVS');
+  const topBarTagline =
+    headerSettingsQuery.data?.topBarTagline ??
+    user?.topBarTagline ??
+    'Sustainable Grocery Shopping';
   const isAccountRoute =
     location.pathname.startsWith(routePaths.account) &&
     location.pathname !== routePaths.accountFavourites;
@@ -179,7 +194,7 @@ export const Header = () => {
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               <LocalShippingOutlinedIcon sx={{ fontSize: 22 }} />
               <Typography sx={{ fontWeight: 700 }} variant="body2">
-                Delivery all over UAE
+                {deliveryHeadline}
               </Typography>
             </Stack>
             <Button
@@ -196,11 +211,11 @@ export const Header = () => {
             </Button>
           </Stack>
           <Stack direction="row" spacing={3} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            <Typography variant="body2">Sustainable Grocery Shopping</Typography>
+            {topBarTagline ? <Typography variant="body2">{topBarTagline}</Typography> : null}
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               <PhoneInTalkOutlinedIcon sx={{ fontSize: 18 }} />
               <Typography sx={{ fontWeight: 800 }} variant="body2">
-                800 AVS
+                {supportPhoneLabel}
               </Typography>
             </Stack>
             {isAuthenticated ? (

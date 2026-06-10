@@ -41,10 +41,13 @@ describe('adminApi', () => {
       },
     });
 
-    const products = await adminApi.listProducts({ category: 'Fruits', search: '', stock: 'low' });
+    const products = await adminApi.listProducts({
+      categoryId: 'category-1',
+      search: '',
+    });
 
     expect(apiClient.get).toHaveBeenCalledWith(endpoints.admin.products, {
-      params: { category: 'Fruits', stock: 'low' },
+      params: { categoryId: 'category-1' },
       signal: undefined,
     });
     expect(products[0]?.id).toBe('product-1');

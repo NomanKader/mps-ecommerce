@@ -107,13 +107,13 @@ Contains framework-agnostic or cross-domain building blocks, including UI primit
 
 ### `services`
 
-Contains integration-oriented modules that will later support token management, analytics, tenant branding, and SaaS configuration.
+Contains integration-oriented modules for token management, analytics, and tenant-scoped runtime context.
 
-## SaaS Readiness Notes
+## Tenant Scope Notes
 
 - Tenant-aware config is centralized in `src/config/env.ts`, `src/config/app.config.ts`, and the tenant slice.
-- Role placeholders are prepared for `super_admin`, `tenant_admin`, `staff`, and `customer`.
-- Tenant settings, branding overrides, onboarding, subscription planning, and future RBAC can expand without restructuring the project.
+- Frontend authentication and API calls are tenant-scoped with an `x-tenant-id` header.
+- Frontend roles are limited to `tenant_admin`, `staff`, and `customer`.
 
 ## Current Scope
 
