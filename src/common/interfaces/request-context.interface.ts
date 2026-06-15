@@ -8,5 +8,7 @@ export interface AuthContext {
 
 export interface TenantContext {
   tenantId?: string;
+  tenantSlug?: string;
+  databaseName?: string;
   tenantSource?: 'header' | 'subdomain' | 'token' | 'unknown';
 }

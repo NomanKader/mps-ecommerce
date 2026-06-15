@@ -1,9 +1,9 @@
-import { model, Schema } from 'mongoose';
+import { Schema } from 'mongoose';
 
 import { addSoftDeleteFields, baseSchemaOptions } from '@core/database/base.schema';
 import { Product } from '@modules/products/product.types';
 
-const productSchema = new Schema<Product>(
+export const productSchema = new Schema<Product>(
   {
     tenantId: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true },
@@ -28,5 +28,3 @@ const productSchema = new Schema<Product>(
 
 addSoftDeleteFields(productSchema);
 productSchema.index({ tenantId: 1, sku: 1 }, { unique: true });
-
-export const ProductModel = model<Product>('Product', productSchema);

@@ -1,10 +1,11 @@
 import { BaseRepository } from '@core/base/BaseRepository';
-import { UserModel } from '@modules/users/user.model';
+import { getTenantModels } from '@core/database/tenant-database';
+import { SystemUserModel } from '@modules/users/user.model';
 import { User } from '@modules/users/user.types';
 
 export class UserRepository extends BaseRepository<User> {
-  constructor() {
-    super(UserModel);
+  constructor(tenantId?: string) {
+    super(tenantId ? getTenantModels(tenantId).UserModel : SystemUserModel);
   }
 
   async findByEmail(email: string): Promise<User | null> {

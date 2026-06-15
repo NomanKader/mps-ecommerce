@@ -5,7 +5,8 @@ import { UserService } from '@modules/users/user.service';
 import { comparePassword } from '@utils/password';
 
 const tenant = {
-  _id: 'tenant-id',
+  _id: '507f1f77bcf86cd799439011',
+  tenantId: '507f1f77bcf86cd799439011',
   name: "AV's Store",
   slug: 'demo',
   status: 'active' as const,
@@ -37,15 +38,18 @@ describe('UserService.createTenantAdmin', () => {
     const tenantRepository = {
       findOne: jest.fn().mockResolvedValue(tenant)
     } as unknown as TenantRepository;
-    const service = new UserService(userRepository, tenantRepository);
+    const service = new UserService({} as UserRepository, tenantRepository, () => userRepository);
 
-    const result = await service.createTenantAdmin({ ...payload, tenantSlug: 'demo' });
+    const result = await service.createTenantAdmin({ ...payload, tenantId: tenant.tenantId });
     const createdUser = (userRepository.create as jest.Mock).mock.calls[0][0];
 
-    expect(tenantRepository.findOne).toHaveBeenCalledWith({ slug: 'demo', isDeleted: { $ne: true } });
-    expect(userRepository.findOne).toHaveBeenCalledWith({ tenantId: 'demo', email: 'admin@example.com' });
+    expect(tenantRepository.findOne).toHaveBeenCalledWith({
+      isDeleted: { $ne: true },
+      $or: [{ tenantId: tenant.tenantId }, { slug: tenant.tenantId }, { _id: tenant.tenantId }]
+    });
+    expect(userRepository.findOne).toHaveBeenCalledWith({ tenantId: tenant.tenantId, email: 'admin@example.com' });
     expect(createdUser).toMatchObject({
-      tenantId: 'demo',
+      tenantId: tenant.tenantId,
       email: 'admin@example.com',
       firstName: 'Tenant',
       lastName: 'Admin',
@@ -60,7 +64,7 @@ describe('UserService.createTenantAdmin', () => {
     const tenantRepository = {
       findOne: jest.fn().mockResolvedValue(null)
     } as unknown as TenantRepository;
-    const service = new UserService(userRepository, tenantRepository);
+    const service = new UserService({} as UserRepository, tenantRepository, () => userRepository);
 
     await expect(service.createTenantAdmin({ ...payload, tenantSlug: 'missing' })).rejects.toMatchObject({
       statusCode: 404,
@@ -75,9 +79,9 @@ describe('UserService.createTenantAdmin', () => {
     const tenantRepository = {
       findOne: jest.fn().mockResolvedValue(tenant)
     } as unknown as TenantRepository;
-    const service = new UserService(userRepository, tenantRepository);
+    const service = new UserService({} as UserRepository, tenantRepository, () => userRepository);
 
-    await expect(service.createTenantAdmin({ ...payload, tenantSlug: 'demo' })).rejects.toMatchObject({
+    await expect(service.createTenantAdmin({ ...payload, tenantId: tenant.tenantId })).rejects.toMatchObject({
       statusCode: 409,
       message: 'User already exists for this tenant'
     });

@@ -16,11 +16,11 @@ router.use(authMiddleware, roleMiddleware(Role.SYSTEM_ADMIN));
 router.get('/', controller.list);
 router.post('/', validateMiddleware(createTenantSchema), controller.create);
 router.post('/admins', validateMiddleware(createTenantAdminSchema), controller.createAdmin);
-router.get('/:tenantSlug', validateMiddleware(tenantSlugParamSchema), controller.get);
-router.put('/:tenantSlug', validateMiddleware(updateTenantSchema), controller.update);
-router.delete('/:tenantSlug', validateMiddleware(tenantSlugParamSchema), controller.delete);
+router.get('/:tenantId', validateMiddleware(tenantSlugParamSchema), controller.get);
+router.put('/:tenantId', validateMiddleware(updateTenantSchema), controller.update);
+router.delete('/:tenantId', validateMiddleware(tenantSlugParamSchema), controller.delete);
 router.post(
-  '/:tenantSlug/admins',
+  '/:tenantId/admins',
   validateMiddleware(createTenantAdminSchema),
   controller.createAdmin
 );

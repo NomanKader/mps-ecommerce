@@ -51,7 +51,7 @@ Request body:
 
 ```json
 {
-  "tenantSlug": "demo",
+  "tenantId": "6a2b8308c464d5a188a259eb",
   "email": "tenant.admin@example.com",
   "firstName": "Tenant",
   "lastName": "Admin",
@@ -59,4 +59,4 @@ Request body:
 }
 ```
 
-The tenant must already exist. The API resolves it by slug and always creates the user with the `tenant_admin` role for that tenant. The role cannot be overridden in the request body.
+The tenant must already exist. Use the `tenantId` returned by `POST /api/v1/tenants`; it is fixed for that tenant, its tenant database, JWT tenant claims, and all tenant-scoped operations. The API always creates the user with the `tenant_admin` role for that tenant. The role cannot be overridden in the request body.

@@ -35,7 +35,7 @@ export class AuthController extends BaseController {
   });
 
   me = asyncHandler(async (req: Request, res: Response) => {
-    const user = await this.authService.me(req.auth?.userId);
+    const user = await this.authService.me(req.auth?.userId, req.auth?.tenantId);
     this.ok(res, user, 'Current user fetched');
   });
 

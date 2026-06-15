@@ -9,9 +9,9 @@ import { validateMiddleware } from '@middlewares/validate.middleware';
 const router = Router();
 const controller = new AuthController();
 
-router.post('/otp/request', tenantMiddleware, validateMiddleware(requestOtpSchema), controller.requestOtp);
-router.post('/register', tenantMiddleware, validateMiddleware(registerSchema), controller.register);
-router.post('/login', tenantMiddleware, validateMiddleware(loginSchema), controller.login);
+router.post('/otp/request', validateMiddleware(requestOtpSchema), tenantMiddleware, controller.requestOtp);
+router.post('/register', validateMiddleware(registerSchema), tenantMiddleware, controller.register);
+router.post('/login', validateMiddleware(loginSchema), tenantMiddleware, controller.login);
 router.get('/me', authMiddleware, controller.me);
 router.post('/logout', authMiddleware, controller.logout);
 

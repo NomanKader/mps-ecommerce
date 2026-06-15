@@ -3,11 +3,12 @@ import { OrderRepository } from '@modules/orders/order.repository';
 import { Order } from '@modules/orders/order.types';
 
 export class OrderService extends BaseService {
-  constructor(private readonly orderRepository = new OrderRepository()) {
+  constructor() {
     super();
   }
 
   async listOrders(tenantId?: string): Promise<Order[]> {
-    return this.orderRepository.find(tenantId ? { tenantId } : {});
+    if (!tenantId) return [];
+    return new OrderRepository(tenantId).find({ tenantId });
   }
 }

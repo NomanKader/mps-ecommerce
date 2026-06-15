@@ -1,16 +1,17 @@
-import { CategoryModel } from '@modules/categories/category.model';
 import { AdminService } from '@modules/admin/admin.service';
 
-jest.mock('@modules/categories/category.model', () => ({
-  CategoryModel: {
-    create: jest.fn(),
-    find: jest.fn(),
-    findOneAndUpdate: jest.fn(),
-    updateOne: jest.fn()
-  }
-}));
+const mockedCategoryModel = {
+  create: jest.fn(),
+  find: jest.fn(),
+  findOneAndUpdate: jest.fn(),
+  updateOne: jest.fn()
+};
 
-const mockedCategoryModel = CategoryModel as jest.Mocked<typeof CategoryModel>;
+jest.mock('@core/database/tenant-database', () => ({
+  getTenantModels: jest.fn(() => ({
+    CategoryModel: mockedCategoryModel
+  }))
+}));
 
 describe('AdminService category management', () => {
   beforeEach(() => {

@@ -1,9 +1,9 @@
-import { model, Schema } from 'mongoose';
+import { Schema } from 'mongoose';
 
 import { baseSchemaOptions } from '@core/database/base.schema';
 import { Order } from '@modules/orders/order.types';
 
-const orderSchema = new Schema<Order>(
+export const orderSchema = new Schema<Order>(
   {
     tenantId: { type: String, required: true, index: true },
     userId: { type: String, required: true, index: true },
@@ -28,5 +28,3 @@ const orderSchema = new Schema<Order>(
   },
   baseSchemaOptions
 );
-
-export const OrderModel = model<Order>('Order', orderSchema);

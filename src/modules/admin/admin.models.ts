@@ -1,4 +1,4 @@
-import { model, Schema } from 'mongoose';
+import { Schema } from 'mongoose';
 
 import { addSoftDeleteFields, baseSchemaOptions } from '@core/database/base.schema';
 
@@ -45,10 +45,32 @@ export interface DeliveryFee {
   updatedAt: Date;
 }
 
+export interface Region {
+  _id: string;
+  tenantId: string;
+  name: string;
+  status: 'active' | 'paused';
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Township {
+  _id: string;
+  tenantId: string;
+  name: string;
+  region: string;
+  status: 'active' | 'paused';
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface TenantAdminSettings {
   _id: string;
   tenantId: string;
   deliveryHeadline: string;
+  logoUrl?: string;
   supportPhoneCountryCode: string;
   supportPhoneNumber: string;
   topBarTagline: string;
@@ -92,9 +114,22 @@ export interface StorefrontHighlightIcon {
   color?: string;
   surfaceColor?: string;
   textColor?: string;
-  targetCategoryId?: string;
-  targetSearch?: string;
   sortOrder: number;
+  status: 'active' | 'hidden';
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SecondaryCategory {
+  _id: string;
+  tenantId: string;
+  name: string;
+  slug: string;
+  icon?: string;
+  color?: string;
+  productId: string;
+  targetSectionId: 'top-offers' | 'top-blooms' | 'new-season' | 'pantry-ready';
   status: 'active' | 'hidden';
   isDeleted: boolean;
   createdAt: Date;
@@ -113,12 +148,17 @@ export interface StorefrontProductSectionAssignment {
   updatedAt: Date;
 }
 
-const customerSchema = new Schema<AdminCustomer>(
+export const customerSchema = new Schema<AdminCustomer>(
   {
     tenantId: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true },
-    segment: { type: String, enum: ['VIP', 'Loyal', 'New', 'At Risk'], default: 'New', index: true },
+    segment: {
+      type: String,
+      enum: ['VIP', 'Loyal', 'New', 'At Risk'],
+      default: 'New',
+      index: true
+    },
     orders: { type: Number, default: 0, min: 0 },
     totalSpend: { type: Number, default: 0, min: 0 },
     lastOrderAt: { type: Date, default: Date.now, index: true }
@@ -126,7 +166,7 @@ const customerSchema = new Schema<AdminCustomer>(
   baseSchemaOptions
 );
 
-const promotionSchema = new Schema<Promotion>(
+export const promotionSchema = new Schema<Promotion>(
   {
     tenantId: { type: String, required: true, index: true },
     campaign: { type: String, required: true, trim: true },
@@ -134,13 +174,18 @@ const promotionSchema = new Schema<Promotion>(
     discount: { type: String, required: true, trim: true },
     startsAt: { type: Date, required: true, index: true },
     endsAt: { type: Date, required: true, index: true },
-    status: { type: String, enum: ['active', 'scheduled', 'expired', 'paused'], default: 'active', index: true },
+    status: {
+      type: String,
+      enum: ['active', 'scheduled', 'expired', 'paused'],
+      default: 'active',
+      index: true
+    },
     uses: { type: Number, default: 0, min: 0 }
   },
   baseSchemaOptions
 );
 
-const deliveryFeeSchema = new Schema<DeliveryFee>(
+export const deliveryFeeSchema = new Schema<DeliveryFee>(
   {
     tenantId: { type: String, required: true, index: true },
     region: { type: String, required: true, trim: true, index: true },
@@ -153,18 +198,48 @@ const deliveryFeeSchema = new Schema<DeliveryFee>(
   baseSchemaOptions
 );
 
-const tenantAdminSettingsSchema = new Schema<TenantAdminSettings>(
+export const regionSchema = new Schema<Region>(
   {
     tenantId: { type: String, required: true, index: true },
-    deliveryHeadline: { type: String, required: true, trim: true, default: 'Delivery all over UAE' },
-    supportPhoneCountryCode: { type: String, required: true, trim: true, default: '+971' },
-    supportPhoneNumber: { type: String, required: true, trim: true, default: '800 287' },
-    topBarTagline: { type: String, required: true, trim: true, default: 'Sustainable Grocery Shopping' }
+    name: { type: String, required: true, trim: true },
+    status: { type: String, enum: ['active', 'paused'], default: 'active', index: true }
   },
   baseSchemaOptions
 );
 
-const carouselSlideSchema = new Schema<StorefrontCarouselSlide>(
+export const townshipSchema = new Schema<Township>(
+  {
+    tenantId: { type: String, required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    region: { type: String, required: true, trim: true, index: true },
+    status: { type: String, enum: ['active', 'paused'], default: 'active', index: true }
+  },
+  baseSchemaOptions
+);
+
+export const tenantAdminSettingsSchema = new Schema<TenantAdminSettings>(
+  {
+    tenantId: { type: String, required: true },
+    deliveryHeadline: {
+      type: String,
+      required: true,
+      trim: true,
+      default: 'Delivery all over UAE'
+    },
+    logoUrl: { type: String, trim: true },
+    supportPhoneCountryCode: { type: String, required: true, trim: true, default: '+971' },
+    supportPhoneNumber: { type: String, required: true, trim: true, default: '800 287' },
+    topBarTagline: {
+      type: String,
+      required: true,
+      trim: true,
+      default: 'Sustainable Grocery Shopping'
+    }
+  },
+  baseSchemaOptions
+);
+
+export const carouselSlideSchema = new Schema<StorefrontCarouselSlide>(
   {
     tenantId: { type: String, required: true, index: true },
     placement: { type: String, enum: ['hero', 'showcase'], required: true, index: true },
@@ -188,27 +263,49 @@ const carouselSlideSchema = new Schema<StorefrontCarouselSlide>(
   baseSchemaOptions
 );
 
-const highlightIconSchema = new Schema<StorefrontHighlightIcon>(
+export const highlightIconSchema = new Schema<StorefrontHighlightIcon>(
   {
     tenantId: { type: String, required: true, index: true },
     section: { type: String, enum: ['featured', 'merchandising'], required: true, index: true },
     label: { type: String, required: true, trim: true },
     icon: { type: String, required: true, trim: true },
-    color: { type: String, trim: true },
+    color: { type: String, required: true, trim: true },
     surfaceColor: { type: String, trim: true },
     textColor: { type: String, trim: true },
-    targetCategoryId: { type: String, trim: true },
-    targetSearch: { type: String, trim: true },
     sortOrder: { type: Number, default: 0, index: true },
     status: { type: String, enum: ['active', 'hidden'], default: 'active', index: true }
   },
   baseSchemaOptions
 );
 
-const productSectionAssignmentSchema = new Schema<StorefrontProductSectionAssignment>(
+export const secondaryCategorySchema = new Schema<SecondaryCategory>(
   {
     tenantId: { type: String, required: true, index: true },
-    sectionId: { type: String, enum: ['top-offers', 'top-blooms', 'new-season', 'pantry-ready'], required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    slug: { type: String, required: true, trim: true, lowercase: true },
+    icon: { type: String, trim: true },
+    color: { type: String, trim: true },
+    productId: { type: String, required: true, index: true },
+    targetSectionId: {
+      type: String,
+      enum: ['top-offers', 'top-blooms', 'new-season', 'pantry-ready'],
+      required: true,
+      index: true
+    },
+    status: { type: String, enum: ['active', 'hidden'], default: 'active', index: true }
+  },
+  baseSchemaOptions
+);
+
+export const productSectionAssignmentSchema = new Schema<StorefrontProductSectionAssignment>(
+  {
+    tenantId: { type: String, required: true, index: true },
+    sectionId: {
+      type: String,
+      enum: ['top-offers', 'top-blooms', 'new-season', 'pantry-ready'],
+      required: true,
+      index: true
+    },
     productId: { type: String, required: true, index: true },
     sortOrder: { type: Number, default: 0, index: true },
     status: { type: String, enum: ['active', 'hidden'], default: 'active', index: true }
@@ -219,33 +316,33 @@ const productSectionAssignmentSchema = new Schema<StorefrontProductSectionAssign
 addSoftDeleteFields(customerSchema);
 addSoftDeleteFields(promotionSchema);
 addSoftDeleteFields(deliveryFeeSchema);
+addSoftDeleteFields(regionSchema);
+addSoftDeleteFields(townshipSchema);
 addSoftDeleteFields(tenantAdminSettingsSchema);
 addSoftDeleteFields(carouselSlideSchema);
 addSoftDeleteFields(highlightIconSchema);
+addSoftDeleteFields(secondaryCategorySchema);
 addSoftDeleteFields(productSectionAssignmentSchema);
 
 customerSchema.index({ tenantId: 1, email: 1 }, { unique: true });
 promotionSchema.index({ tenantId: 1, code: 1 }, { unique: true });
 deliveryFeeSchema.index({ tenantId: 1, region: 1, township: 1 }, { unique: true });
+regionSchema.index({ tenantId: 1, name: 1 }, { unique: true });
+regionSchema.index({ tenantId: 1, status: 1, name: 1 });
+townshipSchema.index({ tenantId: 1, region: 1, name: 1 }, { unique: true });
+townshipSchema.index({ tenantId: 1, status: 1, region: 1, name: 1 });
 tenantAdminSettingsSchema.index({ tenantId: 1 }, { unique: true });
 carouselSlideSchema.index({ tenantId: 1, status: 1 });
 carouselSlideSchema.index({ tenantId: 1, placement: 1, status: 1, sortOrder: 1 });
 highlightIconSchema.index({ tenantId: 1, status: 1 });
-highlightIconSchema.index({ tenantId: 1, section: 1, status: 1, sortOrder: 1 });
+highlightIconSchema.index({ tenantId: 1, status: 1, sortOrder: 1, createdAt: 1 });
+highlightIconSchema.index({ tenantId: 1, section: 1, status: 1, sortOrder: 1, createdAt: 1 });
+secondaryCategorySchema.index({ tenantId: 1, slug: 1 }, { unique: true });
+secondaryCategorySchema.index({ tenantId: 1, status: 1, name: 1 });
+secondaryCategorySchema.index({ tenantId: 1, targetSectionId: 1, productId: 1 });
 productSectionAssignmentSchema.index({ tenantId: 1, status: 1 });
 productSectionAssignmentSchema.index({ tenantId: 1, sectionId: 1, status: 1, sortOrder: 1 });
 productSectionAssignmentSchema.index(
   { tenantId: 1, sectionId: 1, productId: 1, status: 1 },
   { unique: true, partialFilterExpression: { status: 'active', isDeleted: false } }
-);
-
-export const AdminCustomerModel = model<AdminCustomer>('AdminCustomer', customerSchema);
-export const PromotionModel = model<Promotion>('Promotion', promotionSchema);
-export const DeliveryFeeModel = model<DeliveryFee>('DeliveryFee', deliveryFeeSchema);
-export const TenantAdminSettingsModel = model<TenantAdminSettings>('TenantAdminSettings', tenantAdminSettingsSchema);
-export const StorefrontCarouselSlideModel = model<StorefrontCarouselSlide>('StorefrontCarouselSlide', carouselSlideSchema);
-export const StorefrontHighlightIconModel = model<StorefrontHighlightIcon>('StorefrontHighlightIcon', highlightIconSchema);
-export const StorefrontProductSectionAssignmentModel = model<StorefrontProductSectionAssignment>(
-  'StorefrontProductSectionAssignment',
-  productSectionAssignmentSchema
 );

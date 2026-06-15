@@ -1,9 +1,9 @@
-import { model, Schema } from 'mongoose';
+import { Schema } from 'mongoose';
 
 import { baseSchemaOptions } from '@core/database/base.schema';
 import { Cart } from '@modules/carts/cart.types';
 
-const cartSchema = new Schema<Cart>(
+export const cartSchema = new Schema<Cart>(
   {
     tenantId: { type: String, required: true, index: true },
     userId: { type: String, required: true, index: true },
@@ -17,5 +17,3 @@ const cartSchema = new Schema<Cart>(
   },
   baseSchemaOptions
 );
-
-export const CartModel = model<Cart>('Cart', cartSchema);

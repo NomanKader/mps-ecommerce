@@ -6,8 +6,10 @@ import { UserRepository } from '@modules/users/user.repository';
 import { User, UserResponse } from '@modules/users/user.types';
 import { ApiError } from '@utils/ApiError';
 import { hashPassword } from '@utils/password';
+import { Types } from 'mongoose';
 
 type CreateTenantAdminInput = {
+  tenantId?: string;
   tenantSlug?: string;
   email: string;
   firstName: string;
@@ -25,13 +27,17 @@ type CreateSystemUserInput = {
 export class UserService extends BaseService {
   constructor(
     private readonly userRepository = new UserRepository(),
-    private readonly tenantRepository = new TenantRepository()
+    private readonly tenantRepository = new TenantRepository(),
+    private readonly tenantUserRepositoryFactory = (tenantDatabaseKey: string): UserRepository =>
+      new UserRepository(tenantDatabaseKey)
   ) {
     super();
   }
 
   async listUsers(tenantId?: string): Promise<UserResponse[]> {
-    const users = await this.userRepository.find(tenantId ? { tenantId } : {});
+    const users = await (tenantId
+      ? new UserRepository(tenantId).find({ tenantId })
+      : this.userRepository.find({}));
     return users.map(({ password: _password, ...user }) => user);
   }
 
@@ -58,14 +64,24 @@ export class UserService extends BaseService {
     return safeUser;
   }
 
-  async createTenantAdmin(payload: CreateTenantAdminInput, routeTenantSlug?: string): Promise<UserResponse> {
-    const tenantSlug = (payload.tenantSlug ?? routeTenantSlug)?.trim().toLowerCase();
+  async createTenantAdmin(
+    payload: CreateTenantAdminInput,
+    routeTenantId?: string
+  ): Promise<UserResponse> {
+    const tenantIdentifier = (payload.tenantId ?? routeTenantId ?? payload.tenantSlug)?.trim();
 
-    if (!tenantSlug) {
-      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Tenant slug is required');
+    if (!tenantIdentifier) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Tenant id is required');
     }
 
-    const tenant = await this.tenantRepository.findOne({ slug: tenantSlug, isDeleted: { $ne: true } });
+    const tenant = await this.tenantRepository.findOne({
+      isDeleted: { $ne: true },
+      $or: [
+        { tenantId: tenantIdentifier },
+        { slug: tenantIdentifier.toLowerCase() },
+        ...(Types.ObjectId.isValid(tenantIdentifier) ? [{ _id: tenantIdentifier }] : [])
+      ]
+    });
 
     if (!tenant) {
       throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Tenant not found');
@@ -73,12 +89,15 @@ export class UserService extends BaseService {
 
     const email = payload.email.trim().toLowerCase();
 
-    if (await this.userRepository.findOne({ tenantId: tenant.slug, email })) {
+    const tenantId = tenant.tenantId ?? String(tenant._id);
+    const tenantUserRepository = this.tenantUserRepositoryFactory(tenant.slug);
+
+    if (await tenantUserRepository.findOne({ tenantId, email })) {
       throw new ApiError(HTTP_STATUS.CONFLICT, 'User already exists for this tenant');
     }
 
-    const user = await this.userRepository.create({
-      tenantId: tenant.slug,
+    const user = await tenantUserRepository.create({
+      tenantId,
       email,
       firstName: payload.firstName,
       lastName: payload.lastName,

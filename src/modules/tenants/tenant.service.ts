@@ -1,8 +1,14 @@
 import { BaseService } from '@core/base/BaseService';
+import {
+  initializeTenantDatabase,
+  registerTenantDatabaseAlias,
+  tenantDatabaseName
+} from '@core/database/tenant-database';
 import { HTTP_STATUS } from '@core/response/http-status';
 import { TenantRepository } from '@modules/tenants/tenant.repository';
 import { Tenant } from '@modules/tenants/tenant.types';
 import { ApiError } from '@utils/ApiError';
+import { Types } from 'mongoose';
 
 type CreateTenantInput = Pick<Tenant, 'name' | 'slug'> &
   Partial<Pick<Tenant, 'status' | 'subscriptionPlan' | 'settings' | 'branding' | 'featureFlags'>>;
@@ -18,8 +24,8 @@ export class TenantService extends BaseService {
     return this.tenantRepository.find({ isDeleted: { $ne: true } });
   }
 
-  async getTenant(tenantSlug: string): Promise<Tenant> {
-    const tenant = await this.tenantRepository.findOne({ slug: this.normalizeSlug(tenantSlug), isDeleted: { $ne: true } });
+  async getTenant(tenantIdentifier: string): Promise<Tenant> {
+    const tenant = await this.findTenant(tenantIdentifier);
 
     if (!tenant) {
       throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Tenant not found');
@@ -35,28 +41,38 @@ export class TenantService extends BaseService {
       throw new ApiError(HTTP_STATUS.CONFLICT, 'Tenant already exists');
     }
 
-    return this.tenantRepository.create({
+    const tenantObjectId = new Types.ObjectId();
+    const tenantId = String(tenantObjectId);
+    registerTenantDatabaseAlias(tenantId, slug);
+
+    const tenant = await this.tenantRepository.create({
       ...payload,
+      _id: tenantObjectId as never,
+      tenantId,
       slug,
+      databaseName: tenantDatabaseName(slug),
       status: payload.status ?? 'trial',
       featureFlags: payload.featureFlags ?? []
     });
+
+    await initializeTenantDatabase(slug);
+    return tenant;
   }
 
-  async updateTenant(tenantSlug: string, payload: UpdateTenantInput): Promise<Tenant> {
-    const currentSlug = this.normalizeSlug(tenantSlug);
+  async updateTenant(tenantIdentifier: string, payload: UpdateTenantInput): Promise<Tenant> {
+    const currentTenant = await this.findTenant(tenantIdentifier);
+    const currentSlug = currentTenant.slug;
     const nextSlug = payload.slug ? this.normalizeSlug(payload.slug) : undefined;
 
     if (nextSlug && nextSlug !== currentSlug) {
-      const existingTenant = await this.tenantRepository.findOne({ slug: nextSlug, isDeleted: { $ne: true } });
-
-      if (existingTenant) {
-        throw new ApiError(HTTP_STATUS.CONFLICT, 'Tenant already exists');
-      }
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        'Tenant slug cannot be changed after database creation'
+      );
     }
 
     const tenant = await this.tenantRepository.update(
-      { slug: currentSlug, isDeleted: { $ne: true } },
+      { _id: currentTenant._id, isDeleted: { $ne: true } },
       {
         ...payload,
         ...(nextSlug ? { slug: nextSlug } : {})
@@ -70,18 +86,40 @@ export class TenantService extends BaseService {
     return tenant;
   }
 
-  async deleteTenant(tenantSlug: string): Promise<{ slug: string }> {
-    const slug = this.normalizeSlug(tenantSlug);
-    const tenant = await this.tenantRepository.update({ slug, isDeleted: { $ne: true } }, { isDeleted: true });
+  async deleteTenant(tenantIdentifier: string): Promise<{ tenantId: string; slug: string }> {
+    const currentTenant = await this.findTenant(tenantIdentifier);
+    const tenant = await this.tenantRepository.update(
+      { _id: currentTenant._id, isDeleted: { $ne: true } },
+      { isDeleted: true }
+    );
 
     if (!tenant) {
       throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Tenant not found');
     }
 
-    return { slug };
+    return { tenantId: tenant.tenantId ?? String(tenant._id), slug: tenant.slug };
   }
 
   private normalizeSlug(slug: string): string {
     return slug.trim().toLowerCase();
+  }
+
+  private async findTenant(identifier: string): Promise<Tenant> {
+    const value = identifier.trim();
+    const slug = this.normalizeSlug(value);
+    const tenant = await this.tenantRepository.findOne({
+      isDeleted: { $ne: true },
+      $or: [
+        { tenantId: value },
+        { slug },
+        ...(Types.ObjectId.isValid(value) ? [{ _id: value }] : [])
+      ]
+    });
+
+    if (!tenant) {
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Tenant not found');
+    }
+
+    return tenant;
   }
 }

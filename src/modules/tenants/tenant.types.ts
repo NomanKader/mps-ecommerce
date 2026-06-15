@@ -11,8 +11,10 @@ export interface TenantBranding {
 
 export interface Tenant {
   _id: string;
+  tenantId: string;
   name: string;
   slug: string;
+  databaseName: string;
   status: 'active' | 'inactive' | 'trial';
   subscriptionPlan?: string;
   settings?: TenantSettings;

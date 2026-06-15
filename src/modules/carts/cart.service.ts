@@ -3,11 +3,12 @@ import { CartRepository } from '@modules/carts/cart.repository';
 import { Cart } from '@modules/carts/cart.types';
 
 export class CartService extends BaseService {
-  constructor(private readonly cartRepository = new CartRepository()) {
+  constructor() {
     super();
   }
 
   async listCarts(tenantId?: string): Promise<Cart[]> {
-    return this.cartRepository.find(tenantId ? { tenantId } : {});
+    if (!tenantId) return [];
+    return new CartRepository(tenantId).find({ tenantId });
   }
 }

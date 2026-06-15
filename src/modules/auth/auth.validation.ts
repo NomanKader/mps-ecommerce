@@ -1,10 +1,12 @@
 import { z } from 'zod';
 
+const internationalPhoneSchema = z.string().trim().regex(/^\+\d{7,15}$/, 'Phone number must include a valid country code');
+
 export const registerSchema = z.object({
   body: z.object({
     email: z.email(),
     name: z.string().trim().min(2),
-    phone: z.string().trim().min(7).max(20),
+    phone: internationalPhoneSchema,
     otp: z.string().regex(/^\d{6}$/, 'OTP must contain 6 digits'),
     password: z.string().min(8)
   })
@@ -12,7 +14,7 @@ export const registerSchema = z.object({
 
 export const requestOtpSchema = z.object({
   body: z.object({
-    phone: z.string().trim().min(7).max(20)
+    phone: internationalPhoneSchema
   })
 });
 

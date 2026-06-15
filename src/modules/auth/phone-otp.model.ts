@@ -1,4 +1,4 @@
-import { model, Schema } from 'mongoose';
+import { Schema } from 'mongoose';
 
 import { baseSchemaOptions } from '@core/database/base.schema';
 
@@ -14,7 +14,7 @@ export interface PhoneOtp {
   updatedAt: Date;
 }
 
-const phoneOtpSchema = new Schema<PhoneOtp>(
+export const phoneOtpSchema = new Schema<PhoneOtp>(
   {
     tenantId: { type: String, required: true, index: true },
     phone: { type: String, required: true, index: true },
@@ -27,5 +27,3 @@ const phoneOtpSchema = new Schema<PhoneOtp>(
 );
 
 phoneOtpSchema.index({ tenantId: 1, phone: 1, createdAt: -1 });
-
-export const PhoneOtpModel = model<PhoneOtp>('PhoneOtp', phoneOtpSchema);

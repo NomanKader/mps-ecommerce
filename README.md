@@ -64,6 +64,11 @@ See `.env.example` for the full template.
 - `APP_NAME` - App display name for logs and docs
 - `LOG_LEVEL` - Winston log level
 - `TENANT_HEADER_KEY` - Header used to resolve tenant context
+- `AWS_ACCESS_KEY_ID` - AWS access key for S3 image uploads
+- `AWS_SECRET_ACCESS_KEY` - AWS secret key for S3 image uploads
+- `AWS_REGION` - AWS region for S3, default `ap-southeast-1`
+- `S3_BUCKET_NAME` - S3 bucket for product and storefront images
+- `S3_SIGNED_URL_EXPIRES_IN_SECONDS` - Signed image URL lifetime, default `3600`
 
 ## Folder Structure
 

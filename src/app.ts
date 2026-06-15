@@ -6,6 +6,7 @@ import mongoSanitize from 'express-mongo-sanitize';
 import helmet from 'helmet';
 import hpp from 'hpp';
 import morgan from 'morgan';
+import path from 'node:path';
 import { clean as sanitizeXss } from 'xss-clean/lib/xss';
 
 import { env } from '@config/env';
@@ -29,7 +30,10 @@ const configuredCorsOrigins = [
   ])
 ];
 const corsOptions = {
-  origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
+  origin: (
+    origin: string | undefined,
+    callback: (error: Error | null, allow?: boolean) => void
+  ) => {
     if (!origin || configuredCorsOrigins.includes(origin)) {
       callback(null, true);
       return;
@@ -51,12 +55,17 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+  })
+);
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 app.use(apiRateLimit);
 app.use(compression());
 app.use(cookieParser());
+app.use(env.LOCAL_UPLOAD_PUBLIC_PATH, express.static(path.resolve(env.LOCAL_UPLOAD_DIR)));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use((req, _res, next) => {

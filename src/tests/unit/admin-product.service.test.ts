@@ -1,13 +1,14 @@
 import { AdminService } from '@modules/admin/admin.service';
-import { ProductModel } from '@modules/products/product.model';
 
-jest.mock('@modules/products/product.model', () => ({
-  ProductModel: {
-    create: jest.fn()
-  }
+const mockedProductModel = {
+  create: jest.fn()
+};
+
+jest.mock('@core/database/tenant-database', () => ({
+  getTenantModels: jest.fn(() => ({
+    ProductModel: mockedProductModel
+  }))
 }));
-
-const mockedProductModel = ProductModel as jest.Mocked<typeof ProductModel>;
 
 describe('AdminService product management', () => {
   beforeEach(() => {

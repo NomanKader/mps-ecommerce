@@ -2,7 +2,7 @@
   "info": {
     "name": "AV's Store Admin Dashboard API",
     "_postman_id": "0e2ac15a-ec9b-47e4-99b4-cd5b2ed8f3d5",
-    "description": "MPS Ecommerce API collection for auth, tenant admin dashboard, storefront, and access management. Admin requests use the tenant_admin JWT tenant context and do not require x-tenant-id after login.",
+    "description": "MPS Ecommerce API collection for auth, tenant admin dashboard, storefront, and access management. System users live in the main system_users collection. Tenants live in the main tenants collection. Tenant-owned data is stored in a dedicated MongoDB database named tenant_<tenantId>, for example tenant_6a2b8308c464d5a188a259eb.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -12,7 +12,11 @@
     },
     {
       "key": "tenantId",
-      "value": "demo"
+      "value": "6a2b8308c464d5a188a259eb"
+    },
+    {
+      "key": "tenantDatabaseName",
+      "value": "tenant_6a2b8308c464d5a188a259eb"
     },
     {
       "key": "adminEmail",
@@ -1204,7 +1208,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"section\": \"featured\",\n  \"label\": \"Fresh Produce\",\n  \"icon\": \"🥬\",\n  \"color\": \"#166534\",\n  \"surfaceColor\": \"#dcfce7\",\n  \"textColor\": \"#14532d\",\n  \"targetCategoryId\": \"{{categoryId}}\",\n  \"targetSearch\": \"fresh\",\n  \"sortOrder\": 1,\n  \"status\": \"active\"\n}"
+              "raw": "{\n  \"section\": \"featured\",\n  \"label\": \"Fresh Produce\",\n  \"icon\": \"🥬\",\n  \"color\": \"#166534\",\n  \"surfaceColor\": \"#dcfce7\",\n  \"textColor\": \"#14532d\",\n  \"status\": \"active\"\n}"
             },
             "url": "{{baseUrl}}/admin/storefront-icons"
           }
@@ -1225,7 +1229,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"section\": \"featured\",\n  \"label\": \"Fresh Produce\",\n  \"icon\": \"🥬\",\n  \"color\": \"#166534\",\n  \"surfaceColor\": \"#dcfce7\",\n  \"textColor\": \"#14532d\",\n  \"targetCategoryId\": \"{{categoryId}}\",\n  \"targetSearch\": \"fresh\",\n  \"sortOrder\": 2,\n  \"status\": \"active\"\n}"
+              "raw": "{\n  \"section\": \"featured\",\n  \"label\": \"Fresh Produce\",\n  \"icon\": \"🥬\",\n  \"color\": \"#166534\",\n  \"surfaceColor\": \"#dcfce7\",\n  \"textColor\": \"#14532d\",\n  \"status\": \"active\"\n}"
             },
             "url": "{{baseUrl}}/admin/storefront-icons/{{storefrontIconId}}"
           }
@@ -1411,6 +1415,20 @@
         },
         {
           "name": "Create Tenant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const tenant = json.data || {};",
+                  "if (tenant.tenantId) pm.collectionVariables.set('tenantId', tenant.tenantId);",
+                  "if (tenant.databaseName) pm.collectionVariables.set('tenantDatabaseName', tenant.databaseName);"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -1425,7 +1443,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"AV's Store\",\n  \"slug\": \"demo\",\n  \"status\": \"active\",\n  \"subscriptionPlan\": \"growth\",\n  \"settings\": {\n    \"locale\": \"en\",\n    \"currency\": \"USD\",\n    \"timezone\": \"Asia/Yangon\"\n  },\n  \"branding\": {\n    \"logoUrl\": \"\",\n    \"primaryColor\": \"#c92a2a\"\n  },\n  \"featureFlags\": []\n}"
+              "raw": "{\n  \"name\": \"AV's Store\",\n  \"slug\": \"demo\",\n  \"status\": \"active\",\n  \"subscriptionPlan\": \"growth\",\n  \"settings\": {\n    \"locale\": \"en\",\n    \"currency\": \"USD\",\n    \"timezone\": \"Asia/Yangon\"\n  },\n  \"branding\": {\n    \"primaryColor\": \"#c92a2a\"\n  },\n  \"featureFlags\": []\n}"
             },
             "url": "{{baseUrl}}/tenants"
           }
@@ -1459,7 +1477,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"AV's Store\",\n  \"slug\": \"demo\",\n  \"status\": \"active\",\n  \"subscriptionPlan\": \"growth\",\n  \"settings\": {\n    \"locale\": \"en\",\n    \"currency\": \"USD\",\n    \"timezone\": \"Asia/Yangon\"\n  },\n  \"branding\": {\n    \"logoUrl\": \"\",\n    \"primaryColor\": \"#c92a2a\"\n  },\n  \"featureFlags\": []\n}"
+              "raw": "{\n  \"name\": \"AV's Store\",\n  \"status\": \"active\",\n  \"subscriptionPlan\": \"growth\",\n  \"settings\": {\n    \"locale\": \"en\",\n    \"currency\": \"USD\",\n    \"timezone\": \"Asia/Yangon\"\n  },\n  \"branding\": {\n    \"primaryColor\": \"#c92a2a\"\n  },\n  \"featureFlags\": []\n}"
             },
             "url": "{{baseUrl}}/tenants/{{tenantId}}"
           }
@@ -1480,7 +1498,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tenantSlug\": \"demo\",\n  \"email\": \"{{adminEmail}}\",\n  \"firstName\": \"Tenant\",\n  \"lastName\": \"Admin\",\n  \"password\": \"{{adminPassword}}\",\n  \"isActive\": true\n}"
+              "raw": "{\n  \"tenantId\": \"{{tenantId}}\",\n  \"email\": \"{{adminEmail}}\",\n  \"firstName\": \"Tenant\",\n  \"lastName\": \"Admin\",\n  \"password\": \"{{adminPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/tenants/admins"
           }
@@ -1514,7 +1532,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"system.admin@example.com\",\n  \"firstName\": \"System\",\n  \"lastName\": \"Admin\",\n  \"password\": \"password123\",\n  \"role\": \"system_admin\",\n  \"isActive\": true\n}"
+              "raw": "{\n  \"email\": \"system.admin@example.com\",\n  \"firstName\": \"System\",\n  \"lastName\": \"Admin\",\n  \"password\": \"password123\"\n}"
             },
             "url": "{{baseUrl}}/users"
           }

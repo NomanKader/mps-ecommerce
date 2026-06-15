@@ -3,32 +3,50 @@ import mongoose from 'mongoose';
 import { connectDatabase } from '@config/database';
 import { Role } from '@common/enums/role.enum';
 import {
-  DeliveryFeeModel,
-  PromotionModel,
-  StorefrontCarouselSlideModel,
-  StorefrontHighlightIconModel,
-  StorefrontProductSectionAssignmentModel,
-  TenantAdminSettingsModel
-} from '@modules/admin/admin.models';
-import { CategoryModel } from '@modules/categories/category.model';
-import { OrderModel } from '@modules/orders/order.model';
-import { ProductModel } from '@modules/products/product.model';
+  getTenantModels,
+  initializeTenantDatabase,
+  tenantDatabaseName
+} from '@core/database/tenant-database';
 import { TenantModel } from '@modules/tenants/tenant.model';
-import { UserModel } from '@modules/users/user.model';
 import { hashPassword } from '@utils/password';
 
-const tenantId = 'demo';
+const tenantSlug = 'demo';
 const adminEmail = 'admin@demo.com';
 const adminPassword = 'Admin12345!';
 
 const run = async (): Promise<void> => {
   await connectDatabase();
 
+  const existingTenant = await TenantModel.findOne({
+    slug: tenantSlug,
+    isDeleted: { $ne: true }
+  }).lean();
+  const tenantObjectId = existingTenant?._id ?? new mongoose.Types.ObjectId();
+  const tenantId = existingTenant?.tenantId ?? String(tenantObjectId);
+
+  await initializeTenantDatabase(tenantSlug);
+
+  const {
+    CategoryModel,
+    DeliveryFeeModel,
+    OrderModel,
+    ProductModel,
+    PromotionModel,
+    StorefrontCarouselSlideModel,
+    StorefrontHighlightIconModel,
+    StorefrontProductSectionAssignmentModel,
+    TenantAdminSettingsModel,
+    UserModel
+  } = getTenantModels(tenantSlug);
+
   await TenantModel.findOneAndUpdate(
-    { slug: tenantId },
+    { slug: tenantSlug },
     {
+      _id: tenantObjectId,
+      tenantId,
       name: "AV's Store",
-      slug: tenantId,
+      slug: tenantSlug,
+      databaseName: tenantDatabaseName(tenantSlug),
       status: 'active',
       subscriptionPlan: 'growth',
       settings: { currency: 'USD', locale: 'en', timezone: 'Asia/Yangon' }
@@ -64,11 +82,33 @@ const run = async (): Promise<void> => {
 
   const categories = await Promise.all(
     [
-      { name: 'Fresh Produce', slug: 'fresh-produce', icon: '🥬', color: '#16a34a', subcategories: ['Vegetables', 'Fruit'] },
-      { name: 'Pantry', slug: 'pantry', icon: '🥫', color: '#ca8a04', subcategories: ['Rice', 'Canned Goods'] },
-      { name: 'Dairy', slug: 'dairy', icon: '🥛', color: '#2563eb', subcategories: ['Milk', 'Cheese'] }
+      {
+        name: 'Fresh Produce',
+        slug: 'fresh-produce',
+        icon: '🥬',
+        color: '#16a34a',
+        subcategories: ['Vegetables', 'Fruit']
+      },
+      {
+        name: 'Pantry',
+        slug: 'pantry',
+        icon: '🥫',
+        color: '#ca8a04',
+        subcategories: ['Rice', 'Canned Goods']
+      },
+      {
+        name: 'Dairy',
+        slug: 'dairy',
+        icon: '🥛',
+        color: '#2563eb',
+        subcategories: ['Milk', 'Cheese']
+      }
     ].map((category) =>
-      CategoryModel.findOneAndUpdate({ tenantId, slug: category.slug }, { ...category, tenantId }, { upsert: true, new: true, setDefaultsOnInsert: true })
+      CategoryModel.findOneAndUpdate(
+        { tenantId, slug: category.slug },
+        { ...category, tenantId },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      )
     )
   );
 
@@ -177,7 +217,15 @@ const run = async (): Promise<void> => {
 
   await DeliveryFeeModel.findOneAndUpdate(
     { tenantId, region: 'Yangon', township: 'Bahan' },
-    { tenantId, region: 'Yangon', township: 'Bahan', fee: 2, freeOver: 50, eta: '45-60 min', status: 'active' },
+    {
+      tenantId,
+      region: 'Yangon',
+      township: 'Bahan',
+      fee: 2,
+      freeOver: 50,
+      eta: '45-60 min',
+      status: 'active'
+    },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
 
@@ -199,7 +247,7 @@ const run = async (): Promise<void> => {
   );
 
   await StorefrontHighlightIconModel.findOneAndUpdate(
-    { tenantId, section: 'featured', sortOrder: 1 },
+    { tenantId, section: 'featured', label: 'Fresh Produce' },
     {
       tenantId,
       section: 'featured',
@@ -208,8 +256,6 @@ const run = async (): Promise<void> => {
       color: '#166534',
       surfaceColor: '#dcfce7',
       textColor: '#14532d',
-      targetCategoryId: String(categories[0]?._id),
-      sortOrder: 1,
       status: 'active'
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -217,12 +263,19 @@ const run = async (): Promise<void> => {
 
   await StorefrontProductSectionAssignmentModel.findOneAndUpdate(
     { tenantId, sectionId: 'top-offers', productId: String(products[0]?._id), status: 'active' },
-    { tenantId, sectionId: 'top-offers', productId: String(products[0]?._id), sortOrder: 1, status: 'active' },
+    {
+      tenantId,
+      sectionId: 'top-offers',
+      productId: String(products[0]?._id),
+      sortOrder: 1,
+      status: 'active'
+    },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
 
   console.info(`Seeded tenant admin dashboard data.
 Tenant: ${tenantId}
+Slug: ${tenantSlug}
 Admin email: ${adminEmail}
 Admin password: ${adminPassword}`);
 };

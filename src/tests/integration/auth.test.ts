@@ -11,7 +11,7 @@ describe('Storefront authentication routes', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);
-    expect(response.body.message).toBe('Phone number must include a valid country code');
+    expect(response.body.message).toBe('Validation failed');
   });
 
   it('rejects malformed registration OTP values', async () => {

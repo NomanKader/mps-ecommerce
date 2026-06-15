@@ -6,7 +6,7 @@ import { UserService } from '@modules/users/user.service';
 import { asyncHandler } from '@utils/asyncHandler';
 import { HTTP_STATUS } from '@core/response/http-status';
 
-const routeTenantSlug = (req: Request): string => String(req.params.tenantSlug);
+const routeTenantId = (req: Request): string => String(req.params.tenantId);
 
 export class TenantController extends BaseController {
   constructor(
@@ -22,7 +22,7 @@ export class TenantController extends BaseController {
   });
 
   get = asyncHandler(async (req: Request, res: Response) => {
-    const tenant = await this.tenantService.getTenant(routeTenantSlug(req));
+    const tenant = await this.tenantService.getTenant(routeTenantId(req));
     this.ok(res, tenant, 'Tenant fetched');
   });
 
@@ -32,17 +32,17 @@ export class TenantController extends BaseController {
   });
 
   update = asyncHandler(async (req: Request, res: Response) => {
-    const tenant = await this.tenantService.updateTenant(routeTenantSlug(req), req.body);
+    const tenant = await this.tenantService.updateTenant(routeTenantId(req), req.body);
     this.ok(res, tenant, 'Tenant updated');
   });
 
   delete = asyncHandler(async (req: Request, res: Response) => {
-    const tenant = await this.tenantService.deleteTenant(routeTenantSlug(req));
+    const tenant = await this.tenantService.deleteTenant(routeTenantId(req));
     this.ok(res, tenant, 'Tenant deleted');
   });
 
   createAdmin = asyncHandler(async (req: Request, res: Response) => {
-    const admin = await this.userService.createTenantAdmin(req.body, req.params.tenantSlug as string | undefined);
+    const admin = await this.userService.createTenantAdmin(req.body, req.params.tenantId as string | undefined);
     this.ok(res, admin, 'Tenant admin created', HTTP_STATUS.CREATED);
   });
 }

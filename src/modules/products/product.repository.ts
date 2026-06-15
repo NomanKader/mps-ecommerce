@@ -1,9 +1,9 @@
 import { BaseRepository } from '@core/base/BaseRepository';
-import { ProductModel } from '@modules/products/product.model';
+import { getTenantModels } from '@core/database/tenant-database';
 import { Product } from '@modules/products/product.types';
 
 export class ProductRepository extends BaseRepository<Product> {
-  constructor() {
-    super(ProductModel);
+  constructor(tenantId: string) {
+    super(getTenantModels(tenantId).ProductModel);
   }
 }

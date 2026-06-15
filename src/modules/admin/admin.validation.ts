@@ -31,7 +31,7 @@ const stringArraySchema = z.preprocess((value) => {
       .map((item) => item.trim())
       .filter(Boolean);
   }
-}, z.array(z.string()).default([]));
+}, z.array(z.string()).optional());
 
 const booleanStringSchema = z.preprocess((value) => {
   if (typeof value === 'boolean') return value;
@@ -50,32 +50,13 @@ const hexColorSchema = z
   .optional();
 
 const phoneCountryCodes = ['+971', '+95', '+1', '+44', '+61', '+65', '+66', '+91'];
-const allowedIcons = [
-  '🆕',
-  '🏷️',
-  '🍓',
-  '📦',
-  '❄️',
-  '🌿',
-  '🌾',
-  '🍬',
-  '🥗',
-  '🥣',
-  '👨‍🍳',
-  '🎀',
-  '🎁',
-  '👍',
-  '🏬',
-  '⏳',
-  '🍎',
-  '🥬',
-  '🍞',
-  '🥛',
-  '🥫',
-  '🚚'
-] as const;
 
-export const productSectionIds = ['top-offers', 'top-blooms', 'new-season', 'pantry-ready'] as const;
+export const productSectionIds = [
+  'top-offers',
+  'top-blooms',
+  'new-season',
+  'pantry-ready'
+] as const;
 
 export const idParamSchema = z.object({
   params: z.object({ id: z.string().min(1) })
@@ -148,15 +129,50 @@ export const deliveryFeeBodySchema = z.object({
   })
 });
 
+export const regionBodySchema = z.object({
+  body: z.object({
+    name: z.string().min(2).max(120),
+    status: z.enum(['active', 'paused']).default('active')
+  })
+});
+
+export const regionQuerySchema = z.object({
+  query: z.object({
+    search: z.string().optional(),
+    status: z.enum(['active', 'paused', 'all']).optional()
+  })
+});
+
+export const townshipBodySchema = z.object({
+  body: z.object({
+    name: z.string().min(2).max(120),
+    region: z.string().min(2).max(120),
+    status: z.enum(['active', 'paused']).default('active')
+  })
+});
+
+export const townshipQuerySchema = z.object({
+  query: z.object({
+    search: z.string().optional(),
+    region: z.string().optional(),
+    status: z.enum(['active', 'paused', 'all']).optional()
+  })
+});
+
 export const adminProfileBodySchema = z.object({
   body: z.object({
     firstName: z.string().min(1).max(80),
     lastName: z.string().min(1).max(80),
     email: z.email(),
     isActive: z.boolean(),
+    logoUrl: z.string().url().optional().or(z.literal('')),
     deliveryHeadline: z.string().min(1).max(120),
     supportPhoneCountryCode: z.enum(phoneCountryCodes),
-    supportPhoneNumber: z.string().min(3).max(40).regex(/^[0-9\s()+.-]+$/, 'Phone number contains unsupported characters'),
+    supportPhoneNumber: z
+      .string()
+      .min(3)
+      .max(40)
+      .regex(/^[0-9\s()+.-]+$/, 'Phone number contains unsupported characters'),
     topBarTagline: z.string().min(1).max(120)
   })
 });
@@ -194,14 +210,12 @@ export const storefrontCarouselQuerySchema = z.object({
 
 export const storefrontIconBodySchema = z.object({
   body: z.object({
-    section: z.enum(['featured', 'merchandising']),
     label: z.string().min(1).max(80),
-    icon: z.enum(allowedIcons),
-    color: hexColorSchema,
+    icon: z.string().trim().min(1).max(24),
+    color: z.string().regex(/^#(?:[0-9a-fA-F]{3}){1,2}$/, 'Must be a hex color'),
     surfaceColor: hexColorSchema,
     textColor: hexColorSchema,
-    targetCategoryId: z.string().max(120).optional(),
-    targetSearch: z.string().max(120).optional(),
+    section: z.enum(['featured', 'merchandising']),
     sortOrder: z.coerce.number().int().nonnegative().default(0),
     status: z.enum(['active', 'hidden']).default('active')
   })
@@ -210,6 +224,25 @@ export const storefrontIconBodySchema = z.object({
 export const storefrontIconQuerySchema = z.object({
   query: z.object({
     section: z.enum(['featured', 'merchandising', 'all']).optional()
+  })
+});
+
+export const secondaryCategoryBodySchema = z.object({
+  body: z.object({
+    name: z.string().min(1).max(100),
+    slug: z.string().min(1).max(120).optional(),
+    icon: z.string().trim().max(24).optional(),
+    color: hexColorSchema,
+    productId: z.string().min(1),
+    targetSectionId: z.enum(productSectionIds),
+    status: z.enum(['active', 'hidden']).default('active')
+  })
+});
+
+export const secondaryCategoryQuerySchema = z.object({
+  query: z.object({
+    search: z.string().optional(),
+    status: z.enum(['active', 'hidden', 'all']).optional()
   })
 });
 
@@ -251,7 +284,9 @@ export const orderQuerySchema = z.object({
     region: z.string().optional(),
     township: z.string().optional(),
     from: optionalDateQuery,
-    to: optionalDateQuery
+    to: optionalDateQuery,
+    startDate: optionalDateQuery,
+    endDate: optionalDateQuery
   })
 });
 

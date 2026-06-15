@@ -1,9 +1,9 @@
 import { BaseRepository } from '@core/base/BaseRepository';
-import { CartModel } from '@modules/carts/cart.model';
+import { getTenantModels } from '@core/database/tenant-database';
 import { Cart } from '@modules/carts/cart.types';
 
 export class CartRepository extends BaseRepository<Cart> {
-  constructor() {
-    super(CartModel);
+  constructor(tenantId: string) {
+    super(getTenantModels(tenantId).CartModel);
   }
 }

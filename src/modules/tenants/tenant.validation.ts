@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const slugSchema = z.string().trim().min(2).toLowerCase();
+const tenantIdentifierSchema = z.string().trim().min(2);
 const tenantStatusSchema = z.enum(['active', 'inactive', 'trial']);
 
 const tenantSettingsSchema = z.object({
@@ -28,13 +29,13 @@ export const createTenantSchema = z.object({
 
 export const tenantSlugParamSchema = z.object({
   params: z.object({
-    tenantSlug: slugSchema
+    tenantId: tenantIdentifierSchema
   })
 });
 
 export const updateTenantSchema = z.object({
   params: z.object({
-    tenantSlug: slugSchema
+    tenantId: tenantIdentifierSchema
   }),
   body: z
     .object({

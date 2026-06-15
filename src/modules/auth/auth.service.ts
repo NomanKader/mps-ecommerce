@@ -14,7 +14,7 @@ export class AuthService {
   constructor(private readonly authRepository = new AuthRepository()) {}
 
   async requestOtp(payload: RequestOtpInput): Promise<{ expiresInSeconds: number; developmentOtp?: string }> {
-    const tenantId = payload.tenantId || 'demo';
+    const tenantId = this.requireTenantId(payload.tenantId);
     const phone = this.normalizePhone(payload.phone);
     const existingUser = await this.authRepository.findUserByPhone(tenantId, phone);
 
@@ -47,7 +47,7 @@ export class AuthService {
   }
 
   async register(payload: RegisterInput): Promise<{ user: UserResponse; accessToken: string }> {
-    const tenantId = payload.tenantId || 'demo';
+    const tenantId = this.requireTenantId(payload.tenantId);
     const email = payload.email.trim().toLowerCase();
     const phone = this.normalizePhone(payload.phone);
     const existingUser = await this.authRepository.findUserByEmail(email, tenantId);
@@ -132,12 +132,12 @@ export class AuthService {
     return null;
   }
 
-  async me(userId?: string): Promise<UserResponse> {
+  async me(userId?: string, tenantId?: string): Promise<UserResponse> {
     if (!userId) {
       throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Authorization token is required');
     }
 
-    const user = await this.authRepository.findUserById(userId);
+    const user = await this.authRepository.findUserById(userId, tenantId);
 
     if (!user || user.isDeleted || !user.isActive) {
       throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'User session is no longer active');
@@ -159,11 +159,11 @@ export class AuthService {
     }
 
     if (record.codeHash !== this.hashOtp(phone, otp)) {
-      await this.authRepository.updateOtp(record._id, { attempts: record.attempts + 1 });
+      await this.authRepository.updateOtp(tenantId, record._id, { attempts: record.attempts + 1 });
       throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'OTP is invalid or expired');
     }
 
-    await this.authRepository.updateOtp(record._id, { consumedAt: new Date() });
+    await this.authRepository.updateOtp(tenantId, record._id, { consumedAt: new Date() });
   }
 
   private hashOtp(phone: string, otp: string): string {
@@ -184,5 +184,13 @@ export class AuthService {
     const parts = name.trim().split(/\s+/);
     const firstName = parts.shift() || '';
     return { firstName, lastName: parts.join(' ') || firstName };
+  }
+
+  private requireTenantId(tenantId?: string): string {
+    if (!tenantId) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Tenant id is required');
+    }
+
+    return tenantId;
   }
 }

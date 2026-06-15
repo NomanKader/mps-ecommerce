@@ -1,36 +1,32 @@
 import { isValidObjectId } from 'mongoose';
 
-import { CategoryModel } from '@modules/categories/category.model';
+import { getTenantModels, TenantModels } from '@core/database/tenant-database';
 import { Category } from '@modules/categories/category.types';
 import { Role } from '@common/enums/role.enum';
 import { Order } from '@modules/orders/order.types';
-import { OrderModel } from '@modules/orders/order.model';
-import { ProductModel } from '@modules/products/product.model';
 import { Product } from '@modules/products/product.types';
 import { TenantModel } from '@modules/tenants/tenant.model';
-import { UserModel } from '@modules/users/user.model';
 import { UserResponse } from '@modules/users/user.types';
-import { GoogleDriveService, ProductImageMetadata, StorefrontImageMetadata } from '@shared/services/google-drive.service';
+import {
+  ProductImageMetadata,
+  S3Service,
+  StorefrontImageMetadata
+} from '@shared/services/s3.service';
 import { ApiError } from '@utils/ApiError';
 import { HTTP_STATUS } from '@core/response/http-status';
 import {
   AdminCustomer,
-  AdminCustomerModel,
   DeliveryFee,
-  DeliveryFeeModel,
   Promotion,
-  PromotionModel,
+  Region,
+  SecondaryCategory,
   StorefrontCarouselSlide,
-  StorefrontCarouselSlideModel,
   StorefrontHighlightIcon,
-  StorefrontHighlightIconModel,
   StorefrontProductSectionAssignment,
-  StorefrontProductSectionAssignmentModel,
   TenantAdminSettings,
-  TenantAdminSettingsModel
+  Township
 } from './admin.models';
 
-const DEFAULT_TENANT = 'demo';
 const LOW_STOCK_THRESHOLD = 40;
 
 type ListQuery = Record<string, unknown>;
@@ -41,7 +37,14 @@ type BulkProductPayload = {
   products: ProductPayload[];
 };
 type AdminProfilePayload = Pick<UserResponse, 'firstName' | 'lastName' | 'email' | 'isActive'> &
-  Pick<TenantAdminSettings, 'deliveryHeadline' | 'supportPhoneCountryCode' | 'supportPhoneNumber' | 'topBarTagline'>;
+  Pick<
+    TenantAdminSettings,
+    | 'deliveryHeadline'
+    | 'logoUrl'
+    | 'supportPhoneCountryCode'
+    | 'supportPhoneNumber'
+    | 'topBarTagline'
+  >;
 type CarouselPayload = Partial<StorefrontCarouselSlide> & { removeImage?: boolean };
 
 const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -53,46 +56,104 @@ const slugify = (value: string): string =>
     .replace(/(^-|-$)/g, '');
 
 const isDuplicateKeyError = (error: unknown): error is { code: number } =>
-  typeof error === 'object' && error !== null && 'code' in error && (error as { code?: unknown }).code === 11000;
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  (error as { code?: unknown }).code === 11000;
 
-const productImageFields = ['imageName', 'imageMimeType', 'imageSize', 'imageDriveFileId', 'imageUrl', 'removeImage'] as const;
-const carouselImageFields = ['imageName', 'imageMimeType', 'imageSize', 'imageDriveFileId', 'imageUrl', 'removeImage'] as const;
+const productImageFields = [
+  'imageName',
+  'imageMimeType',
+  'imageSize',
+  'imageDriveFileId',
+  'imageUrl',
+  'removeImage'
+] as const;
+const carouselImageFields = [
+  'imageName',
+  'imageMimeType',
+  'imageSize',
+  'imageDriveFileId',
+  'imageUrl',
+  'removeImage'
+] as const;
 
 const productSections = [
   { id: 'top-offers', title: 'Top Offers', description: 'Promoted offers and seasonal savings.' },
   { id: 'top-blooms', title: 'Top Blooms', description: 'Fresh picks and customer favorites.' },
-  { id: 'new-season', title: 'New Season', description: 'Recently highlighted products for the current season.' },
-  { id: 'pantry-ready', title: 'Pantry Ready', description: 'Everyday staples ready for the storefront.' }
+  {
+    id: 'new-season',
+    title: 'New Season',
+    description: 'Recently highlighted products for the current season.'
+  },
+  {
+    id: 'pantry-ready',
+    title: 'Pantry Ready',
+    description: 'Everyday staples ready for the storefront.'
+  }
 ] as const;
 
 export class AdminService {
-  constructor(private readonly googleDriveService = new GoogleDriveService()) {}
+  constructor(private readonly imageStorageService = new S3Service()) {}
+
+  private models(tenantId: string): TenantModels {
+    return getTenantModels(tenantId);
+  }
 
   tenantId(tenantId?: string): string {
-    return tenantId || DEFAULT_TENANT;
+    return this.requireTenantId(tenantId);
   }
 
   async dashboard(tenantId?: string): Promise<Record<string, unknown>> {
     const scopedTenant = this.tenantId(tenantId);
-    const [tenant, products, categories, orders, customers, promotions] = await Promise.all([
+    const { ProductModel, OrderModel, AdminCustomerModel, PromotionModel } =
+      this.models(scopedTenant);
+    const [tenant, products, orders, customers, promotions] = await Promise.all([
       this.findTenant(scopedTenant),
       ProductModel.find({ tenantId: scopedTenant, isDeleted: { $ne: true } }).lean<Product[]>(),
-      CategoryModel.find({ tenantId: scopedTenant, isDeleted: { $ne: true } }).lean(),
       OrderModel.find({ tenantId: scopedTenant }).sort({ placedAt: -1 }).lean<Order[]>(),
-      AdminCustomerModel.find({ tenantId: scopedTenant, isDeleted: { $ne: true } }).lean<AdminCustomer[]>(),
-      PromotionModel.find({ tenantId: scopedTenant, isDeleted: { $ne: true }, status: 'active' }).lean<Promotion[]>()
+      AdminCustomerModel.find({ tenantId: scopedTenant, isDeleted: { $ne: true } }).lean<
+        AdminCustomer[]
+      >(),
+      PromotionModel.find({
+        tenantId: scopedTenant,
+        isDeleted: { $ne: true },
+        status: 'active'
+      }).lean<Promotion[]>()
     ]);
 
-    const revenue = orders.filter((order) => order.status !== 'cancelled').reduce((sum, order) => sum + order.totalAmount, 0);
-    const openOrders = orders.filter((order) => !['delivered', 'fulfilled', 'cancelled'].includes(order.status)).length;
-    const lowStockProducts = products.filter((product) => product.stock <= LOW_STOCK_THRESHOLD);
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const weeklySales = days.map((day) => ({ day, sales: 0 }));
+    const revenueStatuses = new Set(['delivered', 'fulfilled']);
+    const revenue = orders
+      .filter((order) => revenueStatuses.has(order.status))
+      .reduce((sum, order) => sum + order.totalAmount, 0);
+    const ordersToFulfill = orders.filter((order) =>
+      ['pending', 'processing'].includes(order.status)
+    ).length;
+    const lowStockProducts = products
+      .filter((product) => product.stock <= LOW_STOCK_THRESHOLD)
+      .sort((a, b) => a.stock - b.stock);
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weeklyBuckets = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(startOfToday);
+      date.setDate(startOfToday.getDate() - (6 - index));
+      return {
+        date,
+        key: date.toISOString().slice(0, 10),
+        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        sales: 0
+      };
+    });
+    const weeklySalesByDate = new Map(weeklyBuckets.map((bucket) => [bucket.key, bucket]));
 
     for (const order of orders) {
-      const dayIndex = new Date(order.placedAt || order.createdAt).getDay();
-      const bucket = weeklySales[dayIndex];
-      if (bucket && order.status !== 'cancelled') bucket.sales += order.totalAmount;
+      if (!revenueStatuses.has(order.status)) continue;
+      const placedAt = new Date(order.placedAt || order.createdAt);
+      const key = new Date(placedAt.getFullYear(), placedAt.getMonth(), placedAt.getDate())
+        .toISOString()
+        .slice(0, 10);
+      const bucket = weeklySalesByDate.get(key);
+      if (bucket) bucket.sales += Number(order.totalAmount || 0);
     }
 
     return {
@@ -106,13 +167,18 @@ export class AdminService {
         customers: customers.length || this.customerStatsFromOrders(orders).length,
         revenue
       },
-      weeklySales,
+      weeklySales: weeklyBuckets.map(({ day, sales }) => ({ day, sales })),
       workQueue: {
-        ordersToFulfill: openOrders,
+        ordersToFulfill,
         lowStockSkus: lowStockProducts.length,
         activePromotions: promotions.length
       },
-      inventoryAlerts: lowStockProducts.map((product) => ({ _id: product._id, name: product.name, sku: product.sku, stock: product.stock })),
+      inventoryAlerts: lowStockProducts.slice(0, 10).map((product) => ({
+        _id: product._id,
+        name: product.name,
+        sku: product.sku,
+        stock: product.stock
+      })),
       recentOrders: orders.slice(0, 5).map((order) => ({
         _id: order._id,
         orderNumber: order.orderNumber,
@@ -125,44 +191,77 @@ export class AdminService {
   }
 
   async listProducts(tenantId?: string, query: ListQuery = {}): Promise<Product[]> {
-    const filter: MongoFilter = { tenantId: this.tenantId(tenantId), isDeleted: { $ne: true } };
+    const scopedTenant = this.tenantId(tenantId);
+    const { ProductModel } = this.models(scopedTenant);
+    const filter: MongoFilter = { tenantId: scopedTenant, isDeleted: { $ne: true } };
     if (typeof query.search === 'string' && query.search) {
       const regex = new RegExp(escapeRegex(query.search), 'i');
-      filter.$or = [{ name: regex }, { sku: regex }, { categoryName: regex }, { subcategory: regex }, { description: regex }, { tags: regex }];
+      filter.$or = [
+        { name: regex },
+        { sku: regex },
+        { categoryName: regex },
+        { subcategory: regex },
+        { description: regex },
+        { tags: regex }
+      ];
     }
     if (typeof query.status === 'string' && query.status) filter.status = query.status;
-    if (typeof query.categoryId === 'string' && query.categoryId) filter.categoryId = query.categoryId;
-    if (typeof query.categoryName === 'string' && query.categoryName) filter.categoryName = query.categoryName;
+    if (typeof query.categoryId === 'string' && query.categoryId)
+      filter.categoryId = query.categoryId;
+    if (typeof query.categoryName === 'string' && query.categoryName)
+      filter.categoryName = query.categoryName;
     const products = await ProductModel.find(filter).sort({ createdAt: -1 }).lean<Product[]>();
     return Promise.all(products.map((product) => this.withProductImageUrl(product)));
   }
 
-  async createProduct(tenantId: string | undefined, payload: ProductPayload, image?: Express.Multer.File): Promise<Product> {
+  async createProduct(
+    tenantId: string | undefined,
+    payload: ProductPayload,
+    image?: Express.Multer.File
+  ): Promise<Product> {
     const scopedTenant = this.tenantId(tenantId);
+    const { ProductModel } = this.models(scopedTenant);
     const productPayload = this.productPayload(payload);
     let imageMetadata: ProductImageMetadata | undefined;
 
     try {
       if (image) {
-        imageMetadata = await this.uploadProductImage(image, scopedTenant, String(productPayload.sku || payload.sku || 'product'));
+        imageMetadata = await this.uploadProductImage(
+          image,
+          scopedTenant,
+          String(productPayload.sku || payload.sku || 'product')
+        );
       }
 
-      const product = await ProductModel.create({ ...productPayload, ...imageMetadata, tenantId: scopedTenant });
+      const product = await ProductModel.create({
+        ...productPayload,
+        ...imageMetadata,
+        tenantId: scopedTenant
+      });
       return this.withProductImageUrl(product.toObject() as Product);
     } catch (error) {
-      if (imageMetadata) await this.googleDriveService.deleteProductImage(imageMetadata.imageDriveFileId);
+      if (imageMetadata)
+        await this.imageStorageService.deleteProductImage(imageMetadata.imageDriveFileId);
       throw error;
     }
   }
 
   async bulkImportProducts(tenantId: string | undefined, payload: BulkProductPayload) {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { CategoryModel, ProductModel } = this.models(scopedTenant);
     const mode = payload.mode ?? 'upsert';
     const products = payload.products ?? [];
-    const categories = await CategoryModel.find({ tenantId: scopedTenant, isDeleted: { $ne: true } }).lean<Category[]>();
+    const categories = await CategoryModel.find({
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true }
+    }).lean<Category[]>();
     const categoryById = new Map(categories.map((category) => [String(category._id), category]));
-    const categoryByName = new Map(categories.map((category) => [category.name.toLowerCase(), category]));
-    const categoryBySlug = new Map(categories.map((category) => [category.slug.toLowerCase(), category]));
+    const categoryByName = new Map(
+      categories.map((category) => [category.name.toLowerCase(), category])
+    );
+    const categoryBySlug = new Map(
+      categories.map((category) => [category.slug.toLowerCase(), category])
+    );
     const seenSkus = new Set<string>();
     const skipped: Array<{ row: number; sku?: string; reason: string }> = [];
     const importable = products.flatMap((product, index) => {
@@ -183,7 +282,9 @@ export class AdminService {
       seenSkus.add(skuKey);
       const category =
         (product.categoryId ? categoryById.get(String(product.categoryId)) : undefined) ??
-        (product.categoryName ? categoryByName.get(product.categoryName.toLowerCase()) : undefined) ??
+        (product.categoryName
+          ? categoryByName.get(product.categoryName.toLowerCase())
+          : undefined) ??
         (product.categoryName ? categoryBySlug.get(slugify(product.categoryName)) : undefined);
       const productPayload = this.productPayload({
         ...product,
@@ -243,8 +344,14 @@ export class AdminService {
     };
   }
 
-  async updateProduct(tenantId: string | undefined, id: string, payload: ProductPayload, image?: Express.Multer.File): Promise<Product> {
+  async updateProduct(
+    tenantId: string | undefined,
+    id: string,
+    payload: ProductPayload,
+    image?: Express.Multer.File
+  ): Promise<Product> {
     const scopedTenant = this.tenantId(tenantId);
+    const { ProductModel } = this.models(scopedTenant);
     const filter = { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } };
     const productPayload = this.productPayload(payload);
     let imageMetadata: ProductImageMetadata | undefined;
@@ -254,7 +361,11 @@ export class AdminService {
       if (!existingProduct) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Product not found');
 
       if (image) {
-        imageMetadata = await this.uploadProductImage(image, scopedTenant, String(productPayload.sku || existingProduct.sku));
+        imageMetadata = await this.uploadProductImage(
+          image,
+          scopedTenant,
+          String(productPayload.sku || existingProduct.sku)
+        );
       }
 
       const update = imageMetadata
@@ -270,34 +381,51 @@ export class AdminService {
           };
 
       try {
-        const product = await ProductModel.findOneAndUpdate(filter, update, { new: true }).lean<Product>();
+        const product = await ProductModel.findOneAndUpdate(filter, update, {
+          new: true
+        }).lean<Product>();
         if (!product) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Product not found');
 
-        if (image || payload.removeImage) await this.googleDriveService.deleteProductImage(existingProduct.imageDriveFileId);
+        if (image || payload.removeImage)
+          await this.imageStorageService.deleteProductImage(existingProduct.imageDriveFileId);
         return this.withProductImageUrl(product);
       } catch (error) {
-        if (imageMetadata) await this.googleDriveService.deleteProductImage(imageMetadata.imageDriveFileId);
+        if (imageMetadata)
+          await this.imageStorageService.deleteProductImage(imageMetadata.imageDriveFileId);
         throw error;
       }
     }
 
-    const product = await ProductModel.findOneAndUpdate(filter, productPayload, { new: true }).lean<Product>();
+    const product = await ProductModel.findOneAndUpdate(filter, productPayload, {
+      new: true
+    }).lean<Product>();
     if (!product) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Product not found');
     return this.withProductImageUrl(product);
   }
 
   async deleteProduct(tenantId: string | undefined, id: string): Promise<{ id: string }> {
-    const result = await ProductModel.updateOne({ _id: id, tenantId: this.tenantId(tenantId), isDeleted: { $ne: true } }, { isDeleted: true });
+    const scopedTenant = this.tenantId(tenantId);
+    const { ProductModel } = this.models(scopedTenant);
+    const result = await ProductModel.updateOne(
+      { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+      { isDeleted: true }
+    );
     if (result.matchedCount === 0) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Product not found');
     return { id };
   }
 
   async getAdminProfile(tenantId: string | undefined, userId: string | undefined) {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { UserModel } = this.models(scopedTenant);
     if (!userId) throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Authorization token is required');
 
     const [admin, headerSettings] = await Promise.all([
-      UserModel.findOne({ _id: userId, tenantId: scopedTenant, role: Role.TENANT_ADMIN, isDeleted: { $ne: true } })
+      UserModel.findOne({
+        _id: userId,
+        tenantId: scopedTenant,
+        role: Role.TENANT_ADMIN,
+        isDeleted: { $ne: true }
+      })
         .select('-password')
         .lean<UserResponse>(),
       this.getTenantAdminSettings(scopedTenant)
@@ -311,8 +439,13 @@ export class AdminService {
     };
   }
 
-  async updateAdminProfile(tenantId: string | undefined, userId: string | undefined, payload: AdminProfilePayload) {
+  async updateAdminProfile(
+    tenantId: string | undefined,
+    userId: string | undefined,
+    payload: AdminProfilePayload
+  ) {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { UserModel, TenantAdminSettingsModel } = this.models(scopedTenant);
     if (!userId) throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Authorization token is required');
 
     const admin = await UserModel.findOneAndUpdate(
@@ -334,6 +467,7 @@ export class AdminService {
       { tenantId: scopedTenant, isDeleted: { $ne: true } },
       {
         deliveryHeadline: payload.deliveryHeadline,
+        logoUrl: payload.logoUrl || undefined,
         supportPhoneCountryCode: payload.supportPhoneCountryCode,
         supportPhoneNumber: payload.supportPhoneNumber,
         topBarTagline: payload.topBarTagline
@@ -347,25 +481,47 @@ export class AdminService {
     };
   }
 
-  async listCarousel(tenantId: string | undefined, query: ListQuery = {}): Promise<StorefrontCarouselSlide[]> {
+  async listCarousel(
+    tenantId: string | undefined,
+    query: ListQuery = {}
+  ): Promise<StorefrontCarouselSlide[]> {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { StorefrontCarouselSlideModel } = this.models(scopedTenant);
     const filter: MongoFilter = { tenantId: scopedTenant, isDeleted: { $ne: true } };
-    if (typeof query.placement === 'string' && query.placement && query.placement !== 'all') filter.placement = query.placement;
-    const slides = await StorefrontCarouselSlideModel.find(filter).sort({ placement: 1, sortOrder: 1, createdAt: -1 }).lean<StorefrontCarouselSlide[]>();
+    if (typeof query.placement === 'string' && query.placement && query.placement !== 'all')
+      filter.placement = query.placement;
+    const slides = await StorefrontCarouselSlideModel.find(filter)
+      .sort({ placement: 1, sortOrder: 1, createdAt: -1 })
+      .lean<StorefrontCarouselSlide[]>();
     return Promise.all(slides.map((slide) => this.withCarouselImageUrl(slide)));
   }
 
-  async createCarouselSlide(tenantId: string | undefined, payload: CarouselPayload, image?: Express.Multer.File): Promise<StorefrontCarouselSlide> {
+  async createCarouselSlide(
+    tenantId: string | undefined,
+    payload: CarouselPayload,
+    image?: Express.Multer.File
+  ): Promise<StorefrontCarouselSlide> {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { StorefrontCarouselSlideModel } = this.models(scopedTenant);
     const slidePayload = this.carouselPayload(payload);
     let imageMetadata: StorefrontImageMetadata | undefined;
 
     try {
-      if (image) imageMetadata = await this.uploadStorefrontImage(image, scopedTenant, String(slidePayload.placement || 'carousel'));
-      const slide = await StorefrontCarouselSlideModel.create({ ...slidePayload, ...imageMetadata, tenantId: scopedTenant });
+      if (image)
+        imageMetadata = await this.uploadStorefrontImage(
+          image,
+          scopedTenant,
+          String(slidePayload.placement || 'carousel')
+        );
+      const slide = await StorefrontCarouselSlideModel.create({
+        ...slidePayload,
+        ...imageMetadata,
+        tenantId: scopedTenant
+      });
       return this.withCarouselImageUrl(slide.toObject() as StorefrontCarouselSlide);
     } catch (error) {
-      if (imageMetadata) await this.googleDriveService.deleteProductImage(imageMetadata.imageDriveFileId);
+      if (imageMetadata)
+        await this.imageStorageService.deleteProductImage(imageMetadata.imageDriveFileId);
       throw error;
     }
   }
@@ -377,59 +533,97 @@ export class AdminService {
     image?: Express.Multer.File
   ): Promise<StorefrontCarouselSlide> {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { StorefrontCarouselSlideModel } = this.models(scopedTenant);
     const filter = { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } };
     const slidePayload = this.carouselPayload(payload);
     let imageMetadata: StorefrontImageMetadata | undefined;
 
     if (image || payload.removeImage) {
-      const existingSlide = await StorefrontCarouselSlideModel.findOne(filter).lean<StorefrontCarouselSlide>();
+      const existingSlide =
+        await StorefrontCarouselSlideModel.findOne(filter).lean<StorefrontCarouselSlide>();
       if (!existingSlide) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Carousel slide not found');
-      if (image) imageMetadata = await this.uploadStorefrontImage(image, scopedTenant, String(slidePayload.placement || existingSlide.placement));
+      if (image)
+        imageMetadata = await this.uploadStorefrontImage(
+          image,
+          scopedTenant,
+          String(slidePayload.placement || existingSlide.placement)
+        );
 
       const update = imageMetadata
         ? { ...slidePayload, ...imageMetadata }
-        : { $set: slidePayload, $unset: { imageName: '', imageMimeType: '', imageSize: '', imageDriveFileId: '' } };
+        : {
+            $set: slidePayload,
+            $unset: { imageName: '', imageMimeType: '', imageSize: '', imageDriveFileId: '' }
+          };
 
       try {
-        const slide = await StorefrontCarouselSlideModel.findOneAndUpdate(filter, update, { new: true }).lean<StorefrontCarouselSlide>();
+        const slide = await StorefrontCarouselSlideModel.findOneAndUpdate(filter, update, {
+          new: true
+        }).lean<StorefrontCarouselSlide>();
         if (!slide) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Carousel slide not found');
-        await this.googleDriveService.deleteProductImage(existingSlide.imageDriveFileId);
+        await this.imageStorageService.deleteProductImage(existingSlide.imageDriveFileId);
         return this.withCarouselImageUrl(slide);
       } catch (error) {
-        if (imageMetadata) await this.googleDriveService.deleteProductImage(imageMetadata.imageDriveFileId);
+        if (imageMetadata)
+          await this.imageStorageService.deleteProductImage(imageMetadata.imageDriveFileId);
         throw error;
       }
     }
 
-    const slide = await StorefrontCarouselSlideModel.findOneAndUpdate(filter, slidePayload, { new: true }).lean<StorefrontCarouselSlide>();
+    const slide = await StorefrontCarouselSlideModel.findOneAndUpdate(filter, slidePayload, {
+      new: true
+    }).lean<StorefrontCarouselSlide>();
     if (!slide) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Carousel slide not found');
     return this.withCarouselImageUrl(slide);
   }
 
   async deleteCarouselSlide(tenantId: string | undefined, id: string): Promise<{ id: string }> {
     const scopedTenant = this.requireTenantId(tenantId);
-    const result = await StorefrontCarouselSlideModel.updateOne({ _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } }, { isDeleted: true });
-    if (result.matchedCount === 0) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Carousel slide not found');
+    const { StorefrontCarouselSlideModel } = this.models(scopedTenant);
+    const result = await StorefrontCarouselSlideModel.updateOne(
+      { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+      { isDeleted: true }
+    );
+    if (result.matchedCount === 0)
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Carousel slide not found');
     return { id };
   }
 
-  async listStorefrontIcons(tenantId: string | undefined, query: ListQuery = {}): Promise<StorefrontHighlightIcon[]> {
+  async listStorefrontIcons(
+    tenantId: string | undefined,
+    query: ListQuery = {}
+  ): Promise<StorefrontHighlightIcon[]> {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { StorefrontHighlightIconModel } = this.models(scopedTenant);
     const filter: MongoFilter = { tenantId: scopedTenant, isDeleted: { $ne: true } };
-    if (typeof query.section === 'string' && query.section && query.section !== 'all') filter.section = query.section;
-    return StorefrontHighlightIconModel.find(filter).sort({ section: 1, sortOrder: 1, createdAt: -1 }).lean<StorefrontHighlightIcon[]>();
+    if (typeof query.section === 'string' && query.section && query.section !== 'all')
+      filter.section = query.section;
+    return StorefrontHighlightIconModel.find(filter)
+      .sort({ section: 1, sortOrder: 1, createdAt: 1 })
+      .lean<StorefrontHighlightIcon[]>();
   }
 
-  async createStorefrontIcon(tenantId: string | undefined, payload: Partial<StorefrontHighlightIcon>): Promise<StorefrontHighlightIcon> {
+  async createStorefrontIcon(
+    tenantId: string | undefined,
+    payload: Partial<StorefrontHighlightIcon>
+  ): Promise<StorefrontHighlightIcon> {
     const scopedTenant = this.requireTenantId(tenantId);
-    return StorefrontHighlightIconModel.create({ ...payload, tenantId: scopedTenant }).then((document) => document.toObject() as StorefrontHighlightIcon);
+    const { StorefrontHighlightIconModel } = this.models(scopedTenant);
+    return StorefrontHighlightIconModel.create({ ...payload, tenantId: scopedTenant }).then(
+      (document) => document.toObject() as StorefrontHighlightIcon
+    );
   }
 
-  async updateStorefrontIcon(tenantId: string | undefined, id: string, payload: Partial<StorefrontHighlightIcon>): Promise<StorefrontHighlightIcon> {
+  async updateStorefrontIcon(
+    tenantId: string | undefined,
+    id: string,
+    payload: Partial<StorefrontHighlightIcon>
+  ): Promise<StorefrontHighlightIcon> {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { StorefrontHighlightIconModel } = this.models(scopedTenant);
     const icon = await StorefrontHighlightIconModel.findOneAndUpdate(
       { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
-      payload,
+      { $set: payload },
       { new: true }
     ).lean<StorefrontHighlightIcon>();
     if (!icon) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Storefront icon not found');
@@ -438,18 +632,128 @@ export class AdminService {
 
   async deleteStorefrontIcon(tenantId: string | undefined, id: string): Promise<{ id: string }> {
     const scopedTenant = this.requireTenantId(tenantId);
-    const result = await StorefrontHighlightIconModel.updateOne({ _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } }, { isDeleted: true });
-    if (result.matchedCount === 0) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Storefront icon not found');
+    const { StorefrontHighlightIconModel } = this.models(scopedTenant);
+    const result = await StorefrontHighlightIconModel.updateOne(
+      { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+      { isDeleted: true }
+    );
+    if (result.matchedCount === 0)
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Storefront icon not found');
+    return { id };
+  }
+
+  async listSecondaryCategories(
+    tenantId: string | undefined,
+    query: ListQuery = {}
+  ): Promise<SecondaryCategory[]> {
+    const scopedTenant = this.requireTenantId(tenantId);
+    const { SecondaryCategoryModel } = this.models(scopedTenant);
+    const filter: MongoFilter = { tenantId: scopedTenant, isDeleted: { $ne: true } };
+
+    if (typeof query.status === 'string' && query.status && query.status !== 'all') {
+      filter.status = query.status;
+    }
+
+    if (typeof query.search === 'string' && query.search) {
+      const regex = new RegExp(escapeRegex(query.search), 'i');
+      filter.$or = [{ name: regex }, { slug: regex }, { icon: regex }];
+    }
+
+    return SecondaryCategoryModel.find(filter).sort({ name: 1 }).lean<SecondaryCategory[]>();
+  }
+
+  async createSecondaryCategory(
+    tenantId: string | undefined,
+    payload: Partial<SecondaryCategory>
+  ): Promise<SecondaryCategory> {
+    const scopedTenant = this.requireTenantId(tenantId);
+    const { SecondaryCategoryModel } = this.models(scopedTenant);
+    const name = String(payload.name ?? '').trim();
+    await this.requireTenantProduct(scopedTenant, String(payload.productId));
+
+    try {
+      return SecondaryCategoryModel.create({
+        ...payload,
+        name,
+        slug: typeof payload.slug === 'string' ? slugify(payload.slug) : slugify(name),
+        tenantId: scopedTenant
+      }).then((document) => document.toObject() as SecondaryCategory);
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        throw new ApiError(HTTP_STATUS.CONFLICT, 'Secondary category slug already exists');
+      }
+
+      throw error;
+    }
+  }
+
+  async updateSecondaryCategory(
+    tenantId: string | undefined,
+    id: string,
+    payload: Partial<SecondaryCategory>
+  ): Promise<SecondaryCategory> {
+    const scopedTenant = this.requireTenantId(tenantId);
+    const { SecondaryCategoryModel } = this.models(scopedTenant);
+    if (payload.productId) await this.requireTenantProduct(scopedTenant, String(payload.productId));
+    const updatePayload = {
+      ...payload,
+      ...(typeof payload.name === 'string' ? { name: payload.name.trim() } : {}),
+      ...(typeof payload.slug === 'string'
+        ? { slug: slugify(payload.slug) }
+        : typeof payload.name === 'string'
+          ? { slug: slugify(payload.name) }
+          : {})
+    };
+
+    try {
+      const secondaryCategory = await SecondaryCategoryModel.findOneAndUpdate(
+        { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+        updatePayload,
+        { new: true }
+      ).lean<SecondaryCategory>();
+      if (!secondaryCategory) {
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Secondary category not found');
+      }
+
+      return secondaryCategory;
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        throw new ApiError(HTTP_STATUS.CONFLICT, 'Secondary category slug already exists');
+      }
+
+      throw error;
+    }
+  }
+
+  async deleteSecondaryCategory(tenantId: string | undefined, id: string): Promise<{ id: string }> {
+    const scopedTenant = this.requireTenantId(tenantId);
+    const { SecondaryCategoryModel } = this.models(scopedTenant);
+    const result = await SecondaryCategoryModel.updateOne(
+      { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+      { isDeleted: true }
+    );
+    if (result.matchedCount === 0) {
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Secondary category not found');
+    }
+
     return { id };
   }
 
   async listProductSections(tenantId: string | undefined) {
     const scopedTenant = this.requireTenantId(tenantId);
-    const assignments = await StorefrontProductSectionAssignmentModel.find({ tenantId: scopedTenant, isDeleted: { $ne: true } })
+    const { StorefrontProductSectionAssignmentModel, ProductModel } = this.models(scopedTenant);
+    const assignments = await StorefrontProductSectionAssignmentModel.find({
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true }
+    })
       .sort({ sectionId: 1, sortOrder: 1 })
       .lean<StorefrontProductSectionAssignment[]>();
     const productIds = [...new Set(assignments.map((assignment) => assignment.productId))];
-    const products = await ProductModel.find({ _id: { $in: productIds }, tenantId: scopedTenant, isDeleted: { $ne: true } }).lean<Product[]>();
+    const products = await ProductModel.find({
+      _id: { $in: productIds },
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true }
+    }).lean<Product[]>();
     const productsById = new Map(products.map((product) => [String(product._id), product]));
 
     return {
@@ -459,7 +763,11 @@ export class AdminService {
             assignments
               .filter((assignment) => assignment.sectionId === section.id)
               .map(async (assignment) => ({
-                ...(productsById.has(assignment.productId) ? await this.withProductImageUrl(productsById.get(assignment.productId) as Product) : {}),
+                ...(productsById.has(assignment.productId)
+                  ? await this.withProductImageUrl(
+                      productsById.get(assignment.productId) as Product
+                    )
+                  : {}),
                 assignmentId: assignment._id,
                 sectionAssignmentId: assignment._id,
                 sortOrder: assignment.sortOrder,
@@ -481,14 +789,17 @@ export class AdminService {
     payload: Partial<StorefrontProductSectionAssignment>
   ): Promise<StorefrontProductSectionAssignment> {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { StorefrontProductSectionAssignmentModel } = this.models(scopedTenant);
     await this.requireTenantProduct(scopedTenant, String(payload.productId));
 
     try {
-      return await StorefrontProductSectionAssignmentModel.create({ ...payload, tenantId: scopedTenant }).then(
-        (document) => document.toObject() as StorefrontProductSectionAssignment
-      );
+      return await StorefrontProductSectionAssignmentModel.create({
+        ...payload,
+        tenantId: scopedTenant
+      }).then((document) => document.toObject() as StorefrontProductSectionAssignment);
     } catch (error) {
-      if (isDuplicateKeyError(error)) throw new ApiError(HTTP_STATUS.CONFLICT, 'Product is already active in this section');
+      if (isDuplicateKeyError(error))
+        throw new ApiError(HTTP_STATUS.CONFLICT, 'Product is already active in this section');
       throw error;
     }
   }
@@ -499,6 +810,7 @@ export class AdminService {
     payload: Partial<StorefrontProductSectionAssignment>
   ): Promise<StorefrontProductSectionAssignment> {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { StorefrontProductSectionAssignmentModel } = this.models(scopedTenant);
     if (payload.productId) await this.requireTenantProduct(scopedTenant, String(payload.productId));
 
     try {
@@ -507,21 +819,28 @@ export class AdminService {
         payload,
         { new: true }
       ).lean<StorefrontProductSectionAssignment>();
-      if (!assignment) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Product section assignment not found');
+      if (!assignment)
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Product section assignment not found');
       return assignment;
     } catch (error) {
-      if (isDuplicateKeyError(error)) throw new ApiError(HTTP_STATUS.CONFLICT, 'Product is already active in this section');
+      if (isDuplicateKeyError(error))
+        throw new ApiError(HTTP_STATUS.CONFLICT, 'Product is already active in this section');
       throw error;
     }
   }
 
-  async deleteProductSectionAssignment(tenantId: string | undefined, id: string): Promise<{ id: string }> {
+  async deleteProductSectionAssignment(
+    tenantId: string | undefined,
+    id: string
+  ): Promise<{ id: string }> {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { StorefrontProductSectionAssignmentModel } = this.models(scopedTenant);
     const result = await StorefrontProductSectionAssignmentModel.updateOne(
       { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
       { isDeleted: true }
     );
-    if (result.matchedCount === 0) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Product section assignment not found');
+    if (result.matchedCount === 0)
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Product section assignment not found');
     return { id };
   }
 
@@ -530,8 +849,12 @@ export class AdminService {
     return this.headerSettingsResponse(await this.getTenantAdminSettings(scopedTenant));
   }
 
-  async storefrontCarousel(tenantId: string | undefined, placement: StorefrontCarouselSlide['placement']): Promise<StorefrontCarouselSlide[]> {
+  async storefrontCarousel(
+    tenantId: string | undefined,
+    placement: StorefrontCarouselSlide['placement']
+  ): Promise<StorefrontCarouselSlide[]> {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { StorefrontCarouselSlideModel } = this.models(scopedTenant);
     const now = new Date();
     const slides = await StorefrontCarouselSlideModel.find({
       tenantId: scopedTenant,
@@ -546,20 +869,40 @@ export class AdminService {
     return Promise.all(slides.map((slide) => this.withCarouselImageUrl(slide)));
   }
 
-  async storefrontIcons(tenantId: string | undefined, section: StorefrontHighlightIcon['section']): Promise<StorefrontHighlightIcon[]> {
+  async storefrontIcons(
+    tenantId: string | undefined,
+    section: 'featured' | 'merchandising'
+  ): Promise<StorefrontHighlightIcon[]> {
     const scopedTenant = this.requireTenantId(tenantId);
-    return StorefrontHighlightIconModel.find({ tenantId: scopedTenant, section, status: 'active', isDeleted: { $ne: true } })
-      .sort({ sortOrder: 1 })
+    const { StorefrontHighlightIconModel } = this.models(scopedTenant);
+    return StorefrontHighlightIconModel.find({
+      tenantId: scopedTenant,
+      section,
+      status: 'active',
+      isDeleted: { $ne: true }
+    })
+      .select('label icon color surfaceColor textColor section sortOrder')
+      .sort({ sortOrder: 1, createdAt: 1 })
       .lean<StorefrontHighlightIcon[]>();
   }
 
   async storefrontProductSections(tenantId?: string) {
     const scopedTenant = this.requireTenantId(tenantId);
-    const assignments = await StorefrontProductSectionAssignmentModel.find({ tenantId: scopedTenant, status: 'active', isDeleted: { $ne: true } })
+    const { StorefrontProductSectionAssignmentModel, ProductModel } = this.models(scopedTenant);
+    const assignments = await StorefrontProductSectionAssignmentModel.find({
+      tenantId: scopedTenant,
+      status: 'active',
+      isDeleted: { $ne: true }
+    })
       .sort({ sortOrder: 1 })
       .lean<StorefrontProductSectionAssignment[]>();
     const productIds = [...new Set(assignments.map((assignment) => assignment.productId))];
-    const products = await ProductModel.find({ _id: { $in: productIds }, tenantId: scopedTenant, status: 'active', isDeleted: { $ne: true } }).lean<Product[]>();
+    const products = await ProductModel.find({
+      _id: { $in: productIds },
+      tenantId: scopedTenant,
+      status: 'active',
+      isDeleted: { $ne: true }
+    }).lean<Product[]>();
     const productsById = new Map(products.map((product) => [String(product._id), product]));
 
     return {
@@ -568,9 +911,14 @@ export class AdminService {
           ...section,
           products: await Promise.all(
             assignments
-              .filter((assignment) => assignment.sectionId === section.id && productsById.has(assignment.productId))
+              .filter(
+                (assignment) =>
+                  assignment.sectionId === section.id && productsById.has(assignment.productId)
+              )
               .map(async (assignment) => ({
-                ...(await this.withProductImageUrl(productsById.get(assignment.productId) as Product)),
+                ...(await this.withProductImageUrl(
+                  productsById.get(assignment.productId) as Product
+                )),
                 assignmentId: assignment._id,
                 sectionAssignmentId: assignment._id,
                 sortOrder: assignment.sortOrder,
@@ -602,33 +950,56 @@ export class AdminService {
     return sanitizedPayload;
   }
 
-  private async uploadProductImage(image: Express.Multer.File, tenantId: string, sku: string): Promise<ProductImageMetadata> {
+  private async uploadProductImage(
+    image: Express.Multer.File,
+    tenantId: string,
+    sku: string
+  ): Promise<ProductImageMetadata> {
     try {
-      return await this.googleDriveService.uploadProductImage(image, tenantId, sku);
+      return await this.imageStorageService.uploadProductImage(image, tenantId, sku);
     } catch {
-      throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to upload product image. Please try again.');
+      throw new ApiError(
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        'Unable to upload product image. Please try again.'
+      );
     }
   }
 
-  private async uploadStorefrontImage(image: Express.Multer.File, tenantId: string, reference: string): Promise<StorefrontImageMetadata> {
+  private async uploadStorefrontImage(
+    image: Express.Multer.File,
+    tenantId: string,
+    reference: string
+  ): Promise<StorefrontImageMetadata> {
     try {
-      return await this.googleDriveService.uploadStorefrontImage(image, tenantId, reference);
+      return await this.imageStorageService.uploadStorefrontImage(image, tenantId, reference);
     } catch {
-      throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Unable to upload storefront image. Please try again.');
+      throw new ApiError(
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        'Unable to upload storefront image. Please try again.'
+      );
     }
   }
 
   private async withProductImageUrl(product: Product): Promise<Product> {
-    const imageUrl = await this.googleDriveService.getProductImageUrl(product.imageDriveFileId, product.imageName);
+    const imageUrl = await this.imageStorageService.getProductImageUrl(
+      product.imageDriveFileId,
+      product.imageName
+    );
     return { ...product, imageUrl };
   }
 
-  private async withCarouselImageUrl(slide: StorefrontCarouselSlide): Promise<StorefrontCarouselSlide> {
-    const imageUrl = await this.googleDriveService.getProductImageUrl(slide.imageDriveFileId, slide.imageName);
+  private async withCarouselImageUrl(
+    slide: StorefrontCarouselSlide
+  ): Promise<StorefrontCarouselSlide> {
+    const imageUrl = await this.imageStorageService.getProductImageUrl(
+      slide.imageDriveFileId,
+      slide.imageName
+    );
     return { ...slide, imageUrl };
   }
 
   private async getTenantAdminSettings(tenantId: string): Promise<TenantAdminSettings> {
+    const { TenantAdminSettingsModel } = this.models(tenantId);
     const settings = await TenantAdminSettingsModel.findOneAndUpdate(
       { tenantId, isDeleted: { $ne: true } },
       { $setOnInsert: { tenantId } },
@@ -653,6 +1024,7 @@ export class AdminService {
   private headerSettingsResponse(settings: TenantAdminSettings) {
     return {
       deliveryHeadline: settings.deliveryHeadline,
+      logoUrl: settings.logoUrl,
       supportPhoneCountryCode: settings.supportPhoneCountryCode,
       supportPhoneNumber: settings.supportPhoneNumber,
       topBarTagline: settings.topBarTagline
@@ -660,12 +1032,18 @@ export class AdminService {
   }
 
   private async requireTenantProduct(tenantId: string, productId: string): Promise<void> {
-    const product = await ProductModel.exists({ _id: productId, tenantId, isDeleted: { $ne: true } });
-    if (!product) throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Product does not exist for this tenant');
+    const { ProductModel } = this.models(tenantId);
+    const product = await ProductModel.exists({
+      _id: productId,
+      tenantId,
+      isDeleted: { $ne: true }
+    });
+    if (!product) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Product not found');
   }
 
   async listCategories(tenantId?: string, query: ListQuery = {}) {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { CategoryModel } = this.models(scopedTenant);
     const filter: Record<string, unknown> = { tenantId: scopedTenant, isDeleted: { $ne: true } };
     if (typeof query.search === 'string' && query.search) {
       const regex = new RegExp(escapeRegex(query.search), 'i');
@@ -677,12 +1055,16 @@ export class AdminService {
 
   async createCategory(tenantId: string | undefined, payload: Record<string, unknown>) {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { CategoryModel } = this.models(scopedTenant);
     const name = String(payload.name);
     try {
       const category = await CategoryModel.create({
         ...payload,
         slug: typeof payload.slug === 'string' ? payload.slug : slugify(name),
         itemCount: 0,
+        subcategories: Array.isArray(payload.subcategories)
+          ? this.uniqueSubcategories(payload.subcategories)
+          : [],
         tenantId: scopedTenant
       } as never);
       return category.toObject();
@@ -697,17 +1079,26 @@ export class AdminService {
 
   async updateCategory(tenantId: string | undefined, id: string, payload: Record<string, unknown>) {
     const scopedTenant = this.requireTenantId(tenantId);
+    const { CategoryModel } = this.models(scopedTenant);
+    const updatePayload = {
+      ...payload,
+      ...(Array.isArray(payload.subcategories)
+        ? { subcategories: this.uniqueSubcategories(payload.subcategories) }
+        : {}),
+      ...(typeof payload.name === 'string' && typeof payload.slug !== 'string'
+        ? { slug: slugify(payload.name) }
+        : {})
+    };
     try {
       const category = await CategoryModel.findOneAndUpdate(
         { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
-        {
-          ...payload,
-          ...(typeof payload.name === 'string' && typeof payload.slug !== 'string' ? { slug: slugify(payload.name) } : {})
-        },
+        updatePayload,
         { new: true }
       ).lean();
       if (!category) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Category not found');
-      const [categoryWithCount] = await this.categoriesWithItemCounts(scopedTenant, [category as Category]);
+      const [categoryWithCount] = await this.categoriesWithItemCounts(scopedTenant, [
+        category as Category
+      ]);
       return categoryWithCount;
     } catch (error) {
       if (isDuplicateKeyError(error)) {
@@ -718,9 +1109,47 @@ export class AdminService {
     }
   }
 
+  private uniqueSubcategories(value: unknown[]): string[] {
+    const seen = new Set<string>();
+    const subcategories = value.map((item) => String(item).trim()).filter(Boolean);
+
+    for (const subcategory of subcategories) {
+      const key = subcategory.toLowerCase();
+      if (seen.has(key)) {
+        throw new ApiError(HTTP_STATUS.CONFLICT, 'Duplicate subcategory under primary category');
+      }
+      seen.add(key);
+    }
+
+    return subcategories;
+  }
+
   async deleteCategory(tenantId: string | undefined, id: string): Promise<{ id: string }> {
     const scopedTenant = this.requireTenantId(tenantId);
-    const result = await CategoryModel.updateOne({ _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } }, { isDeleted: true });
+    const { CategoryModel, ProductModel } = this.models(scopedTenant);
+    const category = await CategoryModel.findOne({
+      _id: id,
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true }
+    }).lean<Category>();
+    if (!category) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Category not found');
+
+    const referencedProducts = await ProductModel.exists({
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true },
+      $or: [{ categoryId: id }, { categoryName: category.name }]
+    });
+    if (referencedProducts) {
+      throw new ApiError(
+        HTTP_STATUS.CONFLICT,
+        'Category is assigned to products and cannot be deleted'
+      );
+    }
+
+    const result = await CategoryModel.updateOne(
+      { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+      { isDeleted: true }
+    );
     if (result.matchedCount === 0) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Category not found');
     return { id };
   }
@@ -738,6 +1167,7 @@ export class AdminService {
   }
 
   private async categoriesWithItemCounts(tenantId: string, categories: Category[]) {
+    const { ProductModel } = this.models(tenantId);
     const categoryIds = categories.map((category) => String(category._id));
     const categoryNames = categories.map((category) => category.name);
     const counts = await ProductModel.aggregate<{ _id: string; count: number }>([
@@ -802,8 +1232,11 @@ export class AdminService {
     }));
   }
 
-  private customerSegment(customer: Pick<AdminCustomer, 'orders' | 'totalSpend' | 'lastOrderAt'>): AdminCustomer['segment'] {
-    const daysSinceLastOrder = (Date.now() - new Date(customer.lastOrderAt).getTime()) / (1000 * 60 * 60 * 24);
+  private customerSegment(
+    customer: Pick<AdminCustomer, 'orders' | 'totalSpend' | 'lastOrderAt'>
+  ): AdminCustomer['segment'] {
+    const daysSinceLastOrder =
+      (Date.now() - new Date(customer.lastOrderAt).getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceLastOrder > 90) return 'At Risk';
     if (customer.totalSpend >= 1000 || customer.orders >= 8) return 'VIP';
     if (customer.orders >= 2) return 'Loyal';
@@ -816,41 +1249,78 @@ export class AdminService {
   }
 
   async listOrders(tenantId?: string, query: ListQuery = {}): Promise<Order[]> {
-    const filter: MongoFilter = { tenantId: this.tenantId(tenantId) };
+    const scopedTenant = this.tenantId(tenantId);
+    const { OrderModel } = this.models(scopedTenant);
+    const filter: MongoFilter = { tenantId: scopedTenant };
     if (typeof query.search === 'string' && query.search) {
       const regex = new RegExp(escapeRegex(query.search), 'i');
-      filter.$or = [{ orderNumber: regex }, { customerName: regex }, { customerEmail: regex }, { customerPhone: regex }, { region: regex }, { township: regex }];
+      filter.$or = [
+        { orderNumber: regex },
+        { customerName: regex },
+        { customerEmail: regex },
+        { customerPhone: regex },
+        { region: regex },
+        { township: regex }
+      ];
     }
     if (typeof query.status === 'string' && query.status) filter.status = query.status;
     if (typeof query.region === 'string' && query.region) filter.region = query.region;
     if (typeof query.township === 'string' && query.township) filter.township = query.township;
-    if (query.from || query.to) filter.placedAt = { ...(query.from ? { $gte: query.from } : {}), ...(query.to ? { $lte: query.to } : {}) };
+    const from = query.from || query.startDate;
+    const to = query.to || query.endDate;
+    if (from || to)
+      filter.placedAt = {
+        ...(from ? { $gte: from } : {}),
+        ...(to ? { $lte: to } : {})
+      };
     const orders = await OrderModel.find(filter).sort({ placedAt: -1 }).lean<Order[]>();
     return orders.map((order) => this.orderResponse(order));
   }
 
   async orderStats(tenantId?: string): Promise<Record<string, number>> {
-    const orders = await OrderModel.find({ tenantId: this.tenantId(tenantId) }).lean<Order[]>();
+    const scopedTenant = this.tenantId(tenantId);
+    const { OrderModel } = this.models(scopedTenant);
+    const orders = await OrderModel.find({ tenantId: scopedTenant }).lean<Order[]>();
     return {
-      openOrders: orders.filter((order) => !['delivered', 'fulfilled', 'cancelled'].includes(order.status)).length,
+      openOrders: orders.filter(
+        (order) => !['delivered', 'fulfilled', 'cancelled'].includes(order.status)
+      ).length,
       fulfilled: orders.filter((order) => ['delivered', 'fulfilled'].includes(order.status)).length,
-      netRevenue: orders.filter((order) => order.status !== 'cancelled').reduce((sum, order) => sum + order.totalAmount, 0)
+      netRevenue: orders
+        .filter((order) => order.status !== 'cancelled')
+        .reduce((sum, order) => sum + order.totalAmount, 0)
     };
   }
 
-  async updateOrderStatus(tenantId: string | undefined, id: string, status: Order['status']): Promise<Order> {
-    const order = await OrderModel.findOneAndUpdate({ _id: id, tenantId: this.tenantId(tenantId) }, { status }, { new: true }).lean<Order>();
+  async updateOrderStatus(
+    tenantId: string | undefined,
+    id: string,
+    status: Order['status']
+  ): Promise<Order> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { OrderModel } = this.models(scopedTenant);
+    const order = await OrderModel.findOneAndUpdate(
+      { _id: id, tenantId: scopedTenant },
+      { status },
+      { new: true }
+    ).lean<Order>();
     if (!order) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Order not found');
     return this.orderResponse(order);
   }
 
   async listCustomers(tenantId?: string, query: ListQuery = {}): Promise<AdminCustomer[]> {
     const scopedTenant = this.tenantId(tenantId);
-    const orderCustomers = this.customerStatsFromOrders(await OrderModel.find({ tenantId: scopedTenant }).lean<Order[]>());
+    const { OrderModel, AdminCustomerModel } = this.models(scopedTenant);
+    const orderCustomers = this.customerStatsFromOrders(
+      await OrderModel.find({ tenantId: scopedTenant }).lean<Order[]>()
+    );
     let customers = orderCustomers;
 
     if (customers.length === 0) {
-      customers = await AdminCustomerModel.find({ tenantId: scopedTenant, isDeleted: { $ne: true } })
+      customers = await AdminCustomerModel.find({
+        tenantId: scopedTenant,
+        isDeleted: { $ne: true }
+      })
         .sort({ lastOrderAt: -1 })
         .lean<AdminCustomer[]>();
     }
@@ -864,12 +1334,17 @@ export class AdminService {
           customer.segment.toLowerCase().includes(search)
       );
     }
-    if (typeof query.segment === 'string' && query.segment) customers = customers.filter((customer) => customer.segment === query.segment);
-    return customers.sort((a, b) => new Date(b.lastOrderAt).getTime() - new Date(a.lastOrderAt).getTime());
+    if (typeof query.segment === 'string' && query.segment)
+      customers = customers.filter((customer) => customer.segment === query.segment);
+    return customers.sort(
+      (a, b) => new Date(b.lastOrderAt).getTime() - new Date(a.lastOrderAt).getTime()
+    );
   }
 
   async listPromotions(tenantId?: string, query: ListQuery = {}): Promise<Promotion[]> {
-    const filter: MongoFilter = { tenantId: this.tenantId(tenantId), isDeleted: { $ne: true } };
+    const scopedTenant = this.tenantId(tenantId);
+    const { PromotionModel } = this.models(scopedTenant);
+    const filter: MongoFilter = { tenantId: scopedTenant, isDeleted: { $ne: true } };
     if (typeof query.search === 'string' && query.search) {
       const regex = new RegExp(escapeRegex(query.search), 'i');
       filter.$or = [{ campaign: regex }, { code: regex }, { discount: regex }];
@@ -877,18 +1352,32 @@ export class AdminService {
     return PromotionModel.find(filter).sort({ startsAt: -1 }).lean<Promotion[]>();
   }
 
-  async createPromotion(tenantId: string | undefined, payload: Partial<Promotion>): Promise<Promotion> {
+  async createPromotion(
+    tenantId: string | undefined,
+    payload: Partial<Promotion>
+  ): Promise<Promotion> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { PromotionModel } = this.models(scopedTenant);
     try {
-      return await PromotionModel.create({ ...payload, tenantId: this.tenantId(tenantId) }).then((document) => document.toObject() as Promotion);
+      return await PromotionModel.create({ ...payload, tenantId: scopedTenant }).then(
+        (document) => document.toObject() as Promotion
+      );
     } catch (error) {
-      if (isDuplicateKeyError(error)) throw new ApiError(HTTP_STATUS.CONFLICT, 'Promotion code already exists for tenant');
+      if (isDuplicateKeyError(error))
+        throw new ApiError(HTTP_STATUS.CONFLICT, 'Promotion code already exists for tenant');
       throw error;
     }
   }
 
-  async updatePromotion(tenantId: string | undefined, id: string, payload: Partial<Promotion>): Promise<Promotion> {
+  async updatePromotion(
+    tenantId: string | undefined,
+    id: string,
+    payload: Partial<Promotion>
+  ): Promise<Promotion> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { PromotionModel } = this.models(scopedTenant);
     const promotion = await PromotionModel.findOneAndUpdate(
-      { _id: id, tenantId: this.tenantId(tenantId), isDeleted: { $ne: true } },
+      { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
       payload,
       { new: true }
     ).lean<Promotion>();
@@ -897,13 +1386,254 @@ export class AdminService {
   }
 
   async deletePromotion(tenantId: string | undefined, id: string): Promise<{ id: string }> {
-    const result = await PromotionModel.updateOne({ _id: id, tenantId: this.tenantId(tenantId), isDeleted: { $ne: true } }, { isDeleted: true });
+    const scopedTenant = this.tenantId(tenantId);
+    const { PromotionModel } = this.models(scopedTenant);
+    const result = await PromotionModel.updateOne(
+      { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+      { isDeleted: true }
+    );
     if (result.matchedCount === 0) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Promotion not found');
     return { id };
   }
 
+  async listRegions(tenantId?: string, query: ListQuery = {}): Promise<Region[]> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { RegionModel } = this.models(scopedTenant);
+    const filter: MongoFilter = { tenantId: scopedTenant, isDeleted: { $ne: true } };
+
+    if (typeof query.search === 'string' && query.search) {
+      const regex = new RegExp(escapeRegex(query.search), 'i');
+      filter.$or = [{ name: regex }, { status: regex }];
+    }
+
+    if (typeof query.status === 'string' && query.status && query.status !== 'all') {
+      filter.status = query.status;
+    }
+
+    return RegionModel.find(filter).sort({ name: 1 }).lean<Region[]>();
+  }
+
+  async createRegion(tenantId: string | undefined, payload: Partial<Region>): Promise<Region> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { RegionModel } = this.models(scopedTenant);
+
+    try {
+      return await RegionModel.create({
+        ...payload,
+        name: String(payload.name ?? '').trim(),
+        tenantId: scopedTenant
+      }).then((document) => document.toObject() as Region);
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        throw new ApiError(HTTP_STATUS.CONFLICT, 'Region already exists');
+      }
+
+      throw error;
+    }
+  }
+
+  async updateRegion(
+    tenantId: string | undefined,
+    id: string,
+    payload: Partial<Region>
+  ): Promise<Region> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { RegionModel, TownshipModel, DeliveryFeeModel } = this.models(scopedTenant);
+    const existingRegion = await RegionModel.findOne({
+      _id: id,
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true }
+    }).lean<Region>();
+    if (!existingRegion) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Region not found');
+
+    const nextName = typeof payload.name === 'string' ? payload.name.trim() : existingRegion.name;
+
+    try {
+      const region = await RegionModel.findOneAndUpdate(
+        { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+        { ...payload, name: nextName },
+        { new: true }
+      ).lean<Region>();
+      if (!region) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Region not found');
+
+      if (nextName !== existingRegion.name) {
+        await Promise.all([
+          TownshipModel.updateMany(
+            { tenantId: scopedTenant, region: existingRegion.name, isDeleted: { $ne: true } },
+            { region: nextName }
+          ),
+          DeliveryFeeModel.updateMany(
+            { tenantId: scopedTenant, region: existingRegion.name, isDeleted: { $ne: true } },
+            { region: nextName }
+          )
+        ]);
+      }
+
+      return region;
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        throw new ApiError(HTTP_STATUS.CONFLICT, 'Region already exists');
+      }
+
+      throw error;
+    }
+  }
+
+  async deleteRegion(tenantId: string | undefined, id: string): Promise<{ id: string }> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { RegionModel, TownshipModel, DeliveryFeeModel } = this.models(scopedTenant);
+    const region = await RegionModel.findOne({
+      _id: id,
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true }
+    }).lean<Region>();
+    if (!region) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Region not found');
+
+    const [referencedTownship, referencedDeliveryFee] = await Promise.all([
+      TownshipModel.exists({
+        tenantId: scopedTenant,
+        region: region.name,
+        isDeleted: { $ne: true }
+      }),
+      DeliveryFeeModel.exists({
+        tenantId: scopedTenant,
+        region: region.name,
+        isDeleted: { $ne: true }
+      })
+    ]);
+
+    if (referencedTownship || referencedDeliveryFee) {
+      throw new ApiError(HTTP_STATUS.CONFLICT, 'Region is in use and cannot be deleted');
+    }
+
+    await RegionModel.updateOne(
+      { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+      { isDeleted: true }
+    );
+    return { id };
+  }
+
+  async listTownships(tenantId?: string, query: ListQuery = {}): Promise<Township[]> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { TownshipModel } = this.models(scopedTenant);
+    const filter: MongoFilter = { tenantId: scopedTenant, isDeleted: { $ne: true } };
+
+    if (typeof query.search === 'string' && query.search) {
+      const regex = new RegExp(escapeRegex(query.search), 'i');
+      filter.$or = [{ name: regex }, { region: regex }, { status: regex }];
+    }
+
+    if (typeof query.region === 'string' && query.region) filter.region = query.region;
+    if (typeof query.status === 'string' && query.status && query.status !== 'all') {
+      filter.status = query.status;
+    }
+
+    return TownshipModel.find(filter).sort({ region: 1, name: 1 }).lean<Township[]>();
+  }
+
+  async createTownship(
+    tenantId: string | undefined,
+    payload: Partial<Township>
+  ): Promise<Township> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { TownshipModel } = this.models(scopedTenant);
+
+    try {
+      return await TownshipModel.create({
+        ...payload,
+        name: String(payload.name ?? '').trim(),
+        region: String(payload.region ?? '').trim(),
+        tenantId: scopedTenant
+      }).then((document) => document.toObject() as Township);
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        throw new ApiError(HTTP_STATUS.CONFLICT, 'Township already exists in this region');
+      }
+
+      throw error;
+    }
+  }
+
+  async updateTownship(
+    tenantId: string | undefined,
+    id: string,
+    payload: Partial<Township>
+  ): Promise<Township> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { TownshipModel, DeliveryFeeModel } = this.models(scopedTenant);
+    const existingTownship = await TownshipModel.findOne({
+      _id: id,
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true }
+    }).lean<Township>();
+    if (!existingTownship) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Township not found');
+
+    const nextName = typeof payload.name === 'string' ? payload.name.trim() : existingTownship.name;
+    const nextRegion =
+      typeof payload.region === 'string' ? payload.region.trim() : existingTownship.region;
+
+    try {
+      const township = await TownshipModel.findOneAndUpdate(
+        { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+        { ...payload, name: nextName, region: nextRegion },
+        { new: true }
+      ).lean<Township>();
+      if (!township) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Township not found');
+
+      if (nextName !== existingTownship.name || nextRegion !== existingTownship.region) {
+        await DeliveryFeeModel.updateMany(
+          {
+            tenantId: scopedTenant,
+            region: existingTownship.region,
+            township: existingTownship.name,
+            isDeleted: { $ne: true }
+          },
+          { region: nextRegion, township: nextName }
+        );
+      }
+
+      return township;
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        throw new ApiError(HTTP_STATUS.CONFLICT, 'Township already exists in this region');
+      }
+
+      throw error;
+    }
+  }
+
+  async deleteTownship(tenantId: string | undefined, id: string): Promise<{ id: string }> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { TownshipModel, DeliveryFeeModel } = this.models(scopedTenant);
+    const township = await TownshipModel.findOne({
+      _id: id,
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true }
+    }).lean<Township>();
+    if (!township) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Township not found');
+
+    const referencedDeliveryFee = await DeliveryFeeModel.exists({
+      tenantId: scopedTenant,
+      region: township.region,
+      township: township.name,
+      isDeleted: { $ne: true }
+    });
+
+    if (referencedDeliveryFee) {
+      throw new ApiError(HTTP_STATUS.CONFLICT, 'Township is in use and cannot be deleted');
+    }
+
+    await TownshipModel.updateOne(
+      { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+      { isDeleted: true }
+    );
+    return { id };
+  }
+
   async listDeliveryFees(tenantId?: string, query: ListQuery = {}): Promise<DeliveryFee[]> {
-    const filter: MongoFilter = { tenantId: this.tenantId(tenantId), isDeleted: { $ne: true } };
+    const scopedTenant = this.tenantId(tenantId);
+    const { DeliveryFeeModel } = this.models(scopedTenant);
+    const filter: MongoFilter = { tenantId: scopedTenant, isDeleted: { $ne: true } };
     if (typeof query.search === 'string' && query.search) {
       const regex = new RegExp(escapeRegex(query.search), 'i');
       filter.$or = [{ region: regex }, { township: regex }, { eta: regex }, { status: regex }];
@@ -912,18 +1642,35 @@ export class AdminService {
     return DeliveryFeeModel.find(filter).sort({ region: 1, township: 1 }).lean<DeliveryFee[]>();
   }
 
-  async createDeliveryFee(tenantId: string | undefined, payload: Partial<DeliveryFee>): Promise<DeliveryFee> {
+  async createDeliveryFee(
+    tenantId: string | undefined,
+    payload: Partial<DeliveryFee>
+  ): Promise<DeliveryFee> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { DeliveryFeeModel } = this.models(scopedTenant);
     try {
-      return await DeliveryFeeModel.create({ ...payload, tenantId: this.tenantId(tenantId) }).then((document) => document.toObject() as DeliveryFee);
+      return await DeliveryFeeModel.create({ ...payload, tenantId: scopedTenant }).then(
+        (document) => document.toObject() as DeliveryFee
+      );
     } catch (error) {
-      if (isDuplicateKeyError(error)) throw new ApiError(HTTP_STATUS.CONFLICT, 'Delivery fee already exists for tenant and township');
+      if (isDuplicateKeyError(error))
+        throw new ApiError(
+          HTTP_STATUS.CONFLICT,
+          'Delivery fee already exists for tenant and township'
+        );
       throw error;
     }
   }
 
-  async updateDeliveryFee(tenantId: string | undefined, id: string, payload: Partial<DeliveryFee>): Promise<DeliveryFee> {
+  async updateDeliveryFee(
+    tenantId: string | undefined,
+    id: string,
+    payload: Partial<DeliveryFee>
+  ): Promise<DeliveryFee> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { DeliveryFeeModel } = this.models(scopedTenant);
     const fee = await DeliveryFeeModel.findOneAndUpdate(
-      { _id: id, tenantId: this.tenantId(tenantId), isDeleted: { $ne: true } },
+      { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
       payload,
       { new: true }
     ).lean<DeliveryFee>();
@@ -932,8 +1679,14 @@ export class AdminService {
   }
 
   async deleteDeliveryFee(tenantId: string | undefined, id: string): Promise<{ id: string }> {
-    const result = await DeliveryFeeModel.updateOne({ _id: id, tenantId: this.tenantId(tenantId), isDeleted: { $ne: true } }, { isDeleted: true });
-    if (result.matchedCount === 0) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Delivery fee not found');
+    const scopedTenant = this.tenantId(tenantId);
+    const { DeliveryFeeModel } = this.models(scopedTenant);
+    const result = await DeliveryFeeModel.updateOne(
+      { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+      { isDeleted: true }
+    );
+    if (result.matchedCount === 0)
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Delivery fee not found');
     return { id };
   }
 }

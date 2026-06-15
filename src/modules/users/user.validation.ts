@@ -11,9 +11,10 @@ export const createSystemUserSchema = z.object({
 
 export const createTenantAdminSchema = z.object({
   params: z.object({
-    tenantSlug: z.string().trim().min(2).toLowerCase().optional()
+    tenantId: z.string().trim().min(2).optional()
   }).optional(),
   body: z.object({
+    tenantId: z.string().trim().min(2).optional(),
     tenantSlug: z.string().trim().min(2).toLowerCase().optional(),
     email: z.email(),
     firstName: z.string().trim().min(2),
@@ -21,11 +22,11 @@ export const createTenantAdminSchema = z.object({
     password: z.string().min(8)
   })
 }).superRefine((payload, context) => {
-  if (!payload.params?.tenantSlug && !payload.body.tenantSlug) {
+  if (!payload.params?.tenantId && !payload.body.tenantId && !payload.body.tenantSlug) {
     context.addIssue({
       code: 'custom',
-      message: 'Tenant slug is required',
-      path: ['body', 'tenantSlug']
+      message: 'Tenant id is required',
+      path: ['body', 'tenantId']
     });
   }
 });

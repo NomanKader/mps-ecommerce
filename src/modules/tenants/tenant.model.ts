@@ -6,7 +6,9 @@ import { Tenant } from '@modules/tenants/tenant.types';
 const tenantSchema = new Schema<Tenant>(
   {
     name: { type: String, required: true, trim: true },
+    tenantId: { type: String, required: true, trim: true, unique: true, index: true },
     slug: { type: String, required: true, trim: true, unique: true, index: true },
+    databaseName: { type: String, required: true, trim: true, unique: true, index: true },
     status: { type: String, enum: ['active', 'inactive', 'trial'], default: 'trial', index: true },
     subscriptionPlan: { type: String },
     settings: {

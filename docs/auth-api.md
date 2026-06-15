@@ -1,6 +1,6 @@
 # Storefront Authentication API
 
-The storefront registration screen uses phone verification before creating an account. Send `x-tenant-id: demo` for the AV's Store tenant.
+The storefront registration screen uses phone verification before creating an account. Send the fixed tenant id in `x-tenant-id`, for example `x-tenant-id: 6a2b8308c464d5a188a259eb`.
 
 ## Registration Flow
 
@@ -38,7 +38,7 @@ Registration verifies and consumes the OTP, creates a customer account, and retu
 
 `POST /api/v1/auth/login`
 
-Do not send `x-tenant-id` for sign-in. The API resolves the account and tenant from the submitted email address, then returns the user's `tenantId` in the response.
+For tenant storefront sign-in, send `x-tenant-id` with the fixed tenant id that was loaded when the site booted. System-user sign-in should not send `x-tenant-id`.
 
 ```json
 {
