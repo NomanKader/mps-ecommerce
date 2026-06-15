@@ -12,11 +12,12 @@ export const AppDataTable = ({ autoHeight = true, sx, ...props }: DataGridProps)
         {
           '& .MuiDataGrid-cell': {
             alignItems: 'center',
-            borderColor: 'divider',
+            borderColor: 'rgba(255, 255, 255, 0.58)',
             display: 'flex',
           },
           '& .MuiDataGrid-columnHeader': {
-            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.04),
+            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.065),
+            backdropFilter: 'blur(18px)',
           },
           '& .MuiDataGrid-columnHeaderTitle': {
             fontWeight: 800,
@@ -35,6 +36,9 @@ export const AppDataTable = ({ autoHeight = true, sx, ...props }: DataGridProps)
           },
           borderColor: 'divider',
           borderRadius: 1,
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.68), rgba(255,248,240,0.46))',
+          backdropFilter: 'blur(24px) saturate(140%)',
+          boxShadow: '0 22px 60px rgba(83, 36, 23, 0.08)',
           minWidth: { sm: 0, xs: 720 },
         },
         ...(Array.isArray(sx) ? sx : [sx]),

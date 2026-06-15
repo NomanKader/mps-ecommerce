@@ -1,11 +1,9 @@
 import { STORAGE_KEYS } from '@shared/constants/app.constants';
-import { tenantService } from '@services/tenant/tenant.service';
 
 export const tokenService = {
   clear() {
     window.localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     window.sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    tenantService.clearTenantId();
   },
   getAccessToken() {
     return (

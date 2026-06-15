@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import { GridActionsCellItem, type GridColDef } from '@mui/x-data-grid';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 
 import { adminApi } from '@features/admin/api/adminApi';
@@ -39,22 +39,11 @@ type DeliveryFeeForm = {
   township: string;
 };
 
-const myanmarRegions = [
-  'Yangon',
-  'Mandalay',
-  'Naypyidaw',
-  'Bago',
-  'Ayeyarwady',
-  'Sagaing',
-  'Shan',
-  'Mon',
-] as const;
-
 const emptyForm: DeliveryFeeForm = {
   estimatedDays: 'Same day',
   fee: '2.50',
   freeDeliveryMinimum: '50',
-  region: 'Yangon',
+  region: '',
   status: 'active',
   township: '',
 };
@@ -85,11 +74,29 @@ export const DeliveryFeesPage = () => {
       ),
     queryKey: ['admin', 'delivery-fees', debouncedSearch, regionFilter],
   });
-  const deliveryFees = deliveryFeesQuery.data ?? [];
+  const regionsQuery = useQuery({
+    queryFn: ({ signal }) => adminApi.listRegions({}, { signal }),
+    queryKey: ['admin', 'regions'],
+  });
+  const townshipsQuery = useQuery({
+    queryFn: ({ signal }) => adminApi.listTownships({}, { signal }),
+    queryKey: ['admin', 'townships'],
+  });
+  const deliveryFees = useMemo(() => deliveryFeesQuery.data ?? [], [deliveryFeesQuery.data]);
+  const regions = useMemo(() => regionsQuery.data ?? [], [regionsQuery.data]);
+  const townships = useMemo(() => townshipsQuery.data ?? [], [townshipsQuery.data]);
+  const availableTownships = useMemo(
+    () => townships.filter((township) => !form.region || township.region === form.region),
+    [form.region, townships],
+  );
 
   const openCreateDialog = () => {
     setEditingId(null);
-    setForm(emptyForm);
+    const defaultRegion = regions[0]?.name ?? '';
+    const defaultTownship =
+      townships.find((township) => township.region === defaultRegion)?.name ?? '';
+
+    setForm({ ...emptyForm, region: defaultRegion, township: defaultTownship });
     setIsDialogOpen(true);
   };
 
@@ -105,6 +112,10 @@ export const DeliveryFeesPage = () => {
 
       if (!township) {
         throw new Error('Township is required.');
+      }
+
+      if (!form.region.trim()) {
+        throw new Error('Region is required.');
       }
 
       const fee = Number(form.fee);
@@ -240,9 +251,9 @@ export const DeliveryFeesPage = () => {
           value={regionFilter}
         >
           <MenuItem value="all">All regions</MenuItem>
-          {myanmarRegions.map((region) => (
-            <MenuItem key={region} value={region}>
-              {region}
+          {regions.map((region) => (
+            <MenuItem key={region.id} value={region.name}>
+              {region.name}
             </MenuItem>
           ))}
         </TextField>
@@ -266,14 +277,30 @@ export const DeliveryFeesPage = () => {
                   fullWidth
                   label="Region"
                   onChange={(event) =>
-                    setForm((current) => ({ ...current, region: event.target.value }))
+                    setForm((current) => {
+                      const nextRegion = event.target.value;
+                      const nextTownship =
+                        townships.find((township) => township.region === nextRegion)?.name ?? '';
+
+                      return { ...current, region: nextRegion, township: nextTownship };
+                    })
                   }
                   select
                   value={form.region}
                 >
-                  {myanmarRegions.map((region) => (
-                    <MenuItem key={region} value={region}>
-                      {region}
+                  {regionsQuery.isLoading ? (
+                    <MenuItem disabled value="">
+                      Loading regions...
+                    </MenuItem>
+                  ) : null}
+                  {!regionsQuery.isLoading && regions.length === 0 ? (
+                    <MenuItem disabled value="">
+                      Create a region first
+                    </MenuItem>
+                  ) : null}
+                  {regions.map((region) => (
+                    <MenuItem key={region.id} value={region.name}>
+                      {region.name}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -286,8 +313,25 @@ export const DeliveryFeesPage = () => {
                   onChange={(event) =>
                     setForm((current) => ({ ...current, township: event.target.value }))
                   }
+                  select
                   value={form.township}
-                />
+                >
+                  {townshipsQuery.isLoading ? (
+                    <MenuItem disabled value="">
+                      Loading townships...
+                    </MenuItem>
+                  ) : null}
+                  {!townshipsQuery.isLoading && availableTownships.length === 0 ? (
+                    <MenuItem disabled value="">
+                      Create a township first
+                    </MenuItem>
+                  ) : null}
+                  {availableTownships.map((township) => (
+                    <MenuItem key={township.id} value={township.name}>
+                      {township.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Grid>
             </Grid>
             <Grid container spacing={2}>

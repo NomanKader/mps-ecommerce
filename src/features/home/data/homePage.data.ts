@@ -222,13 +222,10 @@ export const quickHighlights: FeatureHighlight[] = [
 ];
 
 export const defaultHighlightItems: StorefrontHighlightItem[] = [
-  ...featuredCategoryHighlights.map((item, index) => ({
+  ...featuredCategoryHighlights.map((item) => ({
     ...item,
     section: 'featured' as const,
-    sortOrder: index + 1,
     status: 'active' as const,
-    targetCategoryId: 'all',
-    targetSearch: item.id === 'promotion' ? 'offer' : item.label,
   })),
   ...[
     ...featuredCategoryHighlights,
@@ -248,33 +245,10 @@ export const defaultHighlightItems: StorefrontHighlightItem[] = [
       label: 'Coming Soon',
       surfaceColor: '#fff2b8',
     },
-  ].map((item, index) => ({
+  ].map((item) => ({
     ...item,
     section: 'merchandising' as const,
-    sortOrder: index + 1,
     status: 'active' as const,
-    targetCategoryId:
-      item.id === 'bulk'
-        ? 'pantry'
-        : item.id === 'custom-gift-boxes' || item.id === 'gift-cards'
-          ? 'gifts'
-          : item.id === 'frozen'
-            ? 'frozen'
-            : item.id === 'imperfect' || item.id === 'gluten-free'
-              ? 'vegetables'
-              : item.id === 'keto' || item.id === 'recipes' || item.id === 'vegan'
-                ? 'quick-meals'
-                : 'all',
-    targetSearch:
-      item.id === 'promotion'
-        ? 'offer'
-        : item.id === 'coming-soon'
-          ? 'new'
-          : item.id === 'must-try'
-            ? 'fresh'
-            : item.id === 'custom-gift-boxes'
-              ? 'gift'
-              : item.label,
   })),
 ];
 
@@ -468,7 +442,7 @@ export const topOffers: StoreProduct[] = [
     sku: 'CRT-BBY-001',
     slug: 'baby-carrots',
     tags: ['fresh', 'offer'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '0.95 / pack',
   },
   {
@@ -490,7 +464,7 @@ export const topOffers: StoreProduct[] = [
     sku: 'PRS-FRM-002',
     slug: 'parsnips',
     tags: ['root-veg'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '2.95 / kg',
   },
   {
@@ -512,7 +486,7 @@ export const topOffers: StoreProduct[] = [
     sku: 'CHK-BRS-003',
     slug: 'chicken-breasts',
     tags: ['protein'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '89.00 / pack',
   },
   {
@@ -531,7 +505,7 @@ export const topOffers: StoreProduct[] = [
     sku: 'CRT-MIN-004',
     slug: 'baby-carrots-mini',
     tags: ['fresh'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '16.75 / pack',
   },
   {
@@ -550,7 +524,7 @@ export const topOffers: StoreProduct[] = [
     sku: 'CRN-SWT-005',
     slug: 'cooked-sweet-corn',
     tags: ['prepared'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '12.95 / pack',
   },
 ];
@@ -572,7 +546,7 @@ export const seasonalProducts: StoreProduct[] = [
     sku: 'MNG-ALP-001',
     slug: 'alphonso-mangoes',
     tags: ['seasonal'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'per kg',
   },
   {
@@ -591,7 +565,7 @@ export const seasonalProducts: StoreProduct[] = [
     sku: 'STR-SPN-002',
     slug: 'strawberries',
     tags: ['fruit'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '250g',
   },
   {
@@ -610,7 +584,7 @@ export const seasonalProducts: StoreProduct[] = [
     sku: 'OKR-UAE-003',
     slug: 'okra',
     tags: ['local'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '500g',
   },
   {
@@ -629,7 +603,7 @@ export const seasonalProducts: StoreProduct[] = [
     sku: 'MLK-UAE-004',
     slug: 'mulukhiyah',
     tags: ['greens'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '70g to 80g',
   },
   {
@@ -651,7 +625,7 @@ export const seasonalProducts: StoreProduct[] = [
     sku: 'MNG-R2E-005',
     slug: 'r2e2-mangoes',
     tags: ['fruit'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '650g to 710g',
   },
   {
@@ -670,7 +644,7 @@ export const seasonalProducts: StoreProduct[] = [
     sku: 'LTC-ROM-006',
     slug: 'romaine-lettuce',
     tags: ['fresh'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '300g to 400g',
   },
 ];
@@ -692,7 +666,7 @@ export const pantryProducts: StoreProduct[] = [
     sku: 'DRK-CML-001',
     slug: 'camel-milk',
     tags: ['drink'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '1 litre',
   },
   {
@@ -714,7 +688,7 @@ export const pantryProducts: StoreProduct[] = [
     sku: 'MLS-WRP-002',
     slug: 'caesar-chicken-wrap',
     tags: ['ready-meal'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'single pack',
   },
   {
@@ -736,7 +710,7 @@ export const pantryProducts: StoreProduct[] = [
     sku: 'SLD-COL-003',
     slug: 'coleslaw-salad',
     tags: ['salad'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '350g',
   },
   {
@@ -758,7 +732,7 @@ export const pantryProducts: StoreProduct[] = [
     sku: 'WRP-FLF-004',
     slug: 'falafel-wrap',
     tags: ['vegan'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'single pack',
   },
 ];
@@ -780,7 +754,7 @@ export const topBlooms: StoreProduct[] = [
     sku: 'FLR-PNK-001',
     slug: 'pretty-in-pink',
     tags: ['flowers', 'fresh'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'bouquet',
   },
   {
@@ -799,7 +773,7 @@ export const topBlooms: StoreProduct[] = [
     sku: 'FLR-ROS-002',
     slug: 'purest-rosebush',
     tags: ['flowers', 'roses'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'bundle',
   },
   {
@@ -818,7 +792,7 @@ export const topBlooms: StoreProduct[] = [
     sku: 'FLR-AST-003',
     slug: 'assorted-flowers',
     tags: ['flowers', 'mixed'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'bouquet',
   },
   {
@@ -837,7 +811,7 @@ export const topBlooms: StoreProduct[] = [
     sku: 'FLR-ZHR-004',
     slug: 'al-zahra-bloom',
     tags: ['flowers', 'bouquet'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'bouquet',
   },
   {
@@ -856,7 +830,7 @@ export const topBlooms: StoreProduct[] = [
     sku: 'FLR-IMP-005',
     slug: 'imperial-charm',
     tags: ['flowers', 'bouquet'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'bouquet',
   },
   {
@@ -875,7 +849,7 @@ export const topBlooms: StoreProduct[] = [
     sku: 'FLR-MON-006',
     slug: 'moonlit-bloom',
     tags: ['flowers', 'bouquet'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'bouquet',
   },
 ];

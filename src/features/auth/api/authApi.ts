@@ -26,6 +26,10 @@ type BackendAuthSession = {
   user: BackendUser;
 };
 
+type LoginOptions = {
+  tenantScoped?: boolean;
+};
+
 const mapUser = ({ _id, ...user }: BackendUser): User => ({
   ...user,
   id: _id,
@@ -45,11 +49,16 @@ export const authApi = {
       message: response.data.message,
     };
   },
-  async login(payload: LoginPayload): Promise<AuthApiResult<AuthSession>> {
-    const response = await apiClient.post<BackendResponse<BackendAuthSession>>(
-      endpoints.auth.login,
-      payload,
-    );
+  async login(
+    payload: LoginPayload,
+    options: LoginOptions = { tenantScoped: true },
+  ): Promise<AuthApiResult<AuthSession>> {
+    const response =
+      options.tenantScoped === false
+        ? await apiClient.post<BackendResponse<BackendAuthSession>>(endpoints.auth.login, payload, {
+            headers: { 'x-skip-tenant-id': 'true' },
+          })
+        : await apiClient.post<BackendResponse<BackendAuthSession>>(endpoints.auth.login, payload);
 
     return {
       data: mapSession(response.data.data),

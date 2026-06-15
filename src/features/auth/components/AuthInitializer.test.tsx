@@ -24,7 +24,7 @@ describe('AuthInitializer', () => {
         id: 'user-1',
         lastName: 'Customer',
         role: 'customer',
-        tenantId: 'av',
+        tenantId: 'tenant-fixed-test-id',
       },
       message: 'Current user fetched',
     });

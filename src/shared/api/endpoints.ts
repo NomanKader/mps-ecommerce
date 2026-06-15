@@ -1,5 +1,6 @@
 export const endpoints = {
   auth: {
+    bootstrap: '/auth/bootstrap',
     login: '/auth/login',
     logout: '/auth/logout',
     me: '/auth/me',
@@ -27,8 +28,14 @@ export const endpoints = {
     profile: '/admin/profile',
     promotion: (id: string) => `/admin/promotions/${id}`,
     promotions: '/admin/promotions',
+    region: (id: string) => `/admin/regions/${id}`,
+    regions: '/admin/regions',
+    secondaryCategories: '/admin/secondary-categories',
+    secondaryCategory: (id: string) => `/admin/secondary-categories/${id}`,
     storefrontIcon: (id: string) => `/admin/storefront-icons/${id}`,
     storefrontIcons: '/admin/storefront-icons',
+    township: (id: string) => `/admin/townships/${id}`,
+    townships: '/admin/townships',
   },
   categories: {
     list: '/categories',
@@ -45,5 +52,10 @@ export const endpoints = {
     headerSettings: '/storefront/header-settings',
     icons: '/storefront/icons',
     productSections: '/storefront/product-sections',
+  },
+  tenants: {
+    create: '/tenants',
+    details: (tenantId: string) => `/tenants/${tenantId}`,
+    list: '/tenants',
   },
 };

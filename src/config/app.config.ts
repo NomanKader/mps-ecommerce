@@ -8,6 +8,7 @@ export const appConfig = {
   appEnv: env.VITE_APP_ENV,
   appName: env.VITE_APP_NAME,
   assetBaseUrl: env.VITE_ASSET_BASE_URL,
-  defaultTenantSlug: env.VITE_DEFAULT_TENANT_SLUG,
+  defaultTenantId: env.VITE_DEFAULT_TENANT_ID.trim() || 'AV',
+  defaultTenantSlug: env.VITE_DEFAULT_TENANT_SLUG.trim() || 'av',
   enableAnalytics: env.VITE_ENABLE_ANALYTICS === 'true',
 };

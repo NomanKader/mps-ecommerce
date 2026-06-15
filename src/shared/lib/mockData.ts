@@ -2,14 +2,19 @@ import type { Category } from '@entities/category/types/category.types';
 import type { Product } from '@entities/product/types/product.types';
 import type { Order } from '@entities/order/types/order.types';
 import type { Tenant } from '@entities/tenant/types/tenant.types';
-import { storefrontCategories, storefrontCategoryMenuItems } from '@features/home/data/homePage.data';
+import {
+  storefrontCategories,
+  storefrontCategoryMenuItems,
+} from '@features/home/data/homePage.data';
 
 export const mockTenant: Tenant = {
-  id: 'tenant-demo',
+  databaseName: 'tenant_local',
+  id: 'AV',
   name: "AV's Store Demo",
-  slug: 'demo-tenant',
+  slug: 'av',
   plan: 'growth',
   status: 'active',
+  tenantId: 'AV',
   branding: {
     primaryColor: '#e43224',
     secondaryColor: '#ffd326',
@@ -63,7 +68,7 @@ export const mockProducts: Product[] = [
     categoryId: 'fruits',
     inventory: 120,
     imageUrl: '',
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     tags: ['fresh', 'featured'],
     rating: 4.8,
   },
@@ -78,7 +83,7 @@ export const mockProducts: Product[] = [
     categoryId: 'bakery',
     inventory: 37,
     imageUrl: '',
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     tags: ['bakery'],
     rating: 4.6,
   },
@@ -93,7 +98,7 @@ export const mockProducts: Product[] = [
     categoryId: 'pantry',
     inventory: 74,
     imageUrl: '',
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     tags: ['pantry', 'organic'],
     rating: 4.9,
   },
@@ -108,7 +113,7 @@ export const mockProducts: Product[] = [
     categoryId: 'dairy',
     inventory: 18,
     imageUrl: '',
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     tags: ['dairy', 'low-stock'],
     rating: 4.5,
   },
@@ -123,7 +128,7 @@ export const mockProducts: Product[] = [
     categoryId: 'drinks',
     inventory: 58,
     imageUrl: '',
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     tags: ['beverage', 'featured'],
     rating: 4.7,
   },

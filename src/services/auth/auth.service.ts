@@ -31,5 +31,6 @@ export const authService = {
   },
   signOut() {
     tokenService.clear();
+    tenantService.resetToDefaultTenantContext();
   },
 };

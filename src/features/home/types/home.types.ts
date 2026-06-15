@@ -25,10 +25,7 @@ export type StorefrontHighlightSection = 'featured' | 'merchandising';
 
 export type StorefrontHighlightItem = FeatureHighlight & {
   section: StorefrontHighlightSection;
-  sortOrder: number;
   status: 'active' | 'hidden';
-  targetCategoryId: string;
-  targetSearch?: string;
 };
 
 export type StorefrontProductSectionId =

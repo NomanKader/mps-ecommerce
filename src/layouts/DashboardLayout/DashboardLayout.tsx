@@ -11,20 +11,37 @@ import { createRouteLabel } from '@shared/utils';
 import { useSignOut } from '@features/auth/hooks/useSignOut';
 import type { RootState } from '@store/index';
 import logoImage from '@assets/images/logo.png';
+import { AdminProfileDialog } from './AdminProfileDialog';
 
 export const DashboardLayout = () => {
   const signOut = useSignOut();
   const location = useLocation();
   const user = useSelector((state: RootState) => state.auth.user);
+  const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const userInitial = user?.firstName?.charAt(0).toUpperCase() ?? 'A';
+  const userName = user ? `${user.firstName} ${user.lastName}` : 'Admin';
+  const appLogoUrl = user?.logoUrl || logoImage;
 
   return (
     <Box
+      className="admin-liquid-glass"
       sx={{
+        background:
+          'linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 248, 236, 0.84) 42%, rgba(255, 237, 229, 0.78) 100%)',
         bgcolor: 'background.default',
         display: 'flex',
         minHeight: '100vh',
         overflowX: 'hidden',
+        position: 'relative',
+        '&::before': {
+          background:
+            'linear-gradient(120deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.18) 32%, rgba(198,37,31,0.08) 100%)',
+          content: '""',
+          inset: 0,
+          pointerEvents: 'none',
+          position: 'fixed',
+        },
       }}
     >
       <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
@@ -38,10 +55,10 @@ export const DashboardLayout = () => {
         <AppBar color="transparent" position="sticky">
           <Toolbar
             sx={{
-              backdropFilter: 'blur(20px)',
-              backgroundColor: 'rgba(244, 247, 245, 0.88)',
-              borderBottom: '1px solid',
-              borderColor: 'divider',
+              backdropFilter: 'blur(24px) saturate(145%)',
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.72), rgba(255,247,239,0.46))',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.62)',
+              boxShadow: '0 18px 42px rgba(88, 38, 25, 0.08)',
               gap: 2,
               justifyContent: 'space-between',
               minHeight: { md: 72, xs: 64 },
@@ -55,7 +72,7 @@ export const DashboardLayout = () => {
               <Box
                 alt="AV's Store"
                 component="img"
-                src={logoImage}
+                src={appLogoUrl}
                 sx={{
                   display: { md: 'none', xs: 'block' },
                   height: 44,
@@ -77,17 +94,28 @@ export const DashboardLayout = () => {
               spacing={{ sm: 1.5, xs: 1 }}
               sx={{ alignItems: 'center', minWidth: 0 }}
             >
-              <Avatar sx={{ bgcolor: 'primary.main', height: 36, width: 36 }}>
-                {user?.firstName?.[0] ?? 'A'}
-              </Avatar>
-              <Box sx={{ display: { sm: 'block', xs: 'none' } }}>
-                <Typography variant="body2">
-                  {user ? `${user.firstName} ${user.lastName}` : 'Admin'}
-                </Typography>
-                <Typography color="text.secondary" variant="caption">
-                  Tenant admin
-                </Typography>
-              </Box>
+              <Button
+                color="inherit"
+                onClick={() => setIsUserManagementOpen(true)}
+                sx={{
+                  borderRadius: 1,
+                  gap: 1.25,
+                  justifyContent: 'flex-start',
+                  minWidth: 0,
+                  p: 0.75,
+                  textTransform: 'none',
+                }}
+              >
+                <Avatar sx={{ bgcolor: 'primary.main', height: 36, width: 36 }}>
+                  {userInitial}
+                </Avatar>
+                <Box sx={{ display: { sm: 'block', xs: 'none' }, textAlign: 'left' }}>
+                  <Typography variant="body2">{userName}</Typography>
+                  <Typography color="text.secondary" variant="caption">
+                    Tenant admin
+                  </Typography>
+                </Box>
+              </Button>
               <Button
                 color="inherit"
                 onClick={() => void signOut()}
@@ -116,6 +144,10 @@ export const DashboardLayout = () => {
           <Outlet />
         </PageContainer>
       </Box>
+      <AdminProfileDialog
+        onClose={() => setIsUserManagementOpen(false)}
+        open={isUserManagementOpen}
+      />
     </Box>
   );
 };

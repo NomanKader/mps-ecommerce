@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { authApi } from '@features/auth/api/authApi';
+import type { AuthApiResult, AuthSession } from '@features/auth/types/auth.types';
 import { getAuthenticatedRedirect, isKnownRole } from '@features/auth/utils/auth.utils';
 import { toApiError } from '@shared/api/apiError';
 import { loginSchema, type LoginFormValues } from '@shared/validators/auth.schema';
@@ -29,8 +30,8 @@ export const useLogin = (options?: UseLoginOptions) => {
     resolver: zodResolver(loginSchema),
   });
 
-  const mutation = useMutation({
-    mutationFn: authApi.login,
+  const mutation = useMutation<AuthApiResult<AuthSession>, Error, LoginFormValues>({
+    mutationFn: (payload) => authApi.login(payload),
     onSuccess: (result) => {
       const session = result.data;
       const rememberMe = form.getValues('rememberMe');

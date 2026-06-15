@@ -7,6 +7,7 @@ export type User = {
   id: string;
   isActive?: boolean;
   lastName: string;
+  logoUrl?: string;
   role: Role;
   supportPhoneLabel?: string;
   tenantId?: string;

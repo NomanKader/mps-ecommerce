@@ -3,11 +3,10 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
-  Box,
   Alert,
+  Box,
   Card,
   CardContent,
-  Checkbox,
   Chip,
   Dialog,
   DialogActions,
@@ -16,7 +15,6 @@ import {
   Grid,
   IconButton,
   InputAdornment,
-  ListItemText,
   MenuItem,
   Stack,
   TextField,
@@ -24,10 +22,12 @@ import {
 } from '@mui/material';
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 import { adminApi } from '@features/admin/api/adminApi';
 import type { AdminCategory } from '@features/admin/types/admin.types';
+import { merchandisingApi } from '@features/home/api/merchandisingApi';
 import { useDebounce } from '@hooks/useDebounce';
 import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
@@ -36,9 +36,8 @@ import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
 type CategoryForm = {
   color: string;
   icon: string;
-  itemCount: string;
   name: string;
-  subcategories: string[];
+  primaryCategoryId: string;
 };
 
 type CategoryFilter = 'all' | 'with-subcategories' | 'large-assortment' | 'small-assortment';
@@ -46,26 +45,18 @@ type SubcategoryOption = {
   icon: string;
   label: string;
 };
-
-const categoryIconOptions = [
-  { icon: '🥬', label: 'Leafy greens' },
-  { icon: '🍎', label: 'Fruits' },
-  { icon: '🥦', label: 'Vegetables' },
-  { icon: '🥕', label: 'Root vegetables' },
-  { icon: '🍞', label: 'Bakery' },
-  { icon: '🥛', label: 'Dairy' },
-  { icon: '🥚', label: 'Eggs' },
-  { icon: '🥩', label: 'Meat' },
-  { icon: '🐟', label: 'Seafood' },
-  { icon: '🍚', label: 'Rice & grains' },
-  { icon: '🧂', label: 'Pantry' },
-  { icon: '🥫', label: 'Canned goods' },
-  { icon: '🍪', label: 'Snacks' },
-  { icon: '🧃', label: 'Beverages' },
-  { icon: '🧊', label: 'Frozen' },
-  { icon: '🧴', label: 'Household' },
-  { icon: '🛒', label: 'General grocery' },
-];
+type SubcategoryRow = {
+  category: AdminCategory;
+  categoryId: string;
+  categoryIcon: string;
+  categoryName: string;
+  id: string;
+  icon: string;
+  index: number;
+  label: string;
+  name: string;
+  value: string;
+};
 
 const categorySubcategoryOptions: Record<string, SubcategoryOption[]> = {
   '🥬': [
@@ -210,9 +201,8 @@ const categorySubcategoryOptions: Record<string, SubcategoryOption[]> = {
 const emptyForm: CategoryForm = {
   color: '#2db34b',
   icon: '🥬',
-  itemCount: '0',
   name: '',
-  subcategories: [],
+  primaryCategoryId: '',
 };
 
 const slugify = (value: string) =>
@@ -234,33 +224,46 @@ const normalizeSubcategory = (categoryIcon: string, value: string) => {
   return match ? subcategoryValue(match) : value;
 };
 
+const parseSubcategory = (categoryIcon: string, value: string) => {
+  const normalized = normalizeSubcategory(categoryIcon, value);
+  const [first = '', ...rest] = normalized.split(' ');
+  const hasSeparateIcon = rest.length > 0 && first.length <= 6;
+
+  return {
+    icon: hasSeparateIcon ? first : categoryIcon,
+    label: normalized,
+    name: hasSeparateIcon ? rest.join(' ') : normalized,
+  };
+};
+
+const categoryPayloadWithSubcategories = (category: AdminCategory, subcategories: string[]) => ({
+  color: category.color ?? '#2db34b',
+  icon: category.icon ?? '🛒',
+  name: category.name,
+  slug: category.slug,
+  subcategories,
+});
+
 const toForm = (category: AdminCategory): CategoryForm => {
   const icon = category.icon ?? '🛒';
 
   return {
     color: category.color ?? '#2db34b',
     icon,
-    itemCount: String(category.itemCount),
     name: category.name,
-    subcategories: category.subcategories.map((subcategory) =>
-      normalizeSubcategory(icon, subcategory),
-    ),
+    primaryCategoryId: '',
   };
-};
-
-const mergeOptions = (primary: SubcategoryOption[], selected: string[]) => {
-  const primaryValues = new Set(primary.map(subcategoryValue));
-  const savedOptions = selected
-    .filter((value) => !primaryValues.has(value))
-    .map((value) => ({ icon: '', label: value }));
-
-  return [...savedOptions, ...primary];
 };
 
 export const CategoriesPage = () => {
   const queryClient = useQueryClient();
+  const location = useLocation();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingSubcategory, setEditingSubcategory] = useState<SubcategoryRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminCategory | null>(null);
+  const [deleteSubcategoryTarget, setDeleteSubcategoryTarget] = useState<SubcategoryRow | null>(
+    null,
+  );
   const [filter, setFilter] = useState<CategoryFilter>('all');
   const [form, setForm] = useState<CategoryForm>(emptyForm);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
@@ -270,18 +273,72 @@ export const CategoriesPage = () => {
     queryFn: ({ signal }) => adminApi.listCategories({ search: debouncedSearch }, { signal }),
     queryKey: ['admin', 'categories', debouncedSearch],
   });
+  const iconsQuery = useQuery({
+    queryFn: ({ signal }) => merchandisingApi.listAdminStorefrontIcons({}, { signal }),
+    queryKey: ['admin', 'storefront-icons'],
+  });
+  const isSubCategoryPage = location.pathname.includes('/sub-category');
   const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
-  const iconOptions = useMemo(
+  const primaryCategory = useMemo(
+    () => categories.find((category) => category.id === form.primaryCategoryId),
+    [categories, form.primaryCategoryId],
+  );
+  const iconOptions = useMemo(() => {
+    const uniqueIcons = new Map<string, { icon: string; label: string }>();
+
+    (iconsQuery.data ?? []).forEach((item) => {
+      if (item.icon && !uniqueIcons.has(item.icon)) {
+        uniqueIcons.set(item.icon, { icon: item.icon, label: item.label });
+      }
+    });
+
+    if (form.icon && !uniqueIcons.has(form.icon)) {
+      uniqueIcons.set(form.icon, { icon: form.icon, label: 'Saved icon' });
+    }
+
+    return [...uniqueIcons.values()];
+  }, [form.icon, iconsQuery.data]);
+
+  const subcategoryRows = useMemo(
     () =>
-      form.icon && !categoryIconOptions.some((option) => option.icon === form.icon)
-        ? [{ icon: form.icon, label: 'Saved icon' }, ...categoryIconOptions]
-        : categoryIconOptions,
-    [form.icon],
+      categories.flatMap((category) =>
+        (category.subcategories ?? []).map((subcategory, index) => {
+          const categoryIcon = category.icon ?? '🛒';
+          const parsed = parseSubcategory(categoryIcon, subcategory);
+
+          return {
+            category,
+            categoryId: category.id,
+            categoryIcon,
+            categoryName: category.name,
+            id: `${category.id}:${index}`,
+            icon: parsed.icon,
+            index,
+            label: parsed.label,
+            name: parsed.name,
+            value: subcategory,
+          };
+        }),
+      ),
+    [categories],
   );
-  const subcategoryOptions = useMemo(
-    () => mergeOptions(categorySubcategoryOptions[form.icon] ?? [], form.subcategories),
-    [form.icon, form.subcategories],
-  );
+
+  const filteredSubcategoryRows = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return subcategoryRows.filter((subcategory) => {
+      const searchableValue = [
+        subcategory.name,
+        subcategory.label,
+        subcategory.icon,
+        subcategory.categoryName,
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      return normalizedSearch ? searchableValue.includes(normalizedSearch) : true;
+    });
+  }, [search, subcategoryRows]);
 
   const filteredCategories = useMemo(
     () =>
@@ -315,14 +372,41 @@ export const CategoriesPage = () => {
         throw new Error('Category name is required.');
       }
 
+      if (isSubCategoryPage) {
+        if (!form.primaryCategoryId || !primaryCategory) {
+          throw new Error('Select a primary category for this sub category.');
+        }
+
+        const subcategory = `${form.icon.trim() || primaryCategory.icon || '🛒'} ${trimmedName}`;
+        const subcategories = primaryCategory.subcategories ?? [];
+        const duplicateIndex = subcategories.findIndex(
+          (item) => item.toLowerCase() === subcategory.toLowerCase(),
+        );
+        const isEditingSameSubcategory =
+          editingSubcategory?.categoryId === primaryCategory.id &&
+          duplicateIndex === editingSubcategory.index;
+
+        if (duplicateIndex !== -1 && !isEditingSameSubcategory) {
+          throw new Error('This sub category already exists in the selected primary category.');
+        }
+
+        const nextSubcategories = editingSubcategory
+          ? subcategories.map((item, index) =>
+              index === editingSubcategory.index ? subcategory : item,
+            )
+          : [...subcategories, subcategory];
+
+        return adminApi.updateCategory(primaryCategory.id, {
+          ...categoryPayloadWithSubcategories(primaryCategory, nextSubcategories),
+        });
+      }
+
       const slug = slugify(trimmedName);
       const categoryPayload = {
         color: form.color || '#2db34b',
         icon: form.icon.trim() || '🛒',
-        itemCount: Number(form.itemCount) || 0,
         name: trimmedName,
         slug,
-        subcategories: form.subcategories,
       };
 
       return editingId
@@ -332,8 +416,11 @@ export const CategoriesPage = () => {
     onError: (error) => toast.error(toApiError(error).message),
     onSuccess: async (result) => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'storefront-icons'] });
+      await queryClient.invalidateQueries({ queryKey: ['storefront', 'icons'] });
       toast.success(result.message);
       setEditingId(null);
+      setEditingSubcategory(null);
       setForm(emptyForm);
       setIsCategoryDialogOpen(false);
     },
@@ -347,16 +434,52 @@ export const CategoriesPage = () => {
       setDeleteTarget(null);
     },
   });
+  const deleteSubcategoryMutation = useMutation({
+    mutationFn: (subcategory: SubcategoryRow) => {
+      const nextSubcategories = (subcategory.category.subcategories ?? []).filter(
+        (_item, index) => index !== subcategory.index,
+      );
+
+      return adminApi.updateCategory(
+        subcategory.categoryId,
+        categoryPayloadWithSubcategories(subcategory.category, nextSubcategories),
+      );
+    },
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
+      toast.success(result.message);
+      setDeleteSubcategoryTarget(null);
+    },
+  });
 
   const openCreateDialog = () => {
     setEditingId(null);
-    setForm(emptyForm);
+    setEditingSubcategory(null);
+    setForm({
+      ...emptyForm,
+      icon: iconOptions[0]?.icon ?? emptyForm.icon,
+      primaryCategoryId: isSubCategoryPage ? (categories[0]?.id ?? '') : '',
+    });
     setIsCategoryDialogOpen(true);
   };
 
   const openEditDialog = (category: AdminCategory) => {
     setEditingId(category.id);
+    setEditingSubcategory(null);
     setForm(toForm(category));
+    setIsCategoryDialogOpen(true);
+  };
+
+  const openEditSubcategoryDialog = (subcategory: SubcategoryRow) => {
+    setEditingId(null);
+    setEditingSubcategory(subcategory);
+    setForm({
+      color: subcategory.category.color ?? '#2db34b',
+      icon: subcategory.icon,
+      name: subcategory.name,
+      primaryCategoryId: subcategory.categoryId,
+    });
     setIsCategoryDialogOpen(true);
   };
 
@@ -364,11 +487,15 @@ export const CategoriesPage = () => {
     <PageSection
       action={
         <AppButton onClick={openCreateDialog} startIcon={<AddRoundedIcon />}>
-          New category
+          {isSubCategoryPage ? 'New sub category' : 'New category'}
         </AppButton>
       }
-      description="Manage customer-facing storefront categories, icons, and subcategory navigation."
-      title="Categories"
+      description={
+        isSubCategoryPage
+          ? 'Manage sub categories under their parent primary category.'
+          : 'Manage customer-facing storefront categories, icons, and subcategory navigation.'
+      }
+      title={isSubCategoryPage ? 'Sub Category' : 'Categories'}
     >
       <Stack
         direction={{ lg: 'row', xs: 'column' }}
@@ -384,9 +511,13 @@ export const CategoriesPage = () => {
         }}
       >
         <TextField
-          label="Search categories"
+          label={isSubCategoryPage ? 'Search sub categories' : 'Search categories'}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Category, slug, icon, or subcategory"
+          placeholder={
+            isSubCategoryPage
+              ? 'Sub category or parent category'
+              : 'Category, slug, icon, or subcategory'
+          }
           slotProps={{
             input: {
               startAdornment: (
@@ -399,29 +530,33 @@ export const CategoriesPage = () => {
           sx={{ minWidth: { lg: 360 } }}
           value={search}
         />
-        <TextField
-          label="Filter"
-          onChange={(event) => setFilter(event.target.value as CategoryFilter)}
-          select
-          sx={{ minWidth: { lg: 220 } }}
-          value={filter}
-        >
-          <MenuItem value="all">All categories</MenuItem>
-          <MenuItem value="with-subcategories">With subcategories</MenuItem>
-          <MenuItem value="large-assortment">40+ items</MenuItem>
-          <MenuItem value="small-assortment">Under 40 items</MenuItem>
-        </TextField>
+        {isSubCategoryPage ? null : (
+          <TextField
+            label="Filter"
+            onChange={(event) => setFilter(event.target.value as CategoryFilter)}
+            select
+            sx={{ minWidth: { lg: 220 } }}
+            value={filter}
+          >
+            <MenuItem value="all">All categories</MenuItem>
+            <MenuItem value="with-subcategories">With subcategories</MenuItem>
+            <MenuItem value="large-assortment">40+ items</MenuItem>
+            <MenuItem value="small-assortment">Under 40 items</MenuItem>
+          </TextField>
+        )}
         <Typography color="text.secondary" sx={{ ml: { lg: 'auto' } }} variant="body2">
-          Showing {filteredCategories.length} of {categories.length}
+          {isSubCategoryPage
+            ? `Showing ${filteredSubcategoryRows.length} of ${subcategoryRows.length}`
+            : `Showing ${filteredCategories.length} of ${categories.length}`}
         </Typography>
       </Stack>
 
-      <Grid container spacing={2}>
-        {filteredCategories.map((category) => (
-          <Grid key={category.id} size={{ lg: 4, md: 6, xs: 12 }}>
-            <Card sx={{ borderRadius: 1, height: '100%' }}>
-              <CardContent>
-                <Stack spacing={2}>
+      {isSubCategoryPage ? (
+        <Grid container spacing={2}>
+          {filteredSubcategoryRows.map((subcategory) => (
+            <Grid key={subcategory.id} size={{ lg: 4, md: 6, xs: 12 }}>
+              <Card sx={{ borderRadius: 1, height: '100%' }}>
+                <CardContent>
                   <Stack
                     direction="row"
                     sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}
@@ -430,7 +565,7 @@ export const CategoriesPage = () => {
                       <Box
                         sx={{
                           alignItems: 'center',
-                          bgcolor: category.color ?? 'primary.main',
+                          bgcolor: subcategory.category.color ?? 'primary.main',
                           borderRadius: 1,
                           color: 'common.white',
                           display: 'flex',
@@ -441,59 +576,118 @@ export const CategoriesPage = () => {
                           width: 48,
                         }}
                       >
-                        {category.icon ?? '🛒'}
+                        {subcategory.icon}
                       </Box>
                       <Stack spacing={0.5} sx={{ minWidth: 0 }}>
                         <Typography noWrap variant="h6">
-                          {category.name}
+                          {subcategory.name}
                         </Typography>
                         <Typography color="text.secondary" variant="body2">
-                          {category.itemCount} items · {(category.subcategories ?? []).length}{' '}
-                          subcategories
+                          {subcategory.categoryName}
                         </Typography>
-                        <Typography color="text.secondary" variant="caption">
-                          /{category.slug}
-                        </Typography>
+                        <Chip label={subcategory.label} size="small" variant="outlined" />
                       </Stack>
                     </Stack>
                     <Stack direction="row">
                       <IconButton
-                        aria-label={`Edit ${category.name}`}
-                        onClick={() => openEditDialog(category)}
+                        aria-label={`Edit ${subcategory.name}`}
+                        onClick={() => openEditSubcategoryDialog(subcategory)}
                       >
                         <EditRoundedIcon />
                       </IconButton>
                       <IconButton
-                        aria-label={`Delete ${category.name}`}
-                        onClick={() => setDeleteTarget(category)}
+                        aria-label={`Delete ${subcategory.name}`}
+                        onClick={() => setDeleteSubcategoryTarget(subcategory)}
                       >
                         <DeleteOutlineRoundedIcon />
                       </IconButton>
                     </Stack>
                   </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      ) : (
+        <Grid container spacing={2}>
+          {filteredCategories.map((category) => (
+            <Grid key={category.id} size={{ lg: 4, md: 6, xs: 12 }}>
+              <Card sx={{ borderRadius: 1, height: '100%' }}>
+                <CardContent>
+                  <Stack spacing={2}>
+                    <Stack
+                      direction="row"
+                      sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}
+                    >
+                      <Stack direction="row" spacing={1.5} sx={{ minWidth: 0 }}>
+                        <Box
+                          sx={{
+                            alignItems: 'center',
+                            bgcolor: category.color ?? 'primary.main',
+                            borderRadius: 1,
+                            color: 'common.white',
+                            display: 'flex',
+                            flexShrink: 0,
+                            fontSize: 24,
+                            height: 48,
+                            justifyContent: 'center',
+                            width: 48,
+                          }}
+                        >
+                          {category.icon ?? '🛒'}
+                        </Box>
+                        <Stack spacing={0.5} sx={{ minWidth: 0 }}>
+                          <Typography noWrap variant="h6">
+                            {category.name}
+                          </Typography>
+                          <Typography color="text.secondary" variant="body2">
+                            {category.itemCount} items · {(category.subcategories ?? []).length}{' '}
+                            subcategories
+                          </Typography>
+                          <Typography color="text.secondary" variant="caption">
+                            /{category.slug}
+                          </Typography>
+                        </Stack>
+                      </Stack>
+                      <Stack direction="row">
+                        <IconButton
+                          aria-label={`Edit ${category.name}`}
+                          onClick={() => openEditDialog(category)}
+                        >
+                          <EditRoundedIcon />
+                        </IconButton>
+                        <IconButton
+                          aria-label={`Delete ${category.name}`}
+                          onClick={() => setDeleteTarget(category)}
+                        >
+                          <DeleteOutlineRoundedIcon />
+                        </IconButton>
+                      </Stack>
+                    </Stack>
 
-                  <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                    {category.subcategories.slice(0, 8).map((subcategory) => (
-                      <Chip
-                        key={subcategory}
-                        label={normalizeSubcategory(category.icon ?? '🛒', subcategory)}
-                        size="small"
-                        variant="outlined"
-                      />
-                    ))}
-                    {(category.subcategories ?? []).length > 8 ? (
-                      <Chip
-                        label={`+${(category.subcategories ?? []).length - 8} more`}
-                        size="small"
-                      />
-                    ) : null}
+                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                      {category.subcategories.slice(0, 8).map((subcategory) => (
+                        <Chip
+                          key={subcategory}
+                          label={normalizeSubcategory(category.icon ?? '🛒', subcategory)}
+                          size="small"
+                          variant="outlined"
+                        />
+                      ))}
+                      {(category.subcategories ?? []).length > 8 ? (
+                        <Chip
+                          label={`+${(category.subcategories ?? []).length - 8} more`}
+                          size="small"
+                        />
+                      ) : null}
+                    </Stack>
                   </Stack>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
       {categoriesQuery.isLoading ? <Alert severity="info">Loading categories...</Alert> : null}
       {categoriesQuery.isError ? (
         <Alert severity="error">{toApiError(categoriesQuery.error).message}</Alert>
@@ -505,7 +699,15 @@ export const CategoriesPage = () => {
         onClose={() => setIsCategoryDialogOpen(false)}
         open={isCategoryDialogOpen}
       >
-        <DialogTitle>{editingId ? 'Edit Category' : 'Create Category'}</DialogTitle>
+        <DialogTitle>
+          {editingId
+            ? 'Edit Category'
+            : isSubCategoryPage
+              ? editingSubcategory
+                ? 'Edit Sub Category'
+                : 'Create Sub Category'
+              : 'Create Category'}
+        </DialogTitle>
         <DialogContent>
           <Stack spacing={2.25} sx={{ pt: 1 }}>
             <Grid container spacing={2}>
@@ -513,7 +715,7 @@ export const CategoriesPage = () => {
                 <TextField
                   autoFocus
                   fullWidth
-                  label="Category name"
+                  label={isSubCategoryPage ? 'Sub category name' : 'Category name'}
                   onChange={(event) =>
                     setForm((current) => ({ ...current, name: event.target.value }))
                   }
@@ -529,11 +731,29 @@ export const CategoriesPage = () => {
                     setForm((current) => ({
                       ...current,
                       icon: event.target.value,
-                      subcategories: [],
                     }))
                   }
+                  slotProps={{
+                    select: {
+                      renderValue: (selected) => (
+                        <Box component="span" sx={{ fontSize: 22, lineHeight: 1 }}>
+                          {selected as string}
+                        </Box>
+                      ),
+                    },
+                  }}
                   value={form.icon}
                 >
+                  {iconsQuery.isLoading ? (
+                    <MenuItem disabled value="">
+                      Loading icons...
+                    </MenuItem>
+                  ) : null}
+                  {!iconsQuery.isLoading && iconOptions.length === 0 ? (
+                    <MenuItem disabled value="">
+                      Create icons in Icon first
+                    </MenuItem>
+                  ) : null}
                   {iconOptions.map((option) => (
                     <MenuItem key={`${option.icon}-${option.label}`} value={option.icon}>
                       <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
@@ -547,63 +767,103 @@ export const CategoriesPage = () => {
                 </TextField>
               </Grid>
             </Grid>
-            <Grid container spacing={2}>
-              <Grid size={{ sm: 6, xs: 12 }}>
-                <TextField
-                  fullWidth
-                  label="Theme color"
+            {isSubCategoryPage ? (
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    label="Primary category"
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        primaryCategoryId: event.target.value,
+                      }))
+                    }
+                    disabled={Boolean(editingSubcategory)}
+                    select
+                    value={form.primaryCategoryId}
+                  >
+                    {categoriesQuery.isLoading ? (
+                      <MenuItem disabled value="">
+                        Loading primary categories...
+                      </MenuItem>
+                    ) : null}
+                    {!categoriesQuery.isLoading && categories.length === 0 ? (
+                      <MenuItem disabled value="">
+                        Create a primary category first
+                      </MenuItem>
+                    ) : null}
+                    {categories.map((category) => (
+                      <MenuItem key={category.id} value={category.id}>
+                        {category.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+              </Grid>
+            ) : null}
+            <Stack spacing={1.25}>
+              <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
+                <Box
+                  sx={{
+                    alignItems: 'center',
+                    bgcolor: form.color,
+                    borderRadius: 1,
+                    color: '#ffffff',
+                    display: 'flex',
+                    fontSize: 24,
+                    height: 46,
+                    justifyContent: 'center',
+                    width: 46,
+                  }}
+                >
+                  {form.icon}
+                </Box>
+                <Box>
+                  <Typography sx={{ fontWeight: 800 }} variant="body2">
+                    Theme color
+                  </Typography>
+                  <Typography color="text.secondary" variant="caption">
+                    Click the picker and choose a custom shade.
+                  </Typography>
+                </Box>
+              </Stack>
+              <Box
+                component="label"
+                sx={{
+                  alignItems: 'center',
+                  bgcolor: form.color,
+                  border: '1px solid rgba(255,255,255,0.72)',
+                  borderRadius: 1,
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.72), 0 14px 32px rgba(0,0,0,0.1)',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  fontWeight: 900,
+                  height: 64,
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {form.color}
+                <Box
+                  component="input"
                   onChange={(event) =>
                     setForm((current) => ({ ...current, color: event.target.value }))
                   }
+                  sx={{
+                    cursor: 'pointer',
+                    inset: 0,
+                    opacity: 0,
+                    position: 'absolute',
+                  }}
+                  type="color"
                   value={form.color}
                 />
-              </Grid>
-              <Grid size={{ sm: 6, xs: 12 }}>
-                <TextField
-                  fullWidth
-                  label="Item count"
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, itemCount: event.target.value }))
-                  }
-                  type="number"
-                  value={form.itemCount}
-                />
-              </Grid>
-            </Grid>
-            <TextField
-              helperText="Select the related subcategories for the chosen main category."
-              label="Subcategories"
-              select
-              onChange={(event) => {
-                const value = event.target.value;
-                const subcategories = typeof value === 'string' ? value.split(',') : value;
-                setForm((current) => ({ ...current, subcategories }));
-              }}
-              slotProps={{
-                select: {
-                  multiple: true,
-                  renderValue: (selected) => (selected as string[]).join(', '),
-                },
-              }}
-              value={form.subcategories}
-            >
-              {subcategoryOptions.map((subcategory) => {
-                const value = subcategoryValue(subcategory);
-
-                return (
-                  <MenuItem key={value} value={value}>
-                    <Checkbox checked={form.subcategories.includes(value)} />
-                    <Box
-                      component="span"
-                      sx={{ display: 'inline-block', fontSize: 20, lineHeight: 1, minWidth: 30 }}
-                    >
-                      {subcategory.icon}
-                    </Box>
-                    <ListItemText primary={subcategory.label} />
-                  </MenuItem>
-                );
-              })}
-            </TextField>
+              </Box>
+            </Stack>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
@@ -615,7 +875,13 @@ export const CategoriesPage = () => {
             Cancel
           </AppButton>
           <AppButton disabled={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
-            {editingId ? 'Save category' : 'Add category'}
+            {editingId
+              ? 'Save category'
+              : isSubCategoryPage
+                ? editingSubcategory
+                  ? 'Save sub category'
+                  : 'Add sub category'
+                : 'Add category'}
           </AppButton>
         </DialogActions>
       </Dialog>
@@ -639,6 +905,37 @@ export const CategoriesPage = () => {
             color="error"
             disabled={deleteMutation.isPending}
             onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+          >
+            Delete
+          </AppButton>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        onClose={() => setDeleteSubcategoryTarget(null)}
+        open={Boolean(deleteSubcategoryTarget)}
+      >
+        <DialogTitle>Delete Sub Category?</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">
+            Delete {deleteSubcategoryTarget?.name} from {deleteSubcategoryTarget?.categoryName}?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <AppButton
+            color="inherit"
+            onClick={() => setDeleteSubcategoryTarget(null)}
+            variant="outlined"
+          >
+            Cancel
+          </AppButton>
+          <AppButton
+            color="error"
+            disabled={deleteSubcategoryMutation.isPending}
+            onClick={() =>
+              deleteSubcategoryTarget && deleteSubcategoryMutation.mutate(deleteSubcategoryTarget)
+            }
           >
             Delete
           </AppButton>

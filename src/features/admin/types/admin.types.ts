@@ -48,7 +48,22 @@ export type AdminCategory = {
   subcategories: string[];
 };
 
-export type AdminCategoryPayload = Omit<AdminCategory, 'id'>;
+export type AdminCategoryPayload = Pick<AdminCategory, 'color' | 'icon' | 'name' | 'slug'> & {
+  subcategories?: string[];
+};
+
+export type AdminSecondaryCategory = {
+  color?: string;
+  icon?: string;
+  id: string;
+  name: string;
+  productId: string;
+  slug: string;
+  status: 'active' | 'hidden';
+  targetSectionId: 'top-offers' | 'top-blooms' | 'new-season' | 'pantry-ready';
+};
+
+export type AdminSecondaryCategoryPayload = Omit<AdminSecondaryCategory, 'id'>;
 
 export type AdminOrderStatus =
   | 'pending'
@@ -106,6 +121,23 @@ export type AdminPromotion = {
 };
 
 export type AdminPromotionPayload = Omit<AdminPromotion, 'id'>;
+
+export type AdminRegion = {
+  id: string;
+  name: string;
+  status: 'active' | 'paused';
+};
+
+export type AdminRegionPayload = Omit<AdminRegion, 'id'>;
+
+export type AdminTownship = {
+  id: string;
+  name: string;
+  region: string;
+  status: 'active' | 'paused';
+};
+
+export type AdminTownshipPayload = Omit<AdminTownship, 'id'>;
 
 export type AdminDeliveryFee = {
   eta: string;

@@ -23,10 +23,7 @@ const isHighlightItem = (value: unknown): value is StorefrontHighlightItem => {
     typeof item.id === 'string' &&
     typeof item.label === 'string' &&
     isSection(item.section) &&
-    typeof item.sortOrder === 'number' &&
     (item.status === 'active' || item.status === 'hidden') &&
-    typeof item.targetCategoryId === 'string' &&
-    (typeof item.targetSearch === 'string' || typeof item.targetSearch === 'undefined') &&
     (typeof item.surfaceColor === 'string' || typeof item.surfaceColor === 'undefined') &&
     (typeof item.textColor === 'string' || typeof item.textColor === 'undefined')
   );
@@ -67,7 +64,4 @@ export const resetHighlightItems = () => {
 export const getActiveHighlightItems = (
   items: StorefrontHighlightItem[],
   section: StorefrontHighlightSection,
-) =>
-  items
-    .filter((item) => item.section === section && item.status === 'active')
-    .sort((first, second) => first.sortOrder - second.sortOrder);
+) => items.filter((item) => item.section === section && item.status === 'active');

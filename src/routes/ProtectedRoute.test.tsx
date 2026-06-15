@@ -19,7 +19,7 @@ describe('ProtectedRoute', () => {
           id: 'user-1',
           lastName: 'Customer',
           role: 'customer',
-          tenantId: 'av',
+          tenantId: 'tenant-fixed-test-id',
         },
       }),
     );

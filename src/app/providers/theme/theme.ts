@@ -72,7 +72,9 @@ export const lightTheme = createTheme({
           whiteSpace: 'nowrap',
         },
         outlined: {
-          borderColor: storefrontColors.border,
+          backgroundColor: 'rgba(255, 255, 255, 0.44)',
+          borderColor: 'rgba(255, 255, 255, 0.72)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.76)',
         },
       },
       variants: [
@@ -92,8 +94,10 @@ export const lightTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          border: `1px solid ${storefrontColors.border}`,
-          boxShadow: '0 22px 60px rgba(64, 35, 21, 0.1)',
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.72), rgba(255,248,240,0.48))',
+          backdropFilter: 'blur(24px) saturate(142%)',
+          border: '1px solid rgba(255, 255, 255, 0.64)',
+          boxShadow: '0 24px 70px rgba(64, 35, 21, 0.11), inset 0 1px 0 rgba(255,255,255,0.72)',
         },
       },
     },
@@ -111,15 +115,70 @@ export const lightTheme = createTheme({
           color: storefrontColors.slate,
           textRendering: 'optimizeLegibility',
         },
+        '.admin-liquid-glass .MuiPaper-root': {
+          backgroundImage: 'none',
+        },
+        '.admin-liquid-glass .MuiDialog-paper': {
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.82), rgba(255,248,240,0.66))',
+          backdropFilter: 'blur(30px) saturate(150%)',
+          border: '1px solid rgba(255,255,255,0.72)',
+          boxShadow: '0 34px 96px rgba(53, 24, 15, 0.28), inset 0 1px 0 rgba(255,255,255,0.82)',
+          overflow: 'hidden',
+        },
+        '.admin-liquid-glass .MuiDialogTitle-root': {
+          borderBottom: '1px solid rgba(255,255,255,0.62)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.58), rgba(255,242,230,0.36))',
+        },
+        '.admin-liquid-glass .MuiDialogActions-root': {
+          borderTop: '1px solid rgba(255,255,255,0.62)',
+          background: 'rgba(255,255,255,0.34)',
+        },
+        '.admin-liquid-glass .MuiDataGrid-root, .admin-liquid-glass .MuiCard-root, .admin-liquid-glass .MuiDialog-paper':
+          {
+            position: 'relative',
+          },
+        '.admin-liquid-glass .MuiDataGrid-root::before, .admin-liquid-glass .MuiCard-root::before, .admin-liquid-glass .MuiDialog-paper::before':
+          {
+            background:
+              'linear-gradient(135deg, rgba(255,255,255,0.76), rgba(255,255,255,0.12) 42%, rgba(255,255,255,0))',
+            content: '""',
+            inset: 0,
+            pointerEvents: 'none',
+            position: 'absolute',
+          },
+        '.admin-liquid-glass .MuiCardContent-root, .admin-liquid-glass .MuiDataGrid-main, .admin-liquid-glass .MuiDialogContent-root, .admin-liquid-glass .MuiDialogActions-root, .admin-liquid-glass .MuiDialogTitle-root':
+          {
+            position: 'relative',
+            zIndex: 1,
+          },
+        '.admin-liquid-glass section > .MuiStack-root + .MuiStack-root, .admin-liquid-glass section > .MuiStack-root + .MuiBox-root':
+          {
+            backdropFilter: 'blur(24px) saturate(142%)',
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.62), rgba(255,248,240,0.44))',
+            borderColor: 'rgba(255,255,255,0.62)',
+            boxShadow: '0 20px 56px rgba(83,36,23,0.08), inset 0 1px 0 rgba(255,255,255,0.74)',
+          },
+        '.admin-liquid-glass .MuiListItemButton-root': {
+          transition: 'background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease',
+        },
+        '.admin-liquid-glass .MuiListItemButton-root:hover': {
+          backgroundColor: 'rgba(255,255,255,0.46)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.72)',
+        },
+        '.admin-liquid-glass .MuiListItemButton-root.active': {
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.72), rgba(198,37,31,0.12))',
+          boxShadow: '0 12px 30px rgba(143,23,23,0.10), inset 0 1px 0 rgba(255,255,255,0.78)',
+        },
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          backgroundColor: '#ffffff',
+          backgroundColor: 'rgba(255,255,255,0.62)',
+          backdropFilter: 'blur(16px) saturate(135%)',
           borderRadius: 14,
           '& fieldset': {
-            borderColor: storefrontColors.border,
+            borderColor: 'rgba(255,255,255,0.72)',
           },
           '&:hover fieldset': {
             borderColor: storefrontColors.accent,

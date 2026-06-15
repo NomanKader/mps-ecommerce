@@ -1,397 +1,697 @@
-import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
   Alert,
   Avatar,
   Box,
-  Card,
-  CardContent,
-  FormControlLabel,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
+  IconButton,
+  InputAdornment,
   MenuItem,
   Stack,
-  Switch,
   TextField,
   Typography,
 } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { type GridColDef } from '@mui/x-data-grid';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { useSelector } from 'react-redux';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { merchandisingApi } from '@features/home/api/merchandisingApi';
+import { useDebounce } from '@hooks/useDebounce';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
+import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
-import { toApiError } from '@shared/api/apiError';
-import { useAppDispatch } from '@store/hooks';
-import type { RootState } from '@store/index';
-import { setSession } from '@store/slices/auth.slice';
 
-type AdminUserForm = {
-  deliveryHeadline: string;
+type AdminUserStatus = 'active' | 'inactive';
+
+type EcommerceRole =
+  | 'store_owner'
+  | 'operations_manager'
+  | 'catalog_manager'
+  | 'order_fulfillment'
+  | 'customer_support'
+  | 'marketing_manager'
+  | 'delivery_manager'
+  | 'finance_viewer';
+
+type ManagedAdminUser = {
+  createdAt: string;
   email: string;
   firstName: string;
-  isActive: boolean;
+  id: string;
   lastName: string;
-  phoneCountryCode: string;
-  phoneLocalNumber: string;
-  supportPhoneLabel: string;
-  topBarTagline: string;
+  phone: string;
+  role: EcommerceRole;
+  status: AdminUserStatus;
 };
 
-const roleLabel = 'Tenant admin';
+type UserForm = Omit<ManagedAdminUser, 'createdAt' | 'id'>;
 
-const countryCodeOptions = [
-  { code: '+971', country: 'United Arab Emirates' },
-  { code: '+95', country: 'Myanmar' },
-  { code: '+1', country: 'United States' },
-  { code: '+44', country: 'United Kingdom' },
-  { code: '+65', country: 'Singapore' },
-  { code: '+66', country: 'Thailand' },
-  { code: '+60', country: 'Malaysia' },
-  { code: '+91', country: 'India' },
+type RoleDefinition = {
+  description: string;
+  label: string;
+  responsibilities: string[];
+  value: EcommerceRole;
+};
+
+const storageKey = 'avs-admin-users';
+
+const roleDefinitions: RoleDefinition[] = [
+  {
+    description: 'Full control of ecommerce setup, users, catalog, orders, and reporting.',
+    label: 'Store Owner',
+    responsibilities: ['All permissions', 'User and role management', 'Business settings'],
+    value: 'store_owner',
+  },
+  {
+    description: 'Runs daily operations across orders, customers, catalog health, and delivery.',
+    label: 'Operations Manager',
+    responsibilities: ['Order monitoring', 'Customer escalation', 'Operational reports'],
+    value: 'operations_manager',
+  },
+  {
+    description: 'Maintains products, categories, sections, icons, and storefront merchandising.',
+    label: 'Catalog Manager',
+    responsibilities: ['Products', 'Categories', 'Product sections', 'Storefront icons'],
+    value: 'catalog_manager',
+  },
+  {
+    description: 'Processes orders from paid status through packing, shipment, and completion.',
+    label: 'Order Fulfillment',
+    responsibilities: ['Order status updates', 'Packing queue', 'Fulfillment notes'],
+    value: 'order_fulfillment',
+  },
+  {
+    description: 'Handles customer records, support follow-up, and customer issue resolution.',
+    label: 'Customer Support',
+    responsibilities: ['Customers', 'Order lookup', 'Support follow-up'],
+    value: 'customer_support',
+  },
+  {
+    description: 'Creates promotions and controls storefront campaign content.',
+    label: 'Marketing Manager',
+    responsibilities: ['Promotions', 'Carousel', 'Campaign visibility'],
+    value: 'marketing_manager',
+  },
+  {
+    description: 'Maintains regional delivery coverage, townships, and delivery fee rules.',
+    label: 'Delivery Manager',
+    responsibilities: ['Regions', 'Townships', 'Delivery fees'],
+    value: 'delivery_manager',
+  },
+  {
+    description: 'Views order revenue and customer spend data without changing operations.',
+    label: 'Finance Viewer',
+    responsibilities: ['Revenue view', 'Order totals', 'Customer spend'],
+    value: 'finance_viewer',
+  },
 ];
 
-const splitPhoneNumber = (phone: string | undefined) => {
-  const fallback = { phoneCountryCode: '+971', phoneLocalNumber: '800 287' };
+const emptyForm: UserForm = {
+  email: '',
+  firstName: '',
+  lastName: '',
+  phone: '',
+  role: 'catalog_manager',
+  status: 'active',
+};
 
-  if (!phone) {
-    return fallback;
+const defaultUsers: ManagedAdminUser[] = [
+  {
+    createdAt: '2026-06-01T08:30:00.000Z',
+    email: 'tenant.admin@av.com',
+    firstName: 'Tenant',
+    id: 'admin-owner',
+    lastName: 'Admin',
+    phone: '+95 800 28789',
+    role: 'store_owner',
+    status: 'active',
+  },
+  {
+    createdAt: '2026-06-04T10:15:00.000Z',
+    email: 'orders@av.com',
+    firstName: 'Order',
+    id: 'admin-orders',
+    lastName: 'Lead',
+    phone: '+95 800 28790',
+    role: 'order_fulfillment',
+    status: 'active',
+  },
+  {
+    createdAt: '2026-06-05T11:20:00.000Z',
+    email: 'catalog@av.com',
+    firstName: 'Catalog',
+    id: 'admin-catalog',
+    lastName: 'Manager',
+    phone: '+95 800 28791',
+    role: 'catalog_manager',
+    status: 'active',
+  },
+];
+
+const getRoleDefinition = (role: EcommerceRole): RoleDefinition =>
+  roleDefinitions.find((definition) => definition.value === role) ?? roleDefinitions[0]!;
+
+const createUserId = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `admin-user-${Date.now()}`;
+
+const loadUsers = () => {
+  if (typeof window === 'undefined') {
+    return defaultUsers;
   }
 
-  const option = countryCodeOptions.find((countryCode) => phone.startsWith(countryCode.code));
+  const savedUsers = window.localStorage.getItem(storageKey);
 
-  if (!option) {
-    return fallback;
+  if (!savedUsers) {
+    return defaultUsers;
   }
 
-  return {
-    phoneCountryCode: option.code,
-    phoneLocalNumber: phone.slice(option.code.length).trim(),
-  };
+  try {
+    return JSON.parse(savedUsers) as ManagedAdminUser[];
+  } catch {
+    return defaultUsers;
+  }
+};
+
+const persistUsers = (users: ManagedAdminUser[]) => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(storageKey, JSON.stringify(users));
+  }
 };
 
 export const AdminUserPage = () => {
-  const dispatch = useAppDispatch();
-  const queryClient = useQueryClient();
-  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
-  const user = useSelector((state: RootState) => state.auth.user);
-  const [savedAt, setSavedAt] = useState<string | null>(null);
-  const initialPhone = splitPhoneNumber(user?.supportPhoneLabel);
-  const [form, setForm] = useState<AdminUserForm>({
-    deliveryHeadline: user?.deliveryHeadline ?? 'Delivery all over UAE',
-    email: user?.email ?? '',
-    firstName: user?.firstName ?? '',
-    isActive: user?.isActive ?? true,
-    lastName: user?.lastName ?? '',
-    phoneCountryCode: initialPhone.phoneCountryCode,
-    phoneLocalNumber: initialPhone.phoneLocalNumber,
-    supportPhoneLabel: `${initialPhone.phoneCountryCode} ${initialPhone.phoneLocalNumber}`.trim(),
-    topBarTagline: user?.topBarTagline ?? 'Sustainable Grocery Shopping',
-  });
-  const profileQuery = useQuery({
-    queryFn: ({ signal }) => merchandisingApi.getAdminProfile({ signal }),
-    queryKey: ['admin', 'profile'],
-  });
-  const initials = useMemo(
-    () => `${form.firstName[0] ?? ''}${form.lastName[0] ?? ''}`.toUpperCase() || 'A',
-    [form.firstName, form.lastName],
-  );
+  const [deleteTarget, setDeleteTarget] = useState<ManagedAdminUser | null>(null);
+  const [detailUser, setDetailUser] = useState<ManagedAdminUser | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<UserForm>(emptyForm);
+  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [roleFilter, setRoleFilter] = useState<EcommerceRole | 'all'>('all');
+  const [search, setSearch] = useState('');
+  const [users, setUsers] = useState<ManagedAdminUser[]>(loadUsers);
+  const debouncedSearch = useDebounce(search);
 
-  useEffect(() => {
-    if (!profileQuery.data) {
-      return;
-    }
+  const filteredUsers = useMemo(() => {
+    const normalizedSearch = debouncedSearch.trim().toLowerCase();
 
-    const { admin, headerSettings } = profileQuery.data;
+    return users.filter((user) => {
+      const role = getRoleDefinition(user.role);
+      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+      const matchesSearch =
+        !normalizedSearch ||
+        `${user.firstName} ${user.lastName}`.toLowerCase().includes(normalizedSearch) ||
+        user.email.toLowerCase().includes(normalizedSearch) ||
+        role.label.toLowerCase().includes(normalizedSearch);
 
-    setForm({
-      deliveryHeadline: headerSettings.deliveryHeadline,
-      email: admin.email,
-      firstName: admin.firstName,
-      isActive: admin.isActive ?? true,
-      lastName: admin.lastName,
-      phoneCountryCode: headerSettings.supportPhoneCountryCode,
-      phoneLocalNumber: headerSettings.supportPhoneNumber,
-      supportPhoneLabel:
-        `${headerSettings.supportPhoneCountryCode} ${headerSettings.supportPhoneNumber}`.trim(),
-      topBarTagline: headerSettings.topBarTagline,
+      return matchesRole && matchesSearch;
     });
-  }, [profileQuery.data]);
+  }, [debouncedSearch, roleFilter, users]);
 
-  const updateProfileMutation = useMutation({
-    mutationFn: merchandisingApi.updateAdminProfile,
-    onError: (error) => toast.error(toApiError(error).message),
-    onSuccess: async (result) => {
-      if (!accessToken) {
-        return;
-      }
+  const activeUsers = users.filter((user) => user.status === 'active').length;
+  const selectedRole = getRoleDefinition(form.role);
+  const tableResponsibilityLimit = 2;
 
-      const nextUser = {
-        ...result.data.admin,
-        deliveryHeadline: result.data.headerSettings.deliveryHeadline,
-        supportPhoneLabel:
-          `${result.data.headerSettings.supportPhoneCountryCode} ${result.data.headerSettings.supportPhoneNumber}`.trim(),
-        topBarTagline: result.data.headerSettings.topBarTagline,
-        tenantId: user?.tenantId,
-      };
+  const columns: GridColDef<ManagedAdminUser>[] = [
+    {
+      field: 'name',
+      flex: 1.1,
+      headerName: 'User',
+      minWidth: 220,
+      renderCell: (params) => {
+        const user = params.row;
+        const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
 
-      dispatch(setSession({ accessToken, user: nextUser }));
-      await queryClient.invalidateQueries({ queryKey: ['admin', 'profile'] });
-      await queryClient.invalidateQueries({ queryKey: ['storefront', 'header-settings'] });
-      setSavedAt(new Date().toLocaleTimeString());
-      toast.success(result.message);
+        return (
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{ alignItems: 'center', height: '100%', minWidth: 0 }}
+          >
+            <Avatar sx={{ bgcolor: 'primary.main', fontWeight: 800, height: 42, width: 42 }}>
+              {initials}
+            </Avatar>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography noWrap sx={{ fontWeight: 800, lineHeight: 1.25 }} variant="body2">
+                {user.firstName} {user.lastName}
+              </Typography>
+              <Typography color="text.secondary" noWrap sx={{ display: 'block' }} variant="caption">
+                {user.email}
+              </Typography>
+            </Box>
+          </Stack>
+        );
+      },
+      valueGetter: (_value, row) => `${row.firstName} ${row.lastName}`,
     },
-  });
+    {
+      field: 'role',
+      flex: 0.7,
+      headerName: 'Role',
+      minWidth: 150,
+      renderCell: (params) => {
+        const role = getRoleDefinition(params.value);
+
+        return (
+          <Chip
+            label={role.label}
+            size="small"
+            sx={{
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              fontWeight: 800,
+            }}
+          />
+        );
+      },
+      valueFormatter: (value: EcommerceRole) => getRoleDefinition(value).label,
+    },
+    {
+      field: 'responsibilities',
+      flex: 1.2,
+      headerName: 'Responsibilities',
+      minWidth: 260,
+      renderCell: (params) => {
+        const responsibilities = getRoleDefinition(params.row.role).responsibilities.slice(
+          0,
+          tableResponsibilityLimit,
+        );
+
+        return (
+          <Stack
+            direction="row"
+            sx={{
+              alignItems: 'center',
+              flexWrap: 'nowrap',
+              gap: 0.75,
+              minWidth: 0,
+              overflow: 'hidden',
+            }}
+          >
+            {responsibilities.map((responsibility) => (
+              <Chip
+                key={responsibility}
+                label={responsibility}
+                size="small"
+                sx={{ bgcolor: 'action.hover', fontWeight: 700 }}
+              />
+            ))}
+          </Stack>
+        );
+      },
+      sortable: false,
+    },
+    { field: 'phone', flex: 0.65, headerName: 'Phone', minWidth: 140 },
+    {
+      field: 'status',
+      headerName: 'Status',
+      renderCell: (params) => (
+        <Chip
+          color={params.value === 'active' ? 'success' : 'default'}
+          label={params.value === 'active' ? 'Active' : 'Inactive'}
+          size="small"
+        />
+      ),
+      flex: 0.45,
+      minWidth: 105,
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      renderCell: (params) => (
+        <Stack direction="row" spacing={0.5}>
+          <IconButton
+            aria-label="View user responsibilities"
+            onClick={() => setDetailUser(params.row)}
+            size="small"
+            sx={{ bgcolor: 'info.lighter', color: 'info.main' }}
+          >
+            <InfoOutlinedIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            aria-label="Edit user"
+            onClick={() => openEditDialog(params.row)}
+            size="small"
+            sx={{ bgcolor: 'action.hover' }}
+          >
+            <EditRoundedIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            aria-label="Delete user"
+            onClick={() => setDeleteTarget(params.row)}
+            size="small"
+            sx={{ bgcolor: 'error.lighter', color: 'error.main' }}
+          >
+            <DeleteOutlineRoundedIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+      ),
+      sortable: false,
+      flex: 0.6,
+      minWidth: 132,
+    },
+  ];
+
+  const openCreateDialog = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setIsUserDialogOpen(true);
+  };
+
+  const openEditDialog = (user: ManagedAdminUser) => {
+    setEditingId(user.id);
+    setForm({
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phone: user.phone,
+      role: user.role,
+      status: user.status,
+    });
+    setIsUserDialogOpen(true);
+  };
 
   const handleSave = () => {
-    if (!user || !accessToken) {
-      toast.error('No admin session is available.');
-      return;
-    }
-
     const firstName = form.firstName.trim();
     const lastName = form.lastName.trim();
     const email = form.email.trim().toLowerCase();
-    const deliveryHeadline = form.deliveryHeadline.trim();
-    const phoneLocalNumber = form.phoneLocalNumber.trim();
-    const supportPhoneLabel = `${form.phoneCountryCode} ${phoneLocalNumber}`.trim();
-    const topBarTagline = form.topBarTagline.trim();
+    const phone = form.phone.trim();
 
-    if (!firstName || !lastName || !email || !deliveryHeadline || !phoneLocalNumber) {
-      toast.error(
-        'Complete first name, last name, email, delivery text, and contact mobile phone.',
-      );
+    if (!firstName || !lastName || !email) {
+      toast.error('Complete first name, last name, and email.');
       return;
     }
 
-    if (!/^\+?[0-9\s()-]{7,20}$/.test(supportPhoneLabel)) {
-      toast.error('Enter a valid contact mobile phone number.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Enter a valid email address.');
       return;
     }
 
-    updateProfileMutation.mutate({
-      deliveryHeadline,
-      email,
-      firstName,
-      isActive: form.isActive,
-      lastName,
-      supportPhoneCountryCode: form.phoneCountryCode,
-      supportPhoneNumber: phoneLocalNumber,
-      topBarTagline,
-    });
+    const emailAlreadyExists = users.some((user) => user.email === email && user.id !== editingId);
+
+    if (emailAlreadyExists) {
+      toast.error('A user with this email already exists.');
+      return;
+    }
+
+    const nextUsers = editingId
+      ? users.map((user) =>
+          user.id === editingId
+            ? { ...user, email, firstName, lastName, phone, role: form.role, status: form.status }
+            : user,
+        )
+      : [
+          ...users,
+          {
+            createdAt: new Date().toISOString(),
+            email,
+            firstName,
+            id: createUserId(),
+            lastName,
+            phone,
+            role: form.role,
+            status: form.status,
+          },
+        ];
+
+    setUsers(nextUsers);
+    persistUsers(nextUsers);
+    setIsUserDialogOpen(false);
+    toast.success(editingId ? 'User updated.' : 'User created.');
+  };
+
+  const handleDelete = () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    const nextUsers = users.filter((user) => user.id !== deleteTarget.id);
+
+    setUsers(nextUsers);
+    persistUsers(nextUsers);
+    setDeleteTarget(null);
+    toast.success('User deleted.');
   };
 
   return (
     <PageSection
       action={
-        <AppButton
-          disabled={updateProfileMutation.isPending || profileQuery.isLoading}
-          onClick={handleSave}
-          startIcon={<SaveRoundedIcon />}
-        >
-          Save admin info
+        <AppButton onClick={openCreateDialog} startIcon={<AddRoundedIcon />}>
+          Create user
         </AppButton>
       }
-      description="Manage the current dashboard admin profile shown in the admin header and local session."
-      title="Admin User"
+      description="Create dashboard users and assign ecommerce responsibilities based on their roles."
+      title="User"
     >
-      <Grid container spacing={3}>
-        <Grid size={{ lg: 4, xs: 12 }}>
-          <Card sx={{ borderRadius: 1, height: '100%' }}>
-            <CardContent>
-              <Stack spacing={2.25} sx={{ alignItems: 'center', textAlign: 'center' }}>
-                <Avatar sx={{ bgcolor: 'primary.main', fontSize: '2rem', height: 96, width: 96 }}>
-                  {initials}
+      <Stack
+        direction={{ lg: 'row', xs: 'column' }}
+        spacing={2}
+        sx={{
+          alignItems: { lg: 'center', xs: 'stretch' },
+          bgcolor: 'background.paper',
+          border: 1,
+          borderColor: 'divider',
+          borderRadius: 1,
+          mb: 2,
+          p: 2,
+        }}
+      >
+        <TextField
+          label="Search users"
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Name, email, or role"
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchRoundedIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ minWidth: { lg: 320 } }}
+          value={search}
+        />
+        <TextField
+          label="Role"
+          onChange={(event) => setRoleFilter(event.target.value as EcommerceRole | 'all')}
+          select
+          sx={{ minWidth: { lg: 220 } }}
+          value={roleFilter}
+        >
+          <MenuItem value="all">All roles</MenuItem>
+          {roleDefinitions.map((role) => (
+            <MenuItem key={role.value} value={role.value}>
+              {role.label}
+            </MenuItem>
+          ))}
+        </TextField>
+        <Typography color="text.secondary" sx={{ ml: { lg: 'auto' } }} variant="body2">
+          {activeUsers} active / {users.length} total
+        </Typography>
+      </Stack>
+      <AppDataTable
+        columns={columns}
+        rowHeight={72}
+        rows={filteredUsers}
+        sx={{
+          '& .MuiDataGrid-cell': {
+            alignItems: 'center',
+            lineHeight: 1.3,
+            overflow: 'hidden',
+            py: 0.75,
+          },
+          '& .MuiDataGrid-columnHeaders': {
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          },
+          '& .MuiDataGrid-row:nth-of-type(even)': {
+            bgcolor: 'rgba(0, 0, 0, 0.015)',
+          },
+          '& .MuiDataGrid-row:hover': {
+            bgcolor: 'rgba(196, 26, 26, 0.035)',
+          },
+          bgcolor: 'background.paper',
+          minWidth: 0,
+        }}
+      />
+
+      <Dialog fullWidth maxWidth="md" onClose={() => setIsUserDialogOpen(false)} open={isUserDialogOpen}>
+        <DialogTitle>{editingId ? 'Edit User' : 'Create User'}</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2.25} sx={{ pt: 1 }}>
+            <Grid size={{ sm: 6, xs: 12 }}>
+              <TextField
+                fullWidth
+                label="First name"
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, firstName: event.target.value }))
+                }
+                value={form.firstName}
+              />
+            </Grid>
+            <Grid size={{ sm: 6, xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Last name"
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, lastName: event.target.value }))
+                }
+                value={form.lastName}
+              />
+            </Grid>
+            <Grid size={{ sm: 6, xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Email"
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, email: event.target.value }))
+                }
+                type="email"
+                value={form.email}
+              />
+            </Grid>
+            <Grid size={{ sm: 6, xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Phone"
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, phone: event.target.value }))
+                }
+                placeholder="+95 800 28789"
+                type="tel"
+                value={form.phone}
+              />
+            </Grid>
+            <Grid size={{ sm: 6, xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Role"
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    role: event.target.value as EcommerceRole,
+                  }))
+                }
+                select
+                value={form.role}
+              >
+                {roleDefinitions.map((role) => (
+                  <MenuItem key={role.value} value={role.value}>
+                    {role.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid size={{ sm: 6, xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Status"
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    status: event.target.value as AdminUserStatus,
+                  }))
+                }
+                select
+                value={form.status}
+              >
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <Alert severity="info">
+                {selectedRole.label}: {selectedRole.description}
+              </Alert>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <AppButton color="inherit" onClick={() => setIsUserDialogOpen(false)}>
+            Cancel
+          </AppButton>
+          <AppButton onClick={handleSave}>{editingId ? 'Save user' : 'Create user'}</AppButton>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog fullWidth maxWidth="sm" onClose={() => setDetailUser(null)} open={Boolean(detailUser)}>
+        <DialogTitle>User Responsibilities</DialogTitle>
+        <DialogContent>
+          {detailUser ? (
+            <Stack spacing={2.25} sx={{ pt: 1 }}>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                <Avatar sx={{ bgcolor: 'primary.main', fontWeight: 800, height: 52, width: 52 }}>
+                  {`${detailUser.firstName.charAt(0)}${detailUser.lastName.charAt(0)}`.toUpperCase()}
                 </Avatar>
                 <Box>
-                  <Typography sx={{ fontWeight: 900 }} variant="h5">
-                    {form.firstName || form.lastName
-                      ? `${form.firstName} ${form.lastName}`
-                      : 'Admin User'}
+                  <Typography sx={{ fontWeight: 900 }} variant="h6">
+                    {detailUser.firstName} {detailUser.lastName}
                   </Typography>
-                  <Typography color="text.secondary">
-                    {form.email || 'admin@example.com'}
-                  </Typography>
+                  <Typography color="text.secondary">{detailUser.email}</Typography>
                 </Box>
-                <Alert severity={form.isActive ? 'success' : 'warning'} sx={{ width: '100%' }}>
-                  {form.isActive
-                    ? 'This admin account is active.'
-                    : 'This admin account is marked inactive.'}
-                </Alert>
               </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ lg: 8, xs: 12 }}>
-          <Card sx={{ borderRadius: 1 }}>
-            <CardContent>
-              <Typography variant="h6">Profile Information</Typography>
-              <Grid container spacing={2.25} sx={{ mt: 0.5 }}>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="First name"
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, firstName: event.target.value }))
-                    }
-                    value={form.firstName}
-                  />
-                </Grid>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="Last name"
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, lastName: event.target.value }))
-                    }
-                    value={form.lastName}
-                  />
-                </Grid>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, email: event.target.value }))
-                    }
-                    type="email"
-                    value={form.email}
-                  />
-                </Grid>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <TextField fullWidth label="Role" value={roleLabel} disabled />
-                </Grid>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="Tenant ID"
-                    value={user?.tenantId ?? 'tenant-demo'}
-                    disabled
-                  />
-                </Grid>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="User ID"
-                    value={user?.id ?? 'current-admin'}
-                    disabled
-                  />
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={form.isActive}
-                        onChange={(event) =>
-                          setForm((current) => ({ ...current, isActive: event.target.checked }))
-                        }
-                      />
-                    }
-                    label="Admin account active"
-                  />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-          <Alert severity="info" sx={{ mt: 2 }}>
-            Admin profile changes are saved through the backend and applied to the storefront header.
-          </Alert>
-          {profileQuery.isError ? (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {toApiError(profileQuery.error).message}
-            </Alert>
+              <Box
+                sx={{
+                  bgcolor: 'background.default',
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  p: 2,
+                }}
+              >
+                <Typography sx={{ fontWeight: 900 }} variant="subtitle1">
+                  {getRoleDefinition(detailUser.role).label}
+                </Typography>
+                <Typography color="text.secondary" sx={{ mt: 0.75 }} variant="body2">
+                  {getRoleDefinition(detailUser.role).description}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: 900, mb: 1 }} variant="subtitle2">
+                  Responsibilities
+                </Typography>
+                <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
+                  {getRoleDefinition(detailUser.role).responsibilities.map((responsibility) => (
+                    <Chip key={responsibility} label={responsibility} />
+                  ))}
+                </Stack>
+              </Box>
+            </Stack>
           ) : null}
-          <Card sx={{ borderRadius: 1, mt: 2 }}>
-            <CardContent>
-              <Typography variant="h6">Storefront Header Info</Typography>
-              <Typography color="text.secondary" sx={{ mt: 0.75 }} variant="body2">
-                These fields control the red storefront top bar delivery and phone messages.
-              </Typography>
-              <Grid container spacing={2.25} sx={{ mt: 0.5 }}>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="Delivery headline"
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        deliveryHeadline: event.target.value,
-                      }))
-                    }
-                    value={form.deliveryHeadline}
-                  />
-                </Grid>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <Grid container spacing={1.25}>
-                    <Grid size={{ sm: 3.5, xs: 12 }}>
-                      <TextField
-                        fullWidth
-                        label="Country code"
-                        onChange={(event) =>
-                          setForm((current) => ({
-                            ...current,
-                            phoneCountryCode: event.target.value,
-                            supportPhoneLabel:
-                              `${event.target.value} ${current.phoneLocalNumber}`.trim(),
-                          }))
-                        }
-                        select
-                        slotProps={{
-                          select: {
-                            renderValue: (value) => value as string,
-                          },
-                        }}
-                        value={form.phoneCountryCode}
-                      >
-                        {countryCodeOptions.map((option) => (
-                          <MenuItem key={option.code} value={option.code}>
-                            {option.code} {option.country}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    <Grid size={{ sm: 8.5, xs: 12 }}>
-                      <TextField
-                        fullWidth
-                        label="Contact mobile phone"
-                        onChange={(event) =>
-                          setForm((current) => ({
-                            ...current,
-                            phoneLocalNumber: event.target.value,
-                            supportPhoneLabel:
-                              `${current.phoneCountryCode} ${event.target.value}`.trim(),
-                          }))
-                        }
-                        placeholder="800 287"
-                        type="tel"
-                        value={form.phoneLocalNumber}
-                      />
-                    </Grid>
-                  </Grid>
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="Top bar tagline"
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        topBarTagline: event.target.value,
-                      }))
-                    }
-                    value={form.topBarTagline}
-                  />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-          {savedAt ? (
-            <Alert severity="success" sx={{ mt: 2 }}>
-              Admin information saved at {savedAt}.
-            </Alert>
-          ) : null}
-        </Grid>
-      </Grid>
+        </DialogContent>
+        <DialogActions>
+          <AppButton color="inherit" onClick={() => setDetailUser(null)}>
+            Close
+          </AppButton>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog fullWidth maxWidth="xs" onClose={() => setDeleteTarget(null)} open={Boolean(deleteTarget)}>
+        <DialogTitle>Delete User?</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">
+            {deleteTarget
+              ? `Remove ${deleteTarget.firstName} ${deleteTarget.lastName} from dashboard access?`
+              : 'Remove this user from dashboard access?'}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <AppButton color="inherit" onClick={() => setDeleteTarget(null)}>
+            Cancel
+          </AppButton>
+          <AppButton color="error" onClick={handleDelete}>
+            Delete user
+          </AppButton>
+        </DialogActions>
+      </Dialog>
     </PageSection>
   );
 };

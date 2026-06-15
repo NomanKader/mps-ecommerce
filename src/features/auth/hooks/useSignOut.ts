@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { queryClient } from '@app/providers/query-client/queryClient';
 import { authApi } from '@features/auth/api/authApi';
 import { routePaths } from '@routes/routePaths';
+import { authService } from '@services/auth/auth.service';
 import { tokenService } from '@services/auth/token.service';
 import { useAppDispatch } from '@store/hooks';
 import { clearSession } from '@store/slices/auth.slice';
@@ -21,7 +22,7 @@ export const useSignOut = () => {
     } catch {
       // Stateless logout still completes locally when the API is unavailable.
     } finally {
-      tokenService.clear();
+      authService.signOut();
       dispatch(clearSession());
       queryClient.clear();
       toast.success('Signed out');

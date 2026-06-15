@@ -23,7 +23,7 @@ export const SettingsPage = () => {
           Save settings
         </AppButton>
       }
-      description="Update demo tenant branding, fulfillment rules, and operational defaults."
+      description="Update local tenant branding, fulfillment rules, and operational defaults."
       title="Settings"
     >
       <Grid container spacing={3}>

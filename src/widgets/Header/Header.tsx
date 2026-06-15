@@ -1,6 +1,7 @@
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
 import FmdGoodOutlinedIcon from '@mui/icons-material/FmdGoodOutlined';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
@@ -63,6 +64,7 @@ export const Header = () => {
     ? (storefrontCategoryMenuItems[activeCategoryId] ?? [])
     : [];
   const isCustomer = isAuthenticated && user?.role === 'customer';
+  const isTenantAdmin = isAuthenticated && user?.role === 'tenant_admin';
   const deliveryHeadline =
     headerSettingsQuery.data?.deliveryHeadline ?? user?.deliveryHeadline ?? 'Delivery all over UAE';
   const supportPhoneLabel = headerSettingsQuery.data
@@ -72,6 +74,7 @@ export const Header = () => {
     headerSettingsQuery.data?.topBarTagline ??
     user?.topBarTagline ??
     'Sustainable Grocery Shopping';
+  const appLogoUrl = headerSettingsQuery.data?.logoUrl || user?.logoUrl || logoImage;
   const isAccountRoute =
     location.pathname.startsWith(routePaths.account) &&
     location.pathname !== routePaths.accountFavourites;
@@ -140,7 +143,7 @@ export const Header = () => {
             <Box
               alt="AV's Store"
               component="img"
-              src={logoImage}
+              src={appLogoUrl}
               sx={{ display: 'block', height: 28, objectFit: 'contain', width: 28 }}
             />
             <Typography
@@ -238,6 +241,24 @@ export const Header = () => {
                     {user?.firstName ?? 'Account'}
                   </Typography>
                 )}
+                {isTenantAdmin ? (
+                  <Stack
+                    component={Link}
+                    direction="row"
+                    spacing={0.7}
+                    sx={{
+                      alignItems: 'center',
+                      color: 'inherit',
+                      textDecoration: 'none',
+                    }}
+                    to={routePaths.tenantAdmin.dashboard}
+                  >
+                    <DashboardOutlinedIcon sx={{ fontSize: 18 }} />
+                    <Typography sx={{ fontWeight: 700 }} variant="body2">
+                      Dashboard
+                    </Typography>
+                  </Stack>
+                ) : null}
                 <Stack
                   component="button"
                   direction="row"
@@ -302,7 +323,7 @@ export const Header = () => {
           <Box
             alt="AV's Store"
             component="img"
-            src={logoImage}
+            src={appLogoUrl}
             sx={{ display: 'block', height: { md: 86, xs: 58 }, objectFit: 'contain' }}
           />
         </Box>
@@ -615,7 +636,7 @@ export const Header = () => {
           <Box
             alt="AV's Store"
             component="img"
-            src={logoImage}
+            src={appLogoUrl}
             sx={{ display: 'block', flexShrink: 0, height: 43, objectFit: 'contain', width: 43 }}
           />
           <Typography
@@ -748,42 +769,77 @@ export const Header = () => {
             ) : null}
           </Box>
         ))}
-        <Box
-          aria-label={isCustomer ? 'Wallet account' : 'Account login'}
-          component={isCustomer ? Link : 'button'}
-          onClick={isCustomer ? undefined : () => setIsAuthDrawerOpen(true)}
-          sx={{
-            alignItems: 'center',
-            background: 'transparent',
-            border: 0,
-            color: '#ffffff',
-            cursor: 'pointer',
-            display: 'flex',
-            height: 56,
-            justifyContent: 'center',
-            minWidth: 0,
-            p: 0,
-            position: 'relative',
-            textDecoration: 'none',
-            '& svg': {
-              fontSize: 35,
-            },
-            '&::after': {
-              backgroundColor: '#ff8c1a',
-              bottom: 0,
-              content: '""',
-              display: isAccountRoute ? 'block' : 'none',
-              height: 2,
-              left: 0,
-              position: 'absolute',
-              right: 0,
-            },
-          }}
-          to={isCustomer ? routePaths.accountWallet : undefined}
-          type={isCustomer ? undefined : 'button'}
-        >
-          {isCustomer ? <AccountBalanceWalletOutlinedIcon /> : <PersonOutlineRoundedIcon />}
-        </Box>
+        {isTenantAdmin ? (
+          <Box
+            aria-label="Admin dashboard"
+            component={Link}
+            sx={{
+              alignItems: 'center',
+              color: '#ffffff',
+              display: 'flex',
+              height: 56,
+              justifyContent: 'center',
+              minWidth: 0,
+              position: 'relative',
+              textDecoration: 'none',
+              '& svg': {
+                fontSize: 35,
+              },
+              '&::after': {
+                backgroundColor: '#ff8c1a',
+                bottom: 0,
+                content: '""',
+                display: location.pathname.startsWith(routePaths.tenantAdmin.dashboard)
+                  ? 'block'
+                  : 'none',
+                height: 2,
+                left: 0,
+                position: 'absolute',
+                right: 0,
+              },
+            }}
+            to={routePaths.tenantAdmin.dashboard}
+          >
+            <DashboardOutlinedIcon />
+          </Box>
+        ) : (
+          <Box
+            aria-label={isCustomer ? 'Wallet account' : 'Account login'}
+            component={isCustomer ? Link : 'button'}
+            onClick={isCustomer ? undefined : () => setIsAuthDrawerOpen(true)}
+            sx={{
+              alignItems: 'center',
+              background: 'transparent',
+              border: 0,
+              color: '#ffffff',
+              cursor: 'pointer',
+              display: 'flex',
+              height: 56,
+              justifyContent: 'center',
+              minWidth: 0,
+              p: 0,
+              position: 'relative',
+              textDecoration: 'none',
+              '& svg': {
+                fontSize: 35,
+              },
+              '&::after': {
+                backgroundColor: '#ff8c1a',
+                bottom: 0,
+                content: '""',
+                display: isAccountRoute ? 'block' : 'none',
+                height: 2,
+                left: 0,
+                position: 'absolute',
+                right: 0,
+              },
+            }}
+            to={isCustomer ? routePaths.accountWallet : undefined}
+            type={isCustomer ? undefined : 'button'}
+          >
+            {isCustomer ? <AccountBalanceWalletOutlinedIcon /> : <PersonOutlineRoundedIcon />}
+          </Box>
+        )}
       </Box>
     </Box>
   );

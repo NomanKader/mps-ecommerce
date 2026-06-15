@@ -68,7 +68,7 @@ const quickMealProducts: StoreProduct[] = [
     sku: 'QML-SAN-001',
     slug: 'sandwich-filling',
     tags: ['grab-and-go', 'fresh'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '15.20 / tub',
   },
   {
@@ -90,7 +90,7 @@ const quickMealProducts: StoreProduct[] = [
     sku: 'QML-BEF-002',
     slug: 'beef-tapa',
     tags: ['heat-and-eat'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -109,7 +109,7 @@ const quickMealProducts: StoreProduct[] = [
     sku: 'QML-SLD-003',
     slug: 'beetroot-feta-salad',
     tags: ['salad', 'fresh'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -128,7 +128,7 @@ const quickMealProducts: StoreProduct[] = [
     sku: 'QML-WRP-004',
     slug: 'caesar-chicken-wrap',
     tags: ['grab-and-go'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -151,7 +151,7 @@ const quickMealProducts: StoreProduct[] = [
     sku: 'QML-SUS-005',
     slug: 'california-maki-mix',
     tags: ['sushi'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -170,7 +170,7 @@ const quickMealProducts: StoreProduct[] = [
     sku: 'QML-CHK-006',
     slug: 'chicken-katsu',
     tags: ['asian'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -189,7 +189,7 @@ const quickMealProducts: StoreProduct[] = [
     sku: 'QML-PSA-007',
     slug: 'chicken-pasta-salad',
     tags: ['salad'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -208,7 +208,7 @@ const quickMealProducts: StoreProduct[] = [
     sku: 'QML-SHW-008',
     slug: 'chicken-shawarma-wrap',
     tags: ['wrap'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -230,7 +230,7 @@ const quickMealProducts: StoreProduct[] = [
     sku: 'QML-COL-009',
     slug: 'coleslaw-salad',
     tags: ['salad'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -252,7 +252,7 @@ const quickMealProducts: StoreProduct[] = [
     sku: 'QML-FAL-010',
     slug: 'falafel-wrap',
     tags: ['vegan', 'wrap'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -271,7 +271,7 @@ const quickMealProducts: StoreProduct[] = [
     sku: 'QML-STW-011',
     slug: 'chicken-stew',
     tags: ['heat-and-eat'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -290,7 +290,7 @@ const quickMealProducts: StoreProduct[] = [
     sku: 'QML-CIA-012',
     slug: 'ciabatta-sandwich',
     tags: ['sandwich'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
 ];
@@ -315,7 +315,7 @@ const topOfferProducts: StoreProduct[] = [
     sku: 'OFF-CHK-001',
     slug: 'chicken-skewers',
     tags: ['offer'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '19.95 / pack',
   },
   {
@@ -334,7 +334,7 @@ const topOfferProducts: StoreProduct[] = [
     sku: 'OFF-ROL-002',
     slug: 'chicken-sausage-rolls',
     tags: ['offer'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '24.70 / pack',
   },
   {
@@ -353,7 +353,7 @@ const topOfferProducts: StoreProduct[] = [
     sku: 'OFF-MLK-003',
     slug: 'milk-dessert',
     tags: ['dessert'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '95.40 / carton',
   },
   {
@@ -375,7 +375,7 @@ const topOfferProducts: StoreProduct[] = [
     sku: 'OFF-OAT-004',
     slug: 'oats-dessert',
     tags: ['dessert'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '21.20 / carton',
   },
   {
@@ -398,7 +398,7 @@ const topOfferProducts: StoreProduct[] = [
     sku: 'OFF-OAT-005',
     slug: 'oats-dessert-pack',
     tags: ['dessert'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: '59.40 / carton',
   },
 ];
@@ -423,7 +423,7 @@ const newProducts: StoreProduct[] = [
     sku: 'NEW-FUS-001',
     slug: 'fusilli',
     tags: ['new', 'frozen'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -445,7 +445,7 @@ const newProducts: StoreProduct[] = [
     sku: 'NEW-PAS-002',
     slug: 'pasta',
     tags: ['new', 'frozen'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -467,7 +467,7 @@ const newProducts: StoreProduct[] = [
     sku: 'NEW-LIN-003',
     slug: 'linguine',
     tags: ['new', 'frozen'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -489,7 +489,7 @@ const newProducts: StoreProduct[] = [
     sku: 'NEW-TAG-004',
     slug: 'tagliatelle',
     tags: ['new', 'frozen'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -511,7 +511,7 @@ const newProducts: StoreProduct[] = [
     sku: 'NEW-RIG-005',
     slug: 'rigatoni',
     tags: ['new', 'frozen'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
   {
@@ -533,7 +533,7 @@ const newProducts: StoreProduct[] = [
     sku: 'NEW-RAV-006',
     slug: 'ravioli',
     tags: ['new', 'frozen'],
-    tenantId: 'tenant-demo',
+    tenantId: 'AV',
     unit: 'pack',
   },
 ];
@@ -1152,7 +1152,7 @@ const createProduct = (
   sku: `${categoryId.slice(0, 3).toUpperCase()}-${String(index).padStart(3, '0')}`,
   slug: name.toLowerCase().replaceAll('&', 'and').replaceAll(' ', '-'),
   tags: [categoryId, sectionLabel.toLowerCase()],
-  tenantId: 'tenant-demo',
+  tenantId: 'AV',
   unit: index % 2 === 0 ? 'pack' : `${250 + index * 25}g`,
 });
 

@@ -10,7 +10,6 @@ import type {
   StorefrontHighlightSection,
   StorefrontProductSection,
   StorefrontProductSectionAssignment,
-  StorefrontProductSectionId,
 } from '@features/home/types/home.types';
 
 type MongoEntity = { _id: string };
@@ -20,6 +19,7 @@ type Query = Record<string, string | undefined>;
 
 export type HeaderSettings = {
   deliveryHeadline: string;
+  logoUrl?: string;
   supportPhoneCountryCode: string;
   supportPhoneNumber: string;
   topBarTagline: string;
@@ -36,6 +36,7 @@ export type AdminProfilePayload = {
   firstName: string;
   isActive: boolean;
   lastName: string;
+  logoUrl?: string;
   supportPhoneCountryCode: string;
   supportPhoneNumber: string;
   topBarTagline: string;

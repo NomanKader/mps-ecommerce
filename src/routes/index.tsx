@@ -25,7 +25,10 @@ import { OrdersManagementPage } from '@pages/TenantAdmin/OrdersManagementPage/Or
 import { ProductsPage } from '@pages/TenantAdmin/ProductsPage/ProductsPage';
 import { ProductSectionsPage } from '@pages/TenantAdmin/ProductSectionsPage/ProductSectionsPage';
 import { PromotionsPage } from '@pages/TenantAdmin/PromotionsPage/PromotionsPage';
+import { RegionsPage } from '@pages/TenantAdmin/RegionsPage/RegionsPage';
+import { SecondaryCategoriesPage } from '@pages/TenantAdmin/SecondaryCategoriesPage/SecondaryCategoriesPage';
 import { StorefrontIconsPage } from '@pages/TenantAdmin/StorefrontIconsPage/StorefrontIconsPage';
+import { TownshipsPage } from '@pages/TenantAdmin/TownshipsPage/TownshipsPage';
 import { ProtectedRoute } from '@routes/ProtectedRoute';
 import { PublicRoute } from '@routes/PublicRoute';
 import { routePaths } from '@routes/routePaths';
@@ -114,12 +117,20 @@ export const router = createBrowserRouter([
               { element: <AdminUserPage />, path: routePaths.tenantAdmin.adminUser },
               { element: <ProductsPage />, path: routePaths.tenantAdmin.products },
               { element: <CategoriesPage />, path: routePaths.tenantAdmin.categories },
+              { element: <CategoriesPage />, path: routePaths.tenantAdmin.primaryCategory },
+              {
+                element: <SecondaryCategoriesPage />,
+                path: routePaths.tenantAdmin.secondaryCategory,
+              },
+              { element: <CategoriesPage />, path: routePaths.tenantAdmin.subCategory },
               { element: <OrdersManagementPage />, path: routePaths.tenantAdmin.orders },
               { element: <CustomersPage />, path: routePaths.tenantAdmin.customers },
               { element: <ProductSectionsPage />, path: routePaths.tenantAdmin.productSections },
               { element: <CarouselPage />, path: routePaths.tenantAdmin.carousel },
               { element: <StorefrontIconsPage />, path: routePaths.tenantAdmin.storefrontIcons },
               { element: <PromotionsPage />, path: routePaths.tenantAdmin.promotions },
+              { element: <RegionsPage />, path: routePaths.tenantAdmin.regions },
+              { element: <TownshipsPage />, path: routePaths.tenantAdmin.townships },
               { element: <DeliveryFeesPage />, path: routePaths.tenantAdmin.deliveryFees },
             ],
           },

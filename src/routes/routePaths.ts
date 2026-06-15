@@ -45,8 +45,13 @@ export const routePaths = {
     deliveryFees: '/admin/delivery-fees',
     storefrontIcons: '/admin/storefront-icons',
     orders: '/admin/orders',
+    primaryCategory: '/admin/primary-category',
     products: '/admin/products',
     productSections: '/admin/product-sections',
     promotions: '/admin/promotions',
+    regions: '/admin/regions',
+    secondaryCategory: '/admin/secondary-category',
+    subCategory: '/admin/sub-category',
+    townships: '/admin/townships',
   },
 } as const;

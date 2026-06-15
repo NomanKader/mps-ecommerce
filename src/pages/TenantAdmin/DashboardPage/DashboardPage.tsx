@@ -20,6 +20,11 @@ import { toApiError } from '@shared/api/apiError';
 import { formatCurrency } from '@utils/formatCurrency';
 
 const percent = (value: number, max: number) => (max > 0 ? Math.min((value / max) * 100, 100) : 0);
+const formatPlacedAt = (value: string) =>
+  new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
 
 export const DashboardPage = () => {
   const dashboardQuery = useQuery({
@@ -156,6 +161,9 @@ export const DashboardPage = () => {
                       <Typography variant="body2">{order.orderNumber}</Typography>
                       <Typography color="text.secondary" variant="caption">
                         {order.customerName}
+                      </Typography>
+                      <Typography color="text.secondary" variant="caption">
+                        {formatPlacedAt(order.placedAt)}
                       </Typography>
                     </Box>
                     <Typography variant="body2">

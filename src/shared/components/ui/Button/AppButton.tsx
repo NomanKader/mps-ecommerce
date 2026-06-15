@@ -11,7 +11,11 @@ export const AppButton = ({ sx, ...props }: ButtonProps) => (
         minHeight: 48,
         px: 2.5,
         textTransform: 'none',
+        transition: 'transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease',
         whiteSpace: 'nowrap',
+        '&:hover': {
+          transform: 'translateY(-1px)',
+        },
       },
       ...(Array.isArray(sx) ? sx : [sx]),
     ]}

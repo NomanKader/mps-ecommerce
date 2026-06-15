@@ -4,7 +4,7 @@ export const adminUserStorageKey = 'mps-ecommerce.admin-user-info';
 
 export type AdminUserInfo = Pick<
   User,
-  'email' | 'firstName' | 'id' | 'isActive' | 'lastName' | 'role' | 'tenantId'
+  'email' | 'firstName' | 'id' | 'isActive' | 'lastName' | 'logoUrl' | 'role' | 'tenantId'
 > & {
   supportPhoneLabel?: string;
   topBarTagline?: string;
@@ -26,6 +26,7 @@ const isAdminUserInfo = (value: unknown): value is AdminUserInfo => {
     user.role === 'tenant_admin' &&
     (typeof user.deliveryHeadline === 'string' || typeof user.deliveryHeadline === 'undefined') &&
     (typeof user.isActive === 'boolean' || typeof user.isActive === 'undefined') &&
+    (typeof user.logoUrl === 'string' || typeof user.logoUrl === 'undefined') &&
     (typeof user.supportPhoneLabel === 'string' || typeof user.supportPhoneLabel === 'undefined') &&
     (typeof user.topBarTagline === 'string' || typeof user.topBarTagline === 'undefined') &&
     (typeof user.tenantId === 'string' || typeof user.tenantId === 'undefined')
