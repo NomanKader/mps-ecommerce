@@ -6,8 +6,6 @@ import {
   S3Client
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import fs from 'node:fs/promises';
-import path from 'node:path';
 
 import { env } from '@config/env';
 
@@ -50,10 +48,6 @@ export class S3Service {
     const imageName = this.productImageName(file.originalname, tenantId, sku);
     const imageKey = `products/${imageName}`;
 
-    if (!this.hasS3Config()) {
-      return this.uploadLocalImage(file, imageKey, imageName);
-    }
-
     await this.client().send(
       new PutObjectCommand({
         Bucket: this.bucketName(),
@@ -79,10 +73,6 @@ export class S3Service {
     const imageName = this.storefrontImageName(file.originalname, tenantId, reference);
     const imageKey = `storefront/${imageName}`;
 
-    if (!this.hasS3Config()) {
-      return this.uploadLocalImage(file, imageKey, imageName);
-    }
-
     await this.client().send(
       new PutObjectCommand({
         Bucket: this.bucketName(),
@@ -102,10 +92,6 @@ export class S3Service {
 
   async getProductImageUrl(imageKey?: string, imageName?: string): Promise<string | null> {
     if (!imageKey || !imageName || !imageKey.endsWith(imageName)) return null;
-
-    if (this.isLocalImageKey(imageKey) || !this.hasS3Config()) {
-      return this.localImageUrl(imageKey, imageName);
-    }
 
     try {
       await this.client().send(
@@ -131,11 +117,6 @@ export class S3Service {
   async deleteProductImage(imageKey?: string): Promise<void> {
     if (!imageKey) return;
 
-    if (this.isLocalImageKey(imageKey) || !this.hasS3Config()) {
-      await this.deleteLocalImage(imageKey);
-      return;
-    }
-
     try {
       await this.client().send(
         new DeleteObjectCommand({
@@ -146,57 +127,6 @@ export class S3Service {
     } catch {
       // Image cleanup should not fail the product mutation.
     }
-  }
-
-  private async uploadLocalImage(
-    file: ProductImageFile,
-    imageKey: string,
-    imageName: string
-  ): Promise<ProductImageMetadata> {
-    const destination = path.resolve(env.LOCAL_UPLOAD_DIR, imageKey);
-
-    await fs.mkdir(path.dirname(destination), { recursive: true });
-    await fs.writeFile(destination, file.buffer);
-
-    return {
-      imageName,
-      imageMimeType: file.mimetype,
-      imageSize: file.size,
-      imageDriveFileId: `local/${imageKey}`
-    };
-  }
-
-  private async deleteLocalImage(imageKey: string): Promise<void> {
-    try {
-      await fs.unlink(path.resolve(env.LOCAL_UPLOAD_DIR, this.normalizedLocalImageKey(imageKey)));
-    } catch {
-      // Image cleanup should not fail the product mutation.
-    }
-  }
-
-  private localImageUrl(imageKey: string, imageName: string): string | null {
-    const normalizedKey = this.normalizedLocalImageKey(imageKey);
-    if (!normalizedKey.endsWith(imageName)) return null;
-
-    const publicPath = env.LOCAL_UPLOAD_PUBLIC_PATH.startsWith('/')
-      ? env.LOCAL_UPLOAD_PUBLIC_PATH
-      : `/${env.LOCAL_UPLOAD_PUBLIC_PATH}`;
-    const baseUrl = (env.PUBLIC_BASE_URL ?? `http://localhost:${env.PORT}`).replace(/\/$/, '');
-    const encodedKey = normalizedKey.split('/').map(encodeURIComponent).join('/');
-
-    return `${baseUrl}${publicPath}/${encodedKey}`;
-  }
-
-  private normalizedLocalImageKey(imageKey: string): string {
-    return imageKey.startsWith('local/') ? imageKey.slice('local/'.length) : imageKey;
-  }
-
-  private isLocalImageKey(imageKey: string): boolean {
-    return imageKey.startsWith('local/');
-  }
-
-  private hasS3Config(): boolean {
-    return Boolean(env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY && env.S3_BUCKET_NAME);
   }
 
   private client(): S3Client {
