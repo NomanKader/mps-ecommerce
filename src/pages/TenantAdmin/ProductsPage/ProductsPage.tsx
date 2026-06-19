@@ -109,6 +109,7 @@ const optionalBulkColumns = [
   'Description',
   'Currency',
   'Status',
+  'Image URL',
 ];
 
 const normalizeHeader = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -189,6 +190,9 @@ const normalizeBulkRow = (row: Record<string, unknown>): AdminProductBulkItem =>
       undefined,
     currency: String(readField(normalizedRow, ['currency']) ?? 'USD') || 'USD',
     description: String(readField(normalizedRow, ['description', 'desc']) ?? ''),
+    imageUrl:
+      String(readField(normalizedRow, ['imageurl', 'imagelink', 'image', 'photo']) ?? '') ||
+      undefined,
     name: String(readField(normalizedRow, ['name', 'productname', 'title']) ?? '').trim(),
     price: Number.isFinite(price) ? price : 0,
     rating: Number.isFinite(rating) ? rating : 0,
@@ -309,6 +313,12 @@ export const ProductsPage = () => {
     () => new Map(categories.map((category) => [category.id, category.name])),
     [categories],
   );
+
+  const resetBulkUpload = () => {
+    setBulkProducts([]);
+    setBulkUploadError('');
+    setBulkUploadFileName('');
+  };
   const categoryByIdMap = useMemo(
     () => new Map(categories.map((category) => [category.id, category])),
     [categories],
@@ -566,12 +576,11 @@ export const ProductsPage = () => {
     onError: (error) => toast.error(toApiError(error).message),
     onSuccess: async (result) => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
       toast.success(
         `Imported ${result.data.created} new and ${result.data.updated} updated products.`,
       );
-      setBulkProducts([]);
-      setBulkUploadError('');
-      setBulkUploadFileName('');
+      resetBulkUpload();
       setIsBulkUploadDialogOpen(false);
     },
   });
@@ -691,9 +700,7 @@ export const ProductsPage = () => {
         <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
           <AppButton
             onClick={() => {
-              setBulkProducts([]);
-              setBulkUploadError('');
-              setBulkUploadFileName('');
+              resetBulkUpload();
               setIsBulkUploadDialogOpen(true);
             }}
             startIcon={<CloudUploadOutlinedIcon />}
@@ -821,6 +828,19 @@ export const ProductsPage = () => {
               Upload an Excel or CSV file with one product per row. Existing SKUs are updated by
               default.
             </Alert>
+            <AppButton
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = '/samples/product-bulk-upload-sample.csv';
+                link.download = 'product-bulk-upload-sample.csv';
+                link.click();
+              }}
+              sx={{ alignSelf: 'flex-start' }}
+              type="button"
+              variant="outlined"
+            >
+              Download sample CSV
+            </AppButton>
             <TextField
               label="Import mode"
               onChange={(event) =>
@@ -836,24 +856,61 @@ export const ProductsPage = () => {
               component="label"
               sx={{
                 alignItems: 'center',
-                border: 1,
-                borderColor: 'divider',
+                bgcolor: bulkProducts.length > 0 ? 'success.lighter' : 'background.paper',
+                border: 2,
+                borderColor: bulkProducts.length > 0 ? 'success.main' : 'divider',
                 borderRadius: 1,
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 1,
+                gap: 1.25,
                 justifyContent: 'center',
                 minHeight: 160,
                 p: 3,
                 textAlign: 'center',
+                transition: 'border-color 160ms ease, background-color 160ms ease',
+                '&:hover': {
+                  borderColor: bulkProducts.length > 0 ? 'success.dark' : 'primary.main',
+                },
               }}
             >
-              <CloudUploadOutlinedIcon color="primary" fontSize="large" />
-              <Typography sx={{ fontWeight: 700 }}>Choose Excel or CSV file</Typography>
-              <Typography color="text.secondary" variant="body2">
-                Use the first row for column headings.
+              <CloudUploadOutlinedIcon
+                color={bulkProducts.length > 0 ? 'success' : 'primary'}
+                fontSize="large"
+              />
+              <Typography sx={{ fontWeight: 800 }}>
+                {bulkProducts.length > 0 ? 'File selected' : 'Choose Excel or CSV file'}
               </Typography>
+              {bulkUploadFileName ? (
+                <Chip
+                  color={bulkProducts.length > 0 ? 'success' : 'primary'}
+                  label={
+                    bulkProducts.length > 0
+                      ? `${bulkUploadFileName} - ${bulkProducts.length} rows ready`
+                      : bulkUploadFileName
+                  }
+                  variant="outlined"
+                />
+              ) : (
+                <Typography color="text.secondary" variant="body2">
+                  Use the first row for column headings.
+                </Typography>
+              )}
+              {bulkProducts.length > 0 ? (
+                <AppButton
+                  color="inherit"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    resetBulkUpload();
+                  }}
+                  size="small"
+                  type="button"
+                  variant="text"
+                >
+                  Choose another file
+                </AppButton>
+              ) : null}
               <input
                 accept=".xlsx,.xls,.csv"
                 hidden
@@ -878,29 +935,22 @@ export const ProductsPage = () => {
                 For Tags, separate multiple values with commas or vertical bars, for example:
                 organic, leafy.
               </Typography>
+              <Typography color="text.secondary" variant="caption">
+                Use Image URL for externally hosted product images.
+              </Typography>
+              <Typography color="text.secondary" variant="caption">
+                Missing Category names are created automatically, and missing Subcategory names are
+                added under that category.
+              </Typography>
             </Stack>
             {bulkUploadError ? <Alert severity="error">{bulkUploadError}</Alert> : null}
-            {bulkUploadFileName ? (
-              <Chip
-                color={bulkProducts.length > 0 ? 'success' : 'primary'}
-                label={
-                  bulkProducts.length > 0
-                    ? `${bulkUploadFileName} - ${bulkProducts.length} rows ready`
-                    : bulkUploadFileName
-                }
-                sx={{ alignSelf: 'flex-start' }}
-                variant="outlined"
-              />
-            ) : null}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <AppButton
             color="inherit"
             onClick={() => {
-              setBulkProducts([]);
-              setBulkUploadError('');
-              setBulkUploadFileName('');
+              resetBulkUpload();
               setIsBulkUploadDialogOpen(false);
             }}
             variant="outlined"

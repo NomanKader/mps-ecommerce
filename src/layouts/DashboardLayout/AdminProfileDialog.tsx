@@ -44,6 +44,8 @@ type AdminUserForm = {
   isActive: boolean;
   lastName: string;
   logoUrl: string;
+  password: string;
+  passwordConfirmation: string;
   phoneCountryCode: string;
   phoneLocalNumber: string;
   supportPhoneLabel: string;
@@ -96,6 +98,8 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
     isActive: user?.isActive ?? true,
     lastName: user?.lastName ?? '',
     logoUrl: user?.logoUrl ?? '',
+    password: '',
+    passwordConfirmation: '',
     phoneCountryCode: initialPhone.phoneCountryCode,
     phoneLocalNumber: initialPhone.phoneLocalNumber,
     supportPhoneLabel: `${initialPhone.phoneCountryCode} ${initialPhone.phoneLocalNumber}`.trim(),
@@ -126,6 +130,8 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
         isActive: admin.isActive ?? true,
         lastName: admin.lastName,
         logoUrl: headerSettings.logoUrl ?? admin.logoUrl ?? '',
+        password: '',
+        passwordConfirmation: '',
         phoneCountryCode: headerSettings.supportPhoneCountryCode,
         phoneLocalNumber: headerSettings.supportPhoneNumber,
         supportPhoneLabel:
@@ -156,6 +162,7 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
       dispatch(setSession({ accessToken, user: nextUser }));
       await queryClient.invalidateQueries({ queryKey: ['admin', 'profile'] });
       await queryClient.invalidateQueries({ queryKey: ['storefront', 'header-settings'] });
+      setForm((current) => ({ ...current, password: '', passwordConfirmation: '' }));
       setSavedAt(new Date().toLocaleTimeString());
       toast.success(result.message);
     },
@@ -174,7 +181,9 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
     const deliveryHeadline = form.deliveryHeadline.trim();
     const phoneLocalNumber = form.phoneLocalNumber.trim();
     const supportPhoneLabel = `${form.phoneCountryCode} ${phoneLocalNumber}`.trim();
-    const topBarTagline = form.topBarTagline.trim();
+    const topBarTagline = form.topBarTagline.trim() || 'Sustainable Grocery Shopping';
+    const password = form.password.trim();
+    const passwordConfirmation = form.passwordConfirmation.trim();
 
     if (!firstName || !lastName || !email || !deliveryHeadline || !phoneLocalNumber) {
       toast.error(
@@ -188,6 +197,19 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
       return;
     }
 
+    if ((password || passwordConfirmation) && password.length < 8) {
+      toast.error('Password must be at least 8 characters.');
+      return;
+    }
+
+    if (password !== passwordConfirmation) {
+      toast.error('Password confirmation does not match.');
+      return;
+    }
+
+    const passwordPayload =
+      password && passwordConfirmation ? { password, passwordConfirmation } : {};
+
     updateProfileMutation.mutate({
       deliveryHeadline,
       email,
@@ -195,6 +217,7 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
       isActive: form.isActive,
       lastName,
       logoUrl,
+      ...passwordPayload,
       supportPhoneCountryCode: form.phoneCountryCode,
       supportPhoneNumber: phoneLocalNumber,
       topBarTagline,
@@ -403,6 +426,34 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
                       disabled
                     />
                   </Grid>
+                  <Grid size={{ sm: 6, xs: 12 }}>
+                    <TextField
+                      autoComplete="new-password"
+                      fullWidth
+                      helperText="Leave blank to keep the current password."
+                      label="New password"
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, password: event.target.value }))
+                      }
+                      type="password"
+                      value={form.password}
+                    />
+                  </Grid>
+                  <Grid size={{ sm: 6, xs: 12 }}>
+                    <TextField
+                      autoComplete="new-password"
+                      fullWidth
+                      label="Confirm password"
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          passwordConfirmation: event.target.value,
+                        }))
+                      }
+                      type="password"
+                      value={form.passwordConfirmation}
+                    />
+                  </Grid>
                   <Grid size={{ xs: 12 }}>
                     <FormControlLabel
                       control={
@@ -429,12 +480,12 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
               </Alert>
             ) : null}
             <Card sx={{ borderRadius: 1, mt: 2 }}>
-              <CardContent>
+              <CardContent sx={{ p: { sm: 3, xs: 2 } }}>
                 <Typography variant="h6">Storefront Header Info</Typography>
-                <Typography color="text.secondary" sx={{ mt: 0.75 }} variant="body2">
+                <Typography color="text.secondary" sx={{ mt: 1, maxWidth: 720 }} variant="body2">
                   These fields control the red storefront top bar delivery and phone messages.
                 </Typography>
-                <Grid container spacing={2.25} sx={{ mt: 0.5 }}>
+                <Grid container spacing={2.5} sx={{ mt: 2 }}>
                   <Grid size={{ sm: 6, xs: 12 }}>
                     <TextField
                       fullWidth
@@ -449,7 +500,7 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
                     />
                   </Grid>
                   <Grid size={{ sm: 6, xs: 12 }}>
-                    <Grid container spacing={1.25}>
+                    <Grid container spacing={2}>
                       <Grid size={{ sm: 3.5, xs: 12 }}>
                         <TextField
                           fullWidth
@@ -495,19 +546,6 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
                         />
                       </Grid>
                     </Grid>
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <TextField
-                      fullWidth
-                      label="Top bar tagline"
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          topBarTagline: event.target.value,
-                        }))
-                      }
-                      value={form.topBarTagline}
-                    />
                   </Grid>
                 </Grid>
               </CardContent>

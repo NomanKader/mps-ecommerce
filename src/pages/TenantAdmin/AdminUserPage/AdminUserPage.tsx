@@ -1,4 +1,5 @@
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -18,41 +19,35 @@ import {
   MenuItem,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { type GridColDef } from '@mui/x-data-grid';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 
+import { adminApi } from '@features/admin/api/adminApi';
+import type { AdminDashboardRole, AdminDashboardUser } from '@features/admin/types/admin.types';
 import { useDebounce } from '@hooks/useDebounce';
+import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
 
 type AdminUserStatus = 'active' | 'inactive';
 
-type EcommerceRole =
-  | 'store_owner'
-  | 'operations_manager'
-  | 'catalog_manager'
-  | 'order_fulfillment'
-  | 'customer_support'
-  | 'marketing_manager'
-  | 'delivery_manager'
-  | 'finance_viewer';
+type EcommerceRole = AdminDashboardRole;
 
-type ManagedAdminUser = {
-  createdAt: string;
+type UserForm = {
   email: string;
   firstName: string;
-  id: string;
   lastName: string;
+  password: string;
   phone: string;
   role: EcommerceRole;
   status: AdminUserStatus;
 };
-
-type UserForm = Omit<ManagedAdminUser, 'createdAt' | 'id'>;
 
 type RoleDefinition = {
   description: string;
@@ -61,56 +56,12 @@ type RoleDefinition = {
   value: EcommerceRole;
 };
 
-const storageKey = 'avs-admin-users';
-
 const roleDefinitions: RoleDefinition[] = [
   {
-    description: 'Full control of ecommerce setup, users, catalog, orders, and reporting.',
-    label: 'Store Owner',
-    responsibilities: ['All permissions', 'User and role management', 'Business settings'],
-    value: 'store_owner',
-  },
-  {
     description: 'Runs daily operations across orders, customers, catalog health, and delivery.',
-    label: 'Operations Manager',
+    label: 'Ecommerce Website Admin',
     responsibilities: ['Order monitoring', 'Customer escalation', 'Operational reports'],
     value: 'operations_manager',
-  },
-  {
-    description: 'Maintains products, categories, sections, icons, and storefront merchandising.',
-    label: 'Catalog Manager',
-    responsibilities: ['Products', 'Categories', 'Product sections', 'Storefront icons'],
-    value: 'catalog_manager',
-  },
-  {
-    description: 'Processes orders from paid status through packing, shipment, and completion.',
-    label: 'Order Fulfillment',
-    responsibilities: ['Order status updates', 'Packing queue', 'Fulfillment notes'],
-    value: 'order_fulfillment',
-  },
-  {
-    description: 'Handles customer records, support follow-up, and customer issue resolution.',
-    label: 'Customer Support',
-    responsibilities: ['Customers', 'Order lookup', 'Support follow-up'],
-    value: 'customer_support',
-  },
-  {
-    description: 'Creates promotions and controls storefront campaign content.',
-    label: 'Marketing Manager',
-    responsibilities: ['Promotions', 'Carousel', 'Campaign visibility'],
-    value: 'marketing_manager',
-  },
-  {
-    description: 'Maintains regional delivery coverage, townships, and delivery fee rules.',
-    label: 'Delivery Manager',
-    responsibilities: ['Regions', 'Townships', 'Delivery fees'],
-    value: 'delivery_manager',
-  },
-  {
-    description: 'Views order revenue and customer spend data without changing operations.',
-    label: 'Finance Viewer',
-    responsibilities: ['Revenue view', 'Order totals', 'Customer spend'],
-    value: 'finance_viewer',
   },
 ];
 
@@ -118,93 +69,72 @@ const emptyForm: UserForm = {
   email: '',
   firstName: '',
   lastName: '',
+  password: '',
   phone: '',
-  role: 'catalog_manager',
+  role: 'operations_manager',
   status: 'active',
 };
 
-const defaultUsers: ManagedAdminUser[] = [
-  {
-    createdAt: '2026-06-01T08:30:00.000Z',
-    email: 'tenant.admin@av.com',
-    firstName: 'Tenant',
-    id: 'admin-owner',
-    lastName: 'Admin',
-    phone: '+95 800 28789',
-    role: 'store_owner',
-    status: 'active',
-  },
-  {
-    createdAt: '2026-06-04T10:15:00.000Z',
-    email: 'orders@av.com',
-    firstName: 'Order',
-    id: 'admin-orders',
-    lastName: 'Lead',
-    phone: '+95 800 28790',
-    role: 'order_fulfillment',
-    status: 'active',
-  },
-  {
-    createdAt: '2026-06-05T11:20:00.000Z',
-    email: 'catalog@av.com',
-    firstName: 'Catalog',
-    id: 'admin-catalog',
-    lastName: 'Manager',
-    phone: '+95 800 28791',
-    role: 'catalog_manager',
-    status: 'active',
-  },
-];
+const emptyUsers: AdminDashboardUser[] = [];
 
 const getRoleDefinition = (role: EcommerceRole): RoleDefinition =>
   roleDefinitions.find((definition) => definition.value === role) ?? roleDefinitions[0]!;
 
-const createUserId = () =>
-  typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `admin-user-${Date.now()}`;
+const createPassword = () => {
+  const groups = ['ABCDEFGHJKLMNPQRSTUVWXYZ', 'abcdefghijkmnopqrstuvwxyz', '23456789', '!@#$%'];
+  const alphabet = groups.join('');
+  const passwordLength = 14;
+  const randomValues =
+    typeof crypto !== 'undefined' && 'getRandomValues' in crypto
+      ? crypto.getRandomValues(new Uint32Array(passwordLength * 2))
+      : null;
+  let randomPosition = 0;
+  const getIndex = (max: number) => {
+    if (randomValues) {
+      const value = randomValues[randomPosition % randomValues.length]!;
+      randomPosition += 1;
+      return value % max;
+    }
 
-const loadUsers = () => {
-  if (typeof window === 'undefined') {
-    return defaultUsers;
+    return Math.floor(Math.random() * max);
+  };
+  const seed = groups.map((group) => group[getIndex(group.length)]!);
+
+  for (let index = seed.length; index < passwordLength; index += 1) {
+    seed.push(alphabet[getIndex(alphabet.length)]!);
   }
 
-  const savedUsers = window.localStorage.getItem(storageKey);
-
-  if (!savedUsers) {
-    return defaultUsers;
+  for (let index = seed.length - 1; index > 0; index -= 1) {
+    const swapIndex = getIndex(index + 1);
+    [seed[index], seed[swapIndex]] = [seed[swapIndex]!, seed[index]!];
   }
 
-  try {
-    return JSON.parse(savedUsers) as ManagedAdminUser[];
-  } catch {
-    return defaultUsers;
-  }
-};
-
-const persistUsers = (users: ManagedAdminUser[]) => {
-  if (typeof window !== 'undefined') {
-    window.localStorage.setItem(storageKey, JSON.stringify(users));
-  }
+  return seed.join('');
 };
 
 export const AdminUserPage = () => {
-  const [deleteTarget, setDeleteTarget] = useState<ManagedAdminUser | null>(null);
-  const [detailUser, setDetailUser] = useState<ManagedAdminUser | null>(null);
+  const queryClient = useQueryClient();
+  const [deleteTarget, setDeleteTarget] = useState<AdminDashboardUser | null>(null);
+  const [detailUser, setDetailUser] = useState<AdminDashboardUser | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<UserForm>(emptyForm);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [roleFilter, setRoleFilter] = useState<EcommerceRole | 'all'>('all');
   const [search, setSearch] = useState('');
-  const [users, setUsers] = useState<ManagedAdminUser[]>(loadUsers);
   const debouncedSearch = useDebounce(search);
+  const usersQuery = useQuery({
+    queryFn: ({ signal }) => adminApi.listUsers({ signal }),
+    queryKey: ['admin', 'users'],
+  });
+  const users = usersQuery.data ?? emptyUsers;
 
   const filteredUsers = useMemo(() => {
     const normalizedSearch = debouncedSearch.trim().toLowerCase();
 
     return users.filter((user) => {
-      const role = getRoleDefinition(user.role);
-      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+      const role = getRoleDefinition(user.dashboardRole ?? 'operations_manager');
+      const matchesRole =
+        roleFilter === 'all' || (user.dashboardRole ?? 'operations_manager') === roleFilter;
       const matchesSearch =
         !normalizedSearch ||
         `${user.firstName} ${user.lastName}`.toLowerCase().includes(normalizedSearch) ||
@@ -215,11 +145,67 @@ export const AdminUserPage = () => {
     });
   }, [debouncedSearch, roleFilter, users]);
 
-  const activeUsers = users.filter((user) => user.status === 'active').length;
+  const activeUsers = users.filter((user) => user.isActive).length;
   const selectedRole = getRoleDefinition(form.role);
   const tableResponsibilityLimit = 2;
 
-  const columns: GridColDef<ManagedAdminUser>[] = [
+  const saveMutation = useMutation({
+    mutationFn: () => {
+      const firstName = form.firstName.trim();
+      const lastName = form.lastName.trim();
+      const email = form.email.trim().toLowerCase();
+      const password = form.password.trim();
+      const phone = form.phone.trim();
+
+      if (!firstName || !lastName || !email) {
+        throw new Error('Complete first name, last name, and email.');
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        throw new Error('Enter a valid email address.');
+      }
+
+      if (!editingId && !password) {
+        throw new Error('Generate a password for the new user.');
+      }
+
+      if (password && password.length < 8) {
+        throw new Error('Password must be at least 8 characters.');
+      }
+
+      const payload = {
+        dashboardRole: form.role,
+        email,
+        firstName,
+        isActive: form.status === 'active',
+        lastName,
+        ...(password ? { password } : {}),
+        ...(phone ? { phone } : {}),
+      };
+
+      return editingId ? adminApi.updateUser(editingId, payload) : adminApi.createUser(payload);
+    },
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      setEditingId(null);
+      setForm(emptyForm);
+      setIsUserDialogOpen(false);
+      toast.success(result.message);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: adminApi.deleteUser,
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      setDeleteTarget(null);
+      toast.success(result.message);
+    },
+  });
+
+  const columns: GridColDef<AdminDashboardUser>[] = [
     {
       field: 'name',
       flex: 1.1,
@@ -257,7 +243,7 @@ export const AdminUserPage = () => {
       headerName: 'Role',
       minWidth: 150,
       renderCell: (params) => {
-        const role = getRoleDefinition(params.value);
+        const role = getRoleDefinition(params.row.dashboardRole ?? 'operations_manager');
 
         return (
           <Chip
@@ -271,7 +257,7 @@ export const AdminUserPage = () => {
           />
         );
       },
-      valueFormatter: (value: EcommerceRole) => getRoleDefinition(value).label,
+      valueGetter: (_value, row) => getRoleDefinition(row.dashboardRole ?? 'operations_manager').label,
     },
     {
       field: 'responsibilities',
@@ -279,10 +265,9 @@ export const AdminUserPage = () => {
       headerName: 'Responsibilities',
       minWidth: 260,
       renderCell: (params) => {
-        const responsibilities = getRoleDefinition(params.row.role).responsibilities.slice(
-          0,
-          tableResponsibilityLimit,
-        );
+        const responsibilities = getRoleDefinition(
+          params.row.dashboardRole ?? 'operations_manager',
+        ).responsibilities.slice(0, tableResponsibilityLimit);
 
         return (
           <Stack
@@ -308,14 +293,20 @@ export const AdminUserPage = () => {
       },
       sortable: false,
     },
-    { field: 'phone', flex: 0.65, headerName: 'Phone', minWidth: 140 },
     {
-      field: 'status',
+      field: 'phone',
+      flex: 0.65,
+      headerName: 'Phone',
+      minWidth: 140,
+      valueGetter: (value) => value || '-',
+    },
+    {
+      field: 'isActive',
       headerName: 'Status',
       renderCell: (params) => (
         <Chip
-          color={params.value === 'active' ? 'success' : 'default'}
-          label={params.value === 'active' ? 'Active' : 'Inactive'}
+          color={params.value ? 'success' : 'default'}
+          label={params.value ? 'Active' : 'Inactive'}
           size="small"
         />
       ),
@@ -365,66 +356,18 @@ export const AdminUserPage = () => {
     setIsUserDialogOpen(true);
   };
 
-  const openEditDialog = (user: ManagedAdminUser) => {
+  const openEditDialog = (user: AdminDashboardUser) => {
     setEditingId(user.id);
     setForm({
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      phone: user.phone,
-      role: user.role,
-      status: user.status,
+      password: '',
+      phone: user.phone ?? '',
+      role: user.dashboardRole ?? 'operations_manager',
+      status: user.isActive ? 'active' : 'inactive',
     });
     setIsUserDialogOpen(true);
-  };
-
-  const handleSave = () => {
-    const firstName = form.firstName.trim();
-    const lastName = form.lastName.trim();
-    const email = form.email.trim().toLowerCase();
-    const phone = form.phone.trim();
-
-    if (!firstName || !lastName || !email) {
-      toast.error('Complete first name, last name, and email.');
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error('Enter a valid email address.');
-      return;
-    }
-
-    const emailAlreadyExists = users.some((user) => user.email === email && user.id !== editingId);
-
-    if (emailAlreadyExists) {
-      toast.error('A user with this email already exists.');
-      return;
-    }
-
-    const nextUsers = editingId
-      ? users.map((user) =>
-          user.id === editingId
-            ? { ...user, email, firstName, lastName, phone, role: form.role, status: form.status }
-            : user,
-        )
-      : [
-          ...users,
-          {
-            createdAt: new Date().toISOString(),
-            email,
-            firstName,
-            id: createUserId(),
-            lastName,
-            phone,
-            role: form.role,
-            status: form.status,
-          },
-        ];
-
-    setUsers(nextUsers);
-    persistUsers(nextUsers);
-    setIsUserDialogOpen(false);
-    toast.success(editingId ? 'User updated.' : 'User created.');
   };
 
   const handleDelete = () => {
@@ -432,12 +375,7 @@ export const AdminUserPage = () => {
       return;
     }
 
-    const nextUsers = users.filter((user) => user.id !== deleteTarget.id);
-
-    setUsers(nextUsers);
-    persistUsers(nextUsers);
-    setDeleteTarget(null);
-    toast.success('User deleted.');
+    deleteMutation.mutate(deleteTarget.id);
   };
 
   return (
@@ -447,8 +385,8 @@ export const AdminUserPage = () => {
           Create user
         </AppButton>
       }
-      description="Create dashboard users and assign ecommerce responsibilities based on their roles."
-      title="User"
+      description="Create ecommerce website admins for dashboard operations. Tenant admin access is not created here."
+      title="Ecommerce Website Admin Users"
     >
       <Stack
         direction={{ lg: 'row', xs: 'column' }}
@@ -499,6 +437,7 @@ export const AdminUserPage = () => {
       </Stack>
       <AppDataTable
         columns={columns}
+        loading={usersQuery.isLoading}
         rowHeight={72}
         rows={filteredUsers}
         sx={{
@@ -572,6 +511,65 @@ export const AdminUserPage = () => {
             </Grid>
             <Grid size={{ sm: 6, xs: 12 }}>
               <TextField
+                autoComplete="new-password"
+                fullWidth
+                helperText={
+                  editingId
+                    ? 'Generate a new password only when resetting access.'
+                    : 'Generate this password and share it with the new dashboard user.'
+                }
+                label={editingId ? 'New password' : 'Password'}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, password: event.target.value }))
+                }
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end" sx={{ mr: -0.5 }}>
+                        <Tooltip title="Create a secure password">
+                          <AppButton
+                            aria-label="Generate password"
+                            color="inherit"
+                            onClick={() => {
+                              setForm((current) => ({ ...current, password: createPassword() }));
+                              toast.success('Password generated.');
+                            }}
+                            startIcon={<AutoAwesomeRoundedIcon />}
+                            sx={{
+                              bgcolor: 'background.paper',
+                              border: 1,
+                              borderColor: 'divider',
+                              boxShadow: 'none',
+                              color: 'text.primary',
+                              fontWeight: 800,
+                              height: 40,
+                              minHeight: 40,
+                              px: 1.75,
+                              '& .MuiButton-startIcon': {
+                                color: 'primary.main',
+                                mr: 0.75,
+                              },
+                              '&:hover': {
+                                bgcolor: 'action.hover',
+                                borderColor: 'primary.main',
+                                boxShadow: 'none',
+                              },
+                            }}
+                            type="button"
+                            variant="outlined"
+                          >
+                            Generate
+                          </AppButton>
+                        </Tooltip>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+                value={form.password}
+              />
+            </Grid>
+            <Grid size={{ sm: 6, xs: 12 }}>
+              <TextField
                 fullWidth
                 label="Role"
                 onChange={(event) =>
@@ -618,7 +616,9 @@ export const AdminUserPage = () => {
           <AppButton color="inherit" onClick={() => setIsUserDialogOpen(false)}>
             Cancel
           </AppButton>
-          <AppButton onClick={handleSave}>{editingId ? 'Save user' : 'Create user'}</AppButton>
+          <AppButton disabled={saveMutation.isPending} onClick={() => saveMutation.mutate()}>
+            {editingId ? 'Save user' : 'Create user'}
+          </AppButton>
         </DialogActions>
       </Dialog>
 
@@ -648,10 +648,10 @@ export const AdminUserPage = () => {
                 }}
               >
                 <Typography sx={{ fontWeight: 900 }} variant="subtitle1">
-                  {getRoleDefinition(detailUser.role).label}
+                  {getRoleDefinition(detailUser.dashboardRole ?? 'operations_manager').label}
                 </Typography>
                 <Typography color="text.secondary" sx={{ mt: 0.75 }} variant="body2">
-                  {getRoleDefinition(detailUser.role).description}
+                  {getRoleDefinition(detailUser.dashboardRole ?? 'operations_manager').description}
                 </Typography>
               </Box>
               <Box>
@@ -659,7 +659,9 @@ export const AdminUserPage = () => {
                   Responsibilities
                 </Typography>
                 <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
-                  {getRoleDefinition(detailUser.role).responsibilities.map((responsibility) => (
+                  {getRoleDefinition(
+                    detailUser.dashboardRole ?? 'operations_manager',
+                  ).responsibilities.map((responsibility) => (
                     <Chip key={responsibility} label={responsibility} />
                   ))}
                 </Stack>
@@ -687,7 +689,7 @@ export const AdminUserPage = () => {
           <AppButton color="inherit" onClick={() => setDeleteTarget(null)}>
             Cancel
           </AppButton>
-          <AppButton color="error" onClick={handleDelete}>
+          <AppButton color="error" disabled={deleteMutation.isPending} onClick={handleDelete}>
             Delete user
           </AppButton>
         </DialogActions>

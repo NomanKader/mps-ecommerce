@@ -20,7 +20,8 @@ export type AdminProductPayload = Omit<AdminProduct, 'id' | 'imageUrl'> & {
   removeImage?: boolean;
 };
 
-export type AdminProductBulkItem = Omit<AdminProductPayload, 'image' | 'removeImage'>;
+export type AdminProductBulkItem = Omit<AdminProductPayload, 'image' | 'removeImage'> &
+  Pick<AdminProduct, 'imageUrl'>;
 
 export type AdminProductBulkPayload = {
   mode: 'upsert' | 'create-only';
@@ -57,7 +58,8 @@ export type AdminSecondaryCategory = {
   icon?: string;
   id: string;
   name: string;
-  productId: string;
+  productId?: string;
+  productIds: string[];
   slug: string;
   status: 'active' | 'hidden';
   targetSectionId: 'top-offers' | 'top-blooms' | 'new-season' | 'pantry-ready';
@@ -123,21 +125,31 @@ export type AdminPromotion = {
 export type AdminPromotionPayload = Omit<AdminPromotion, 'id'>;
 
 export type AdminRegion = {
+  country: 'Myanmar';
   id: string;
   name: string;
   status: 'active' | 'paused';
 };
 
-export type AdminRegionPayload = Omit<AdminRegion, 'id'>;
+export type AdminRegionPayload = Omit<AdminRegion, 'country' | 'id'> & {
+  country?: 'Myanmar';
+};
 
 export type AdminTownship = {
+  country: 'Myanmar';
   id: string;
   name: string;
   region: string;
+  regionId?: string;
   status: 'active' | 'paused';
 };
 
-export type AdminTownshipPayload = Omit<AdminTownship, 'id'>;
+export type AdminTownshipPayload = {
+  country: 'Myanmar';
+  name: string;
+  regionId: string;
+  status: AdminTownship['status'];
+};
 
 export type AdminDeliveryFee = {
   eta: string;
@@ -150,6 +162,38 @@ export type AdminDeliveryFee = {
 };
 
 export type AdminDeliveryFeePayload = Omit<AdminDeliveryFee, 'id'>;
+
+export type AdminDashboardRole =
+  | 'store_owner'
+  | 'operations_manager'
+  | 'catalog_manager'
+  | 'order_fulfillment'
+  | 'customer_support'
+  | 'marketing_manager'
+  | 'delivery_manager'
+  | 'finance_viewer';
+
+export type AdminDashboardUser = {
+  createdAt: string;
+  dashboardRole?: AdminDashboardRole;
+  email: string;
+  firstName: string;
+  id: string;
+  isActive: boolean;
+  lastName: string;
+  phone?: string;
+  role: 'tenant_admin' | 'staff';
+};
+
+export type AdminDashboardUserPayload = {
+  dashboardRole: AdminDashboardRole;
+  email: string;
+  firstName: string;
+  isActive: boolean;
+  lastName: string;
+  password?: string;
+  phone?: string;
+};
 
 export type AdminDashboard = {
   inventoryAlerts: Array<{

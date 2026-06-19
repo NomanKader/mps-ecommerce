@@ -1,11 +1,12 @@
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import AddShoppingCartOutlinedIcon from '@mui/icons-material/AddShoppingCartOutlined';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import CardGiftcardOutlinedIcon from '@mui/icons-material/CardGiftcardOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
+import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
@@ -29,9 +30,13 @@ import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
+import { useCart } from '@features/cart/hooks/useCart';
+import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
+import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
 import { useWallet } from '@features/wallet/hooks/useWallet';
 import { routePaths } from '@routes/routePaths';
 import type { RootState } from '@store/index';
+import { formatCurrency } from '@utils/formatCurrency';
 
 type AccountPageKind = 'commerce' | 'info' | 'profile';
 
@@ -267,26 +272,11 @@ const accountPageConfigs = {
 const sidebarSections: SidebarSection[] = [
   {
     title: 'My Baskets',
-    items: [accountPageConfigs.favourites, accountPageConfigs.shoppingList, accountPageConfigs.vouchers],
+    items: [accountPageConfigs.favourites, accountPageConfigs.shoppingList],
   },
   {
     title: 'Order Info',
-    items: [
-      accountPageConfigs.wallet,
-      accountPageConfigs.statement,
-      accountPageConfigs.orders,
-      accountPageConfigs.regulars,
-      accountPageConfigs.collectionService,
-    ],
-  },
-  {
-    title: 'My Privileges',
-    items: [
-      accountPageConfigs.accountStatus,
-      accountPageConfigs.rewardPoints,
-      accountPageConfigs.referFriends,
-      accountPageConfigs.deliveryMembership,
-    ],
+    items: [accountPageConfigs.wallet, accountPageConfigs.orders],
   },
   {
     title: 'User Profile',
@@ -297,23 +287,6 @@ const sidebarSections: SidebarSection[] = [
       accountPageConfigs.deleteAccount,
     ],
   },
-  {
-    title: 'Special Offers',
-    items: [accountPageConfigs.wioBank],
-  },
-  {
-    title: 'Sustainable Grocery Shopping',
-    items: [
-      accountPageConfigs.story,
-      accountPageConfigs.vision,
-      accountPageConfigs.brand,
-      accountPageConfigs.quality,
-      accountPageConfigs.cares,
-      accountPageConfigs.media,
-      accountPageConfigs.awards,
-      accountPageConfigs.kitchen,
-    ],
-  },
 ];
 
 const pageConfigs = Object.values(accountPageConfigs);
@@ -322,7 +295,7 @@ const getActivePage = (pathname: string) =>
   pageConfigs.find((page) => page.path === pathname) ?? accountPageConfigs.favourites;
 
 const formatWalletAmount = (amount: number) =>
-  `৳ ${new Intl.NumberFormat('en-US', {
+  `Ks ${new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
   }).format(amount)}`;
@@ -412,8 +385,6 @@ const ProfileSummary = () => {
   const stats = [
     { icon: <Inventory2OutlinedIcon />, label: 'My Orders', value: '' },
     { label: 'Wallet', value: formatWalletAmount(availableBalance) },
-    { label: 'Loyalty Pts', value: '0' },
-    { label: 'Referral Pts', value: '0' },
   ];
 
   return (
@@ -474,9 +445,6 @@ const ProfileSummary = () => {
             Spend 5000 more to become Silver member
           </Typography>
         </Box>
-        <IconButton aria-label="Edit account details" sx={{ color: '#ffffff', display: { sm: 'inline-flex', xs: 'none' } }}>
-          <EditOutlinedIcon />
-        </IconButton>
       </Box>
 
       <Box
@@ -484,7 +452,7 @@ const ProfileSummary = () => {
           alignItems: 'center',
           display: 'grid',
           gap: 2,
-          gridTemplateColumns: { sm: 'repeat(4, minmax(94px, 1fr))', xs: 'repeat(2, minmax(96px, 1fr))' },
+          gridTemplateColumns: { sm: 'repeat(2, minmax(120px, 1fr))', xs: 'repeat(2, minmax(96px, 1fr))' },
         }}
       >
         {stats.map((stat) => (
@@ -619,9 +587,96 @@ const SearchBar = ({ placeholder }: { placeholder: string }) => (
   </Stack>
 );
 
+const favouriteProducts = allStorefrontProducts.slice(0, 3);
+
+const FavouriteProducts = () => {
+  const { addToCart } = useCart();
+
+  return (
+    <Box sx={{ mt: 3 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2.2,
+          gridTemplateColumns: { lg: 'repeat(3, minmax(0, 1fr))', sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' },
+        }}
+      >
+        {favouriteProducts.map((product) => (
+          <Box
+            key={product.id}
+            sx={{
+              backgroundColor: '#ffffff',
+              border: `1px solid ${storefrontColors.border}`,
+              borderRadius: 1,
+              boxShadow: `0 14px 30px ${alpha(storefrontColors.navyDark, 0.08)}`,
+              display: 'grid',
+              gridTemplateRows: '180px 1fr',
+              overflow: 'hidden',
+            }}
+          >
+            <Box sx={{ position: 'relative' }}>
+              <Box
+                alt={product.name}
+                component="img"
+                src={product.imageUrl}
+                sx={{ display: 'block', height: '100%', objectFit: 'cover', width: '100%' }}
+              />
+              <IconButton
+                aria-label={`${product.name} is in favourites`}
+                sx={{
+                  backgroundColor: '#ffffff',
+                  boxShadow: `0 8px 20px ${alpha(storefrontColors.navyDark, 0.16)}`,
+                  color: storefrontColors.navy,
+                  position: 'absolute',
+                  right: 12,
+                  top: 12,
+                  '&:hover': { backgroundColor: '#fff7f7' },
+                }}
+              >
+                <FavoriteRoundedIcon />
+              </IconButton>
+            </Box>
+            <Stack spacing={1.5} sx={{ p: 2 }}>
+              <Box sx={{ minHeight: 74 }}>
+                <Typography sx={{ color: '#2b2d33', fontSize: '1.05rem', fontWeight: 900 }}>
+                  {product.name}
+                </Typography>
+                <Typography sx={{ color: storefrontColors.muted, fontSize: '0.9rem', fontWeight: 700, mt: 0.6 }}>
+                  {product.description}
+                </Typography>
+              </Box>
+              <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography sx={{ color: storefrontColors.navy, fontSize: '1.1rem', fontWeight: 900 }}>
+                  {formatCurrency(product.price, product.currency)}
+                </Typography>
+                <Button
+                  onClick={() => addToCart(mapHomeProductToProduct(product))}
+                  startIcon={<AddShoppingCartOutlinedIcon />}
+                  sx={{
+                    backgroundColor: storefrontColors.navy,
+                    borderRadius: 999,
+                    color: '#ffffff',
+                    fontWeight: 900,
+                    px: 2,
+                    textTransform: 'none',
+                    '&:hover': { backgroundColor: storefrontColors.navyDark },
+                  }}
+                >
+                  Add to Cart
+                </Button>
+              </Stack>
+            </Stack>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+};
+
 const CommerceContent = ({ activePage }: { activePage: AccountPageConfig }) => {
   const showTabs = activePage.path === routePaths.accountFavourites || activePage.path === routePaths.accountShoppingList;
   const isShoppingList = activePage.path === routePaths.accountShoppingList;
+  const isFavourites = activePage.path === routePaths.accountFavourites;
 
   return (
     <Box sx={{ maxWidth: 1180, mt: 4.8 }}>
@@ -672,31 +727,35 @@ const CommerceContent = ({ activePage }: { activePage: AccountPageConfig }) => {
 
       <SearchBar placeholder={activePage.searchPlaceholder ?? `Search ${activePage.title.toLowerCase()}`} />
 
-      <Stack spacing={2.6} sx={{ alignItems: 'center', minHeight: 430, pt: { md: 5, xs: 4 }, textAlign: 'center' }}>
-        <EmptyListIllustration type={isShoppingList ? 'lists' : 'favourites'} />
-        <Typography sx={{ color: storefrontColors.navy, fontSize: { md: '1.45rem', xs: '1.2rem' }, fontWeight: 900 }}>
-          {activePage.emptyTitle ?? `No ${activePage.title.toLowerCase()} yet`}
-        </Typography>
-        <Typography sx={{ color: storefrontColors.muted, maxWidth: 520 }}>{activePage.description}</Typography>
-        <Button
-          component={Link}
-          to={routePaths.catalog}
-          sx={{
-            backgroundColor: storefrontColors.navy,
-            borderRadius: 999,
-            color: '#ffffff',
-            fontSize: '1.15rem',
-            fontWeight: 800,
-            minHeight: 58,
-            px: 5.5,
-            textTransform: 'none',
-            width: { sm: 280, xs: '100%' },
-            '&:hover': { backgroundColor: storefrontColors.navyDark },
-          }}
-        >
-          {activePage.emptyAction}
-        </Button>
-      </Stack>
+      {isFavourites ? (
+        <FavouriteProducts />
+      ) : (
+        <Stack spacing={2.6} sx={{ alignItems: 'center', minHeight: 430, pt: { md: 5, xs: 4 }, textAlign: 'center' }}>
+          <EmptyListIllustration type={isShoppingList ? 'lists' : 'favourites'} />
+          <Typography sx={{ color: storefrontColors.navy, fontSize: { md: '1.45rem', xs: '1.2rem' }, fontWeight: 900 }}>
+            {activePage.emptyTitle ?? `No ${activePage.title.toLowerCase()} yet`}
+          </Typography>
+          <Typography sx={{ color: storefrontColors.muted, maxWidth: 520 }}>{activePage.description}</Typography>
+          <Button
+            component={Link}
+            to={routePaths.catalog}
+            sx={{
+              backgroundColor: storefrontColors.navy,
+              borderRadius: 999,
+              color: '#ffffff',
+              fontSize: '1.15rem',
+              fontWeight: 800,
+              minHeight: 58,
+              px: 5.5,
+              textTransform: 'none',
+              width: { sm: 280, xs: '100%' },
+              '&:hover': { backgroundColor: storefrontColors.navyDark },
+            }}
+          >
+            {activePage.emptyAction}
+          </Button>
+        </Stack>
+      )}
     </Box>
   );
 };
@@ -830,7 +889,7 @@ const WalletAmountInput = ({
         htmlInput: { min: 0, step: '0.01' },
         input: {
           disableUnderline: true,
-          startAdornment: <Typography sx={{ color: '#55565c', fontSize: '1.15rem', fontWeight: 900, mr: 1.4 }}>৳</Typography>,
+          startAdornment: <Typography sx={{ color: '#55565c', fontSize: '1.15rem', fontWeight: 900, mr: 1.4 }}>Ks</Typography>,
           sx: {
             color: '#55565c',
             fontSize: '1.1rem',
@@ -913,10 +972,10 @@ const WalletContent = () => {
   const [walletMessage, setWalletMessage] = useState('');
 
   const bonusRows = [
-    { amount: 5000, bonus: '+ ৳ 200', bonusAmount: 200 },
-    { amount: 7000, bonus: '+ ৳ 500', bonusAmount: 500 },
-    { amount: 10000, bonus: '+ ৳ 1,000', bonusAmount: 1000 },
-    { amount: 10000, bonus: '+ Food cycler worth ৳ 999', bonusAmount: 0, divider: true },
+    { amount: 5000, bonus: '+ Ks 200', bonusAmount: 200 },
+    { amount: 7000, bonus: '+ Ks 500', bonusAmount: 500 },
+    { amount: 10000, bonus: '+ Ks 1,000', bonusAmount: 1000 },
+    { amount: 10000, bonus: '+ Food cycler worth Ks 999', bonusAmount: 0, divider: true },
   ];
   const topUpValue = Number(topUpAmount);
   const friendAmountValue = Number(friendAmount);
@@ -1218,52 +1277,222 @@ const StatementContent = () => (
 
 const OrdersContent = () => (
   <Box sx={{ mt: 4.5 }}>
-    <Box
-      sx={{
-        backgroundColor: storefrontColors.navy,
-        borderRadius: '3px 3px 0 0',
-        color: '#ffffff',
-        px: 2.2,
-        py: 1.55,
-      }}
-    >
-      <Typography sx={{ fontSize: '1.25rem', fontWeight: 900 }}>My Order</Typography>
-    </Box>
+    <Box sx={{ maxWidth: 1080 }}>
+      <Box
+        sx={{
+          backgroundColor: storefrontColors.navy,
+          borderRadius: '3px 3px 0 0',
+          color: '#ffffff',
+          px: 2.2,
+          py: 1.55,
+        }}
+      >
+        <Typography sx={{ fontSize: '1.25rem', fontWeight: 900 }}>My Orders</Typography>
+      </Box>
 
-    <Box sx={{ maxWidth: 980, mt: 4.2 }}>
-      <Stack direction="row" spacing={7} sx={{ borderBottom: `1px solid ${storefrontColors.border}` }}>
-        <Box sx={{ borderBottom: `3px solid ${storefrontColors.navy}`, px: { md: 7, xs: 2 }, py: 1.25 }}>
-          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.25rem', fontWeight: 900 }}>
-            Upcoming Orders
-          </Typography>
+      <Box
+        sx={{
+          backgroundColor: '#ffffff',
+          border: `1px solid ${storefrontColors.border}`,
+          borderTop: 0,
+          p: { md: 2.5, xs: 1.5 },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 1.5,
+            gridTemplateColumns: { md: 'repeat(3, minmax(0, 1fr))', xs: '1fr' },
+            mb: 3,
+          }}
+        >
+          {[
+            { label: 'Upcoming', value: '0', helper: 'No active deliveries' },
+            { label: 'Past orders', value: '0', helper: 'Completed orders will appear here' },
+            { label: 'Support tickets', value: '0', helper: 'No order issues reported' },
+          ].map((item) => (
+            <Box
+              key={item.label}
+              sx={{
+                backgroundColor: '#f7f8fb',
+                border: `1px solid ${storefrontColors.border}`,
+                borderRadius: 1,
+                px: 2,
+                py: 1.7,
+              }}
+            >
+              <Typography sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 800 }}>
+                {item.label}
+              </Typography>
+              <Typography sx={{ color: storefrontColors.navy, fontSize: '1.8rem', fontWeight: 900, lineHeight: 1.1, mt: 0.4 }}>
+                {item.value}
+              </Typography>
+              <Typography sx={{ color: '#697180', fontSize: '0.85rem', fontWeight: 700, mt: 0.5 }}>
+                {item.helper}
+              </Typography>
+            </Box>
+          ))}
         </Box>
-        <Box sx={{ px: { md: 4, xs: 2 }, py: 1.25 }}>
-          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.25rem', fontWeight: 800 }}>
-            Past Orders
-          </Typography>
-        </Box>
-      </Stack>
 
-      <SearchBar placeholder="Search for your orders" />
+        <Stack
+          direction={{ sm: 'row', xs: 'column' }}
+          spacing={1}
+          sx={{
+            backgroundColor: '#f2f3f8',
+            borderRadius: 999,
+            p: 0.7,
+            width: 'fit-content',
+          }}
+        >
+          {['Upcoming Orders', 'Past Orders'].map((label, index) => (
+            <Box
+              key={label}
+              sx={{
+                backgroundColor: index === 0 ? '#ffffff' : 'transparent',
+                borderRadius: 999,
+                boxShadow: index === 0 ? `0 8px 18px ${alpha(storefrontColors.navyDark, 0.1)}` : 'none',
+                px: 2.4,
+                py: 1,
+              }}
+            >
+              <Typography sx={{ color: storefrontColors.navy, fontSize: '0.98rem', fontWeight: 900 }}>
+                {label}
+              </Typography>
+            </Box>
+          ))}
+        </Stack>
 
-      <Stack spacing={1.6} sx={{ alignItems: 'center', minHeight: 420, pt: 12, textAlign: 'center' }}>
-        <Box sx={{ position: 'relative' }}>
-          <EmptyListIllustration type="lists" />
-          <HistoryRoundedIcon
+        <SearchBar placeholder="Search for your orders" />
+
+        <Box
+          sx={{
+            alignItems: 'center',
+            backgroundColor: '#ffffff',
+            border: `1px solid ${storefrontColors.border}`,
+            borderRadius: 1,
+            boxShadow: `0 12px 30px ${alpha(storefrontColors.navyDark, 0.06)}`,
+            display: 'flex',
+            flexDirection: 'column',
+            mt: 3,
+            minHeight: 360,
+            px: { md: 4, xs: 2 },
+            py: { md: 5, xs: 3 },
+            textAlign: 'center',
+          }}
+        >
+          <Box
             sx={{
+              alignItems: 'center',
+              backgroundColor: alpha(storefrontColors.navy, 0.08),
+              borderRadius: '50%',
               color: storefrontColors.navy,
-              fontSize: 68,
-              left: '50%',
-              position: 'absolute',
-              top: -6,
-              transform: 'translateX(-50%)',
+              display: 'flex',
+              height: 86,
+              justifyContent: 'center',
+              mb: 2,
+              width: 86,
             }}
-          />
+          >
+            <Inventory2OutlinedIcon sx={{ fontSize: 42 }} />
+          </Box>
+
+          <Typography sx={{ color: storefrontColors.navy, fontSize: { md: '1.45rem', xs: '1.2rem' }, fontWeight: 900 }}>
+            No orders yet
+          </Typography>
+          <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, lineHeight: 1.55, maxWidth: 480, mt: 1 }}>
+            When you place an order, delivery updates, payment details, and support options will appear here.
+          </Typography>
+
+          <Stack
+            direction={{ sm: 'row', xs: 'column' }}
+            spacing={1.4}
+            sx={{ alignItems: 'center', justifyContent: 'center', mt: 3, width: '100%' }}
+          >
+            <Button
+              component={Link}
+              to={routePaths.catalog}
+              sx={{
+                backgroundColor: storefrontColors.navy,
+                borderRadius: 999,
+                color: '#ffffff',
+                fontWeight: 900,
+                minHeight: 48,
+                px: 3.5,
+                textTransform: 'none',
+                width: { sm: 'auto', xs: '100%' },
+                '&:hover': { backgroundColor: storefrontColors.navyDark },
+              }}
+            >
+              Start shopping
+            </Button>
+            <Button
+              component={Link}
+              to={routePaths.accountFavourites}
+              sx={{
+                border: `1px solid ${storefrontColors.border}`,
+                borderRadius: 999,
+                color: storefrontColors.navy,
+                fontWeight: 900,
+                minHeight: 48,
+                px: 3,
+                textTransform: 'none',
+                width: { sm: 'auto', xs: '100%' },
+                '&:hover': { backgroundColor: alpha(storefrontColors.navy, 0.06) },
+              }}
+            >
+              View favourites
+            </Button>
+          </Stack>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 1.2,
+              gridTemplateColumns: { md: 'repeat(3, minmax(0, 1fr))', xs: '1fr' },
+              maxWidth: 720,
+              mt: 4,
+              width: '100%',
+            }}
+          >
+            {['Shop products', 'Checkout securely', 'Track delivery'].map((label, index) => (
+              <Stack
+                direction="row"
+                key={label}
+                spacing={1}
+                sx={{
+                  alignItems: 'center',
+                  backgroundColor: '#f7f8fb',
+                  border: `1px solid ${storefrontColors.border}`,
+                  borderRadius: 1,
+                  px: 1.5,
+                  py: 1.2,
+                }}
+              >
+                <Box
+                  sx={{
+                    alignItems: 'center',
+                    backgroundColor: alpha(storefrontColors.navy, 0.1),
+                    borderRadius: '50%',
+                    color: storefrontColors.navy,
+                    display: 'flex',
+                    flexShrink: 0,
+                    fontSize: '0.82rem',
+                    fontWeight: 900,
+                    height: 28,
+                    justifyContent: 'center',
+                    width: 28,
+                  }}
+                >
+                  {index + 1}
+                </Box>
+                <Typography sx={{ color: '#4f535b', fontSize: '0.9rem', fontWeight: 800 }}>
+                  {label}
+                </Typography>
+              </Stack>
+            ))}
+          </Box>
         </Box>
-        <Typography sx={{ color: storefrontColors.navy, fontSize: '1.3rem', fontWeight: 800 }}>
-          No Upcoming Orders
-        </Typography>
-      </Stack>
+      </Box>
     </Box>
   </Box>
 );

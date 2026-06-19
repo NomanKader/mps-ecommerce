@@ -2,7 +2,7 @@ import type { Role } from '../../../types/common';
 
 import { routePaths } from '@routes/routePaths';
 
-const adminRoles: Role[] = ['tenant_admin'];
+const adminRoles: Role[] = ['tenant_admin', 'staff'];
 const knownRoles: Role[] = ['tenant_admin', 'staff', 'customer'];
 
 export const getAuthenticatedRedirect = (role: Role) =>

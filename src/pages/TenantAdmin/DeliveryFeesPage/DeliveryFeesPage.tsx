@@ -41,8 +41,8 @@ type DeliveryFeeForm = {
 
 const emptyForm: DeliveryFeeForm = {
   estimatedDays: 'Same day',
-  fee: '2.50',
-  freeDeliveryMinimum: '50',
+  fee: '45000',
+  freeDeliveryMinimum: '150000',
   region: '',
   status: 'active',
   township: '',
@@ -120,8 +120,8 @@ export const DeliveryFeesPage = () => {
 
       const fee = Number(form.fee);
       const freeOver = Number(form.freeDeliveryMinimum);
-      if (!Number.isFinite(fee) || fee < 0 || !Number.isFinite(freeOver) || freeOver < 0) {
-        throw new Error('Enter valid non-negative delivery fee values.');
+      if (!Number.isFinite(fee) || fee < 45000 || !Number.isFinite(freeOver) || freeOver < 0) {
+        throw new Error('Delivery fee must be at least 45,000 KS.');
       }
       const payload = {
         eta: form.estimatedDays.trim() || 'Same day',
@@ -161,13 +161,13 @@ export const DeliveryFeesPage = () => {
     {
       field: 'fee',
       headerName: 'Delivery fee',
-      valueFormatter: (value: number) => formatCurrency(value),
+      valueFormatter: (value: number) => formatCurrency(value, 'MMK'),
       width: 150,
     },
     {
       field: 'freeOver',
       headerName: 'Free over',
-      valueFormatter: (value: number) => formatCurrency(value),
+      valueFormatter: (value: number) => formatCurrency(value, 'MMK'),
       width: 140,
     },
     { field: 'eta', headerName: 'ETA', width: 130 },
@@ -339,6 +339,7 @@ export const DeliveryFeesPage = () => {
                 <TextField
                   fullWidth
                   label="Delivery fee"
+                  slotProps={{ htmlInput: { min: 45000, step: 1000 } }}
                   onChange={(event) =>
                     setForm((current) => ({ ...current, fee: event.target.value }))
                   }

@@ -13,7 +13,7 @@ export const CartSummary = ({ items }: CartSummaryProps) => {
   const subtotal = items.reduce((total, item) => total + item.product.price * item.quantity, 0);
 
   return (
-    <Card sx={{ borderRadius: 4 }}>
+    <Card sx={{ borderRadius: 1 }}>
       <CardContent sx={{ display: 'grid', gap: 2.5 }}>
         <Typography variant="h6">Order Summary</Typography>
         <Stack direction="row" sx={{ justifyContent: 'space-between' }}>

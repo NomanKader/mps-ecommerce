@@ -4,28 +4,28 @@ import KeyboardArrowUpRoundedIcon from '@mui/icons-material/KeyboardArrowUpRound
 import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
 import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded';
-import {
-  Box,
-  Card,
-  Fab,
-  Grid,
-  IconButton,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, Card, Fab, Grid, IconButton, Stack, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
+import type { Category } from '@entities/category/types/category.types';
 import type { Product } from '@entities/product/types/product.types';
 import { useCart } from '@features/cart/hooks/useCart';
+import { categoryApi } from '@features/category/api/categoryApi';
 import type { StoreProduct } from '@features/home/types/home.types';
 import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
-import { allStorefrontProducts, findStorefrontProductById, getRelatedStorefrontProducts } from '@features/home/utils/storefrontProducts';
+import { productApi } from '@features/product/api/productApi';
 import { useProducts } from '@features/product/hooks/useProducts';
-import { StoreProductCard } from '@shared/components/storefront/StoreProductCard';
-import { storefrontMutedPanelSx, storefrontPanelSx, storefrontSectionTitleSx } from '@shared/styles/storefront';
+import { EmptyState } from '@shared/components/ui/EmptyState/EmptyState';
+import { ProductGrid } from '@widgets/ProductGrid/ProductGrid';
+import {
+  storefrontMutedPanelSx,
+  storefrontPanelSx,
+  storefrontSectionTitleSx,
+} from '@shared/styles/storefront';
 import { formatCurrency } from '@utils/formatCurrency';
 
 type ProductDetailContent = {
@@ -62,7 +62,8 @@ const productDetailOverrides: Record<string, ProductDetailContent> = {
 const parseStorefrontUnit = (unit: string, price: number) => {
   const [amount, qualifier] = unit.split('/').map((part) => part.trim());
   const parsedAmount = Number(amount);
-  const previousPrice = !Number.isNaN(parsedAmount) && qualifier && parsedAmount > price ? parsedAmount : null;
+  const previousPrice =
+    !Number.isNaN(parsedAmount) && qualifier && parsedAmount > price ? parsedAmount : null;
 
   return {
     oldPrice: previousPrice,
@@ -76,12 +77,24 @@ const isStoreProduct = (product: StoreProduct | Product): product is StoreProduc
 const toGenericProduct = (product: StoreProduct | Product) =>
   isStoreProduct(product) ? mapHomeProductToProduct(product) : product;
 
-const getProductCategoryLabel = (product: StoreProduct | Product) => {
+const isOpaqueId = (value: string) => /^[a-f0-9]{24}$/i.test(value);
+
+const getProductCategoryLabel = (product: StoreProduct | Product, categories: Category[]) => {
   if ('tags' in product && product.tags.includes('root-veg')) {
     return 'Root Vegetables';
   }
 
   if ('categoryId' in product) {
+    const category = categories.find((item) => item.id === product.categoryId);
+
+    if (category) {
+      return category.name;
+    }
+
+    if (isOpaqueId(product.categoryId)) {
+      return null;
+    }
+
     return product.categoryId
       .split('-')
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -134,14 +147,30 @@ type ProductDetailsContentProps = {
 const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
   const { addToCart } = useCart();
   const { data = [] } = useProducts();
-
-  const storefrontProduct = useMemo(() => findStorefrontProductById(productId), [productId]);
-  const catalogProduct = useMemo(() => data.find((item) => item.id === productId), [data, productId]);
-  const product = storefrontProduct ?? catalogProduct;
-  const detailContent = useMemo(() => (product ? getProductDetailContent(product) : null), [product]);
+  const productQuery = useQuery({
+    enabled: Boolean(productId),
+    queryFn: ({ signal }) => productApi.getProductById(productId, { signal }),
+    queryKey: ['products', productId],
+    retry: false,
+  });
+  const categoriesQuery = useQuery({
+    queryFn: ({ signal }) => categoryApi.getCategories({ signal }),
+    queryKey: ['categories'],
+  });
+  const product = productQuery.data;
+  const categories = categoriesQuery.data ?? [];
+  const detailContent = useMemo(
+    () => (product ? getProductDetailContent(product) : null),
+    [product],
+  );
   const relatedProducts = useMemo(
-    () => (storefrontProduct ? getRelatedStorefrontProducts(storefrontProduct) : allStorefrontProducts.slice(0, 4)),
-    [storefrontProduct],
+    () =>
+      product
+        ? data
+            .filter((item) => item.id !== product.id && item.categoryId === product.categoryId)
+            .slice(0, 4)
+        : [],
+    [data, product],
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(0);
@@ -154,7 +183,7 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
             Product not found
           </Typography>
           <Typography color={storefrontColors.muted} variant="body1">
-            The detail route is ready, but this product id does not exist in the current storefront data.
+            This item will be available soon. Check back after the catalog team publishes it.
           </Typography>
         </Stack>
       </Card>
@@ -162,7 +191,8 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
   }
 
   const selectedImage = detailContent.gallery[selectedImageIndex] ?? product.imageUrl;
-  const relatedTitle = `More in ${getProductCategoryLabel(product)}`;
+  const categoryLabel = getProductCategoryLabel(product, categories);
+  const relatedTitle = categoryLabel ? `More in ${categoryLabel}` : 'More products you may like';
   const productForCart = toGenericProduct(product);
   const origin = isStoreProduct(product) ? product.origin : 'Storefront';
   const unit = isStoreProduct(product) ? product.unit : detailContent.packLabel;
@@ -259,7 +289,10 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
               sx={{
                 columnGap: 1.5,
                 display: 'grid',
-                gridTemplateColumns: { md: 'repeat(3, minmax(0, 220px))', xs: 'repeat(3, minmax(0, 1fr))' },
+                gridTemplateColumns: {
+                  md: 'repeat(3, minmax(0, 220px))',
+                  xs: 'repeat(3, minmax(0, 1fr))',
+                },
               }}
             >
               {detailContent.gallery.slice(0, 3).map((image, index) => (
@@ -280,7 +313,12 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
                     alt={`${product.name} preview ${index + 1}`}
                     component="img"
                     src={image}
-                    sx={{ display: 'block', height: { md: 204, xs: 116 }, objectFit: 'cover', width: '100%' }}
+                    sx={{
+                      display: 'block',
+                      height: { md: 204, xs: 116 },
+                      objectFit: 'cover',
+                      width: '100%',
+                    }}
                   />
                 </Box>
               ))}
@@ -363,7 +401,15 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
               >
                 <RemoveRoundedIcon />
               </IconButton>
-              <Typography sx={{ color: storefrontColors.navy, fontSize: '2rem', fontWeight: 700, minWidth: 32, textAlign: 'center' }}>
+              <Typography
+                sx={{
+                  color: storefrontColors.navy,
+                  fontSize: '2rem',
+                  fontWeight: 700,
+                  minWidth: 32,
+                  textAlign: 'center',
+                }}
+              >
                 {quantity}
               </Typography>
               <IconButton
@@ -383,7 +429,10 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
               </IconButton>
             </Stack>
 
-            <Typography sx={{ color: storefrontColors.muted, lineHeight: 1.8, maxWidth: 460 }} variant="body1">
+            <Typography
+              sx={{ color: storefrontColors.muted, lineHeight: 1.8, maxWidth: 460 }}
+              variant="body1"
+            >
               {product.description}
             </Typography>
 
@@ -428,7 +477,11 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
           <Card sx={{ ...storefrontPanelSx, borderRadius: 1, p: { md: 3, xs: 2 } }}>
             <Stack spacing={2.4}>
               {detailContent.description.map((paragraph) => (
-                <Typography key={paragraph} sx={{ color: '#4e535c', lineHeight: 1.75 }} variant="body1">
+                <Typography
+                  key={paragraph}
+                  sx={{ color: '#4e535c', lineHeight: 1.75 }}
+                  variant="body1"
+                >
                   {paragraph}
                 </Typography>
               ))}
@@ -439,7 +492,11 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
                 </Typography>
                 <Stack spacing={1}>
                   {detailContent.keyFeatures.map((feature) => (
-                    <Typography key={feature} sx={{ color: '#4e535c', lineHeight: 1.65 }} variant="body1">
+                    <Typography
+                      key={feature}
+                      sx={{ color: '#4e535c', lineHeight: 1.65 }}
+                      variant="body1"
+                    >
                       - {feature}
                     </Typography>
                   ))}
@@ -450,18 +507,29 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
         </Stack>
       </Box>
 
-      <Box sx={{ ...storefrontMutedPanelSx, borderRadius: 1, px: { md: 3, xs: 2 }, py: { md: 3, xs: 2.5 } }}>
+      <Box
+        sx={{
+          ...storefrontMutedPanelSx,
+          borderRadius: 1,
+          px: { md: 3, xs: 2 },
+          py: { md: 3, xs: 2.5 },
+        }}
+      >
         <Stack spacing={2.5}>
-          <Typography sx={{ ...storefrontSectionTitleSx, fontSize: { md: '2.2rem', xs: '1.8rem' } }} variant="h3">
+          <Typography
+            sx={{ ...storefrontSectionTitleSx, fontSize: { md: '2.2rem', xs: '1.8rem' } }}
+            variant="h3"
+          >
             {relatedTitle}
           </Typography>
-          <Grid container spacing={2}>
-            {relatedProducts.map((item) => (
-              <Grid key={item.id} size={{ lg: 3, md: 6, xs: 12 }}>
-                <StoreProductCard onAddToCart={(storeProduct) => addToCart(mapHomeProductToProduct(storeProduct))} product={item} />
-              </Grid>
-            ))}
-          </Grid>
+          {relatedProducts.length ? (
+            <ProductGrid onAddToCart={addToCart} products={relatedProducts} />
+          ) : (
+            <EmptyState
+              description="More products from this category will be available soon."
+              title="Related items coming soon"
+            />
+          )}
         </Stack>
       </Box>
 

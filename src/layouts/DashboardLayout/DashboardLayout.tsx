@@ -48,8 +48,10 @@ export const DashboardLayout = () => {
       <Box
         sx={{
           flexGrow: 1,
+          maxWidth: { md: 'calc(100% - 280px)', xs: '100%' },
           minWidth: 0,
-          width: { xs: '100%' },
+          overflowX: 'hidden',
+          width: { md: 'calc(100% - 280px)', xs: '100%' },
         }}
       >
         <AppBar color="transparent" position="sticky">
@@ -137,6 +139,9 @@ export const DashboardLayout = () => {
         <PageContainer
           maxWidth={false}
           sx={{
+            maxWidth: '100%',
+            minWidth: 0,
+            overflowX: 'hidden',
             px: { lg: 4, sm: 3, xs: 2 },
             py: { md: 4, xs: 2.5 },
           }}

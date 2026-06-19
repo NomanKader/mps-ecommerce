@@ -19,7 +19,7 @@ export const AppSelect = ({ label, onChange, options, value }: AppSelectProps) =
       label={label}
       labelId={`${label}-select-label`}
       onChange={onChange}
-      sx={{ borderRadius: 3 }}
+      sx={{ borderRadius: 1 }}
       value={value}
     >
       {options.map((option) => (

@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { Navigate, createBrowserRouter } from 'react-router-dom';
 
 import { App } from '@app/App';
 import { AuthLayout } from '@layouts/AuthLayout/AuthLayout';
@@ -15,6 +15,7 @@ import { HomePage } from '@pages/HomePage/HomePage';
 import { NotFoundPage } from '@pages/NotFoundPage/NotFoundPage';
 import { OrdersPage } from '@pages/OrdersPage/OrdersPage';
 import { ProductDetailsPage } from '@pages/ProductDetailsPage/ProductDetailsPage';
+import { SustainabilityPage } from '@pages/SustainabilityPage/SustainabilityPage';
 import { AdminUserPage } from '@pages/TenantAdmin/AdminUserPage/AdminUserPage';
 import { CarouselPage } from '@pages/TenantAdmin/CarouselPage/CarouselPage';
 import { CategoriesPage } from '@pages/TenantAdmin/CategoriesPage/CategoriesPage';
@@ -36,29 +37,43 @@ import { routePaths } from '@routes/routePaths';
 const accountRoutes = [
   { element: <AccountMenuPage />, path: routePaths.account },
   { element: <AccountMenuPage />, path: routePaths.accountAddresses },
-  { element: <AccountMenuPage />, path: routePaths.accountAwards },
-  { element: <AccountMenuPage />, path: routePaths.accountBrand },
-  { element: <AccountMenuPage />, path: routePaths.accountCares },
   { element: <AccountMenuPage />, path: routePaths.accountChangePassword },
   { element: <AccountMenuPage />, path: routePaths.accountCollectionService },
   { element: <AccountMenuPage />, path: routePaths.accountDeleteAccount },
   { element: <AccountMenuPage />, path: routePaths.accountDeliveryMembership },
   { element: <AccountMenuPage />, path: routePaths.accountFavourites },
-  { element: <AccountMenuPage />, path: routePaths.accountKitchen },
-  { element: <AccountMenuPage />, path: routePaths.accountMedia },
   { element: <AccountMenuPage />, path: routePaths.accountOrders },
-  { element: <AccountMenuPage />, path: routePaths.accountQuality },
   { element: <AccountMenuPage />, path: routePaths.accountReferFriends },
   { element: <AccountMenuPage />, path: routePaths.accountRegulars },
   { element: <AccountMenuPage />, path: routePaths.accountRewardPoints },
   { element: <AccountMenuPage />, path: routePaths.accountShoppingList },
   { element: <AccountMenuPage />, path: routePaths.accountStatement },
   { element: <AccountMenuPage />, path: routePaths.accountStatus },
-  { element: <AccountMenuPage />, path: routePaths.accountStory },
   { element: <AccountMenuPage />, path: routePaths.accountVouchers },
-  { element: <AccountMenuPage />, path: routePaths.accountVision },
   { element: <AccountMenuPage />, path: routePaths.accountWallet },
   { element: <AccountMenuPage />, path: routePaths.accountWioBank },
+];
+
+const sustainableShoppingRoutes = [
+  { element: <SustainabilityPage />, path: routePaths.sustainability.awards },
+  { element: <SustainabilityPage />, path: routePaths.sustainability.brand },
+  { element: <SustainabilityPage />, path: routePaths.sustainability.cares },
+  { element: <SustainabilityPage />, path: routePaths.sustainability.kitchen },
+  { element: <SustainabilityPage />, path: routePaths.sustainability.media },
+  { element: <SustainabilityPage />, path: routePaths.sustainability.quality },
+  { element: <SustainabilityPage />, path: routePaths.sustainability.story },
+  { element: <SustainabilityPage />, path: routePaths.sustainability.vision },
+];
+
+const legacySustainableShoppingRoutes = [
+  { from: routePaths.accountAwards, to: routePaths.sustainability.awards },
+  { from: routePaths.accountBrand, to: routePaths.sustainability.brand },
+  { from: routePaths.accountCares, to: routePaths.sustainability.cares },
+  { from: routePaths.accountKitchen, to: routePaths.sustainability.kitchen },
+  { from: routePaths.accountMedia, to: routePaths.sustainability.media },
+  { from: routePaths.accountQuality, to: routePaths.sustainability.quality },
+  { from: routePaths.accountStory, to: routePaths.sustainability.story },
+  { from: routePaths.accountVision, to: routePaths.sustainability.vision },
 ];
 
 export const router = createBrowserRouter([
@@ -71,6 +86,11 @@ export const router = createBrowserRouter([
           { element: <CatalogPage />, path: routePaths.catalog },
           { element: <CartPage />, path: routePaths.cart },
           { element: <ProductDetailsPage />, path: routePaths.productDetails },
+          ...sustainableShoppingRoutes,
+          ...legacySustainableShoppingRoutes.map((route) => ({
+            element: <Navigate replace to={route.to} />,
+            path: route.from,
+          })),
         ],
       },
       {
@@ -108,13 +128,18 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        element: <ProtectedRoute allowedRoles={['tenant_admin']} />,
+        element: <ProtectedRoute allowedRoles={['tenant_admin', 'staff']} />,
         children: [
           {
             element: <DashboardLayout />,
             children: [
               { element: <DashboardPage />, path: routePaths.tenantAdmin.dashboard },
-              { element: <AdminUserPage />, path: routePaths.tenantAdmin.adminUser },
+              {
+                element: <ProtectedRoute allowedRoles={['tenant_admin']} />,
+                children: [
+                  { element: <AdminUserPage />, path: routePaths.tenantAdmin.adminUser },
+                ],
+              },
               { element: <ProductsPage />, path: routePaths.tenantAdmin.products },
               { element: <CategoriesPage />, path: routePaths.tenantAdmin.categories },
               { element: <CategoriesPage />, path: routePaths.tenantAdmin.primaryCategory },

@@ -11,8 +11,8 @@ export const storefrontShellSx: SxProps<Theme> = {
 export const storefrontPanelSx: SxProps<Theme> = {
   background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,252,248,0.94) 100%)',
   border: `1px solid ${storefrontColors.border}`,
-  borderRadius: 2,
-  boxShadow: `0 22px 55px ${alpha('#4a2418', 0.1)}`,
+  borderRadius: 1,
+  boxShadow: `0 16px 42px ${alpha('#4a2418', 0.09)}`,
 };
 
 export const storefrontMutedPanelSx: SxProps<Theme> = {
@@ -28,7 +28,7 @@ export const storefrontSectionTitleSx: SxProps<Theme> = {
 
 export const storefrontIconButtonSx: SxProps<Theme> = {
   border: `1px solid ${storefrontColors.border}`,
-  borderRadius: 2,
+  borderRadius: 1,
   boxShadow: `0 12px 26px ${alpha('#4a2418', 0.08)}`,
   color: storefrontColors.navy,
   height: 70,

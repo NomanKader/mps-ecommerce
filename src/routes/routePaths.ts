@@ -36,6 +36,16 @@ export const routePaths = {
   notFound: '*',
   orders: '/orders',
   productDetails: '/products/:productId',
+  sustainability: {
+    awards: '/sustainable-grocery-shopping/awards',
+    brand: '/sustainable-grocery-shopping/brand',
+    cares: '/sustainable-grocery-shopping/avs-cares',
+    kitchen: '/sustainable-grocery-shopping/avs-kitchen',
+    media: '/sustainable-grocery-shopping/media',
+    quality: '/sustainable-grocery-shopping/quality',
+    story: '/sustainable-grocery-shopping/story',
+    vision: '/sustainable-grocery-shopping/vision',
+  },
   tenantAdmin: {
     adminUser: '/admin/admin-user',
     carousel: '/admin/carousel',

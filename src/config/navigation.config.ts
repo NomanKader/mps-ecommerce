@@ -16,12 +16,14 @@ import ViewListOutlinedIcon from '@mui/icons-material/ViewListOutlined';
 import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
 
 import { routePaths } from '@routes/routePaths';
+import type { Role } from '../types/common';
 
 export type NavigationItem = {
   children?: NavigationItem[];
   icon: SvgIconComponent;
   label: string;
   path?: string;
+  requiredRoles?: Role[];
 };
 
 export const dashboardNavigation: NavigationItem[] = [
@@ -30,6 +32,7 @@ export const dashboardNavigation: NavigationItem[] = [
     icon: ManageAccountsOutlinedIcon,
     label: 'User',
     path: routePaths.tenantAdmin.adminUser,
+    requiredRoles: ['tenant_admin'],
   },
   { icon: ViewCarouselOutlinedIcon, label: 'Carousel', path: routePaths.tenantAdmin.carousel },
   {

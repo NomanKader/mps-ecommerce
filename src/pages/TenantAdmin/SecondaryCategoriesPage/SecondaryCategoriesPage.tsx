@@ -4,6 +4,7 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
   Box,
+  Checkbox,
   Chip,
   Dialog,
   DialogActions,
@@ -11,6 +12,7 @@ import {
   DialogTitle,
   Grid,
   InputAdornment,
+  ListItemText,
   MenuItem,
   Stack,
   TextField,
@@ -36,7 +38,7 @@ type SecondaryCategoryForm = {
   color: string;
   icon: string;
   name: string;
-  productId: string;
+  productIds: string[];
   status: AdminSecondaryCategory['status'];
   targetSectionId: AdminSecondaryCategory['targetSectionId'];
 };
@@ -45,7 +47,7 @@ const emptyForm: SecondaryCategoryForm = {
   color: '#2db34b',
   icon: '🌿',
   name: '',
-  productId: '',
+  productIds: [],
   status: 'active',
   targetSectionId: 'top-offers',
 };
@@ -71,11 +73,21 @@ const toPayload = (form: SecondaryCategoryForm): AdminSecondaryCategoryPayload =
   color: form.color,
   icon: form.icon.trim() || undefined,
   name: form.name.trim(),
-  productId: form.productId,
+  productId: form.productIds[0],
+  productIds: form.productIds,
   slug: slugify(form.name),
   status: form.status,
   targetSectionId: form.targetSectionId,
 });
+
+const selectedValueToProductIds = (value: unknown) => [
+  ...new Set(
+    (Array.isArray(value) ? value : [value])
+      .flatMap((item) => String(item).split(','))
+      .map((productId) => productId.trim())
+      .filter(Boolean),
+  ),
+];
 
 export const SecondaryCategoriesPage = () => {
   const queryClient = useQueryClient();
@@ -151,11 +163,21 @@ export const SecondaryCategoriesPage = () => {
       valueGetter: (_value, row) => targetSectionLabel(row.targetSectionId),
     },
     {
-      field: 'productId',
+      field: 'productIds',
       flex: 1,
-      headerName: 'Product',
+      headerName: 'Products',
       minWidth: 220,
-      valueGetter: (_value, row) => productById.get(row.productId)?.name ?? row.productId,
+      valueGetter: (_value, row) => {
+        const productIds = row.productIds?.length
+          ? row.productIds
+          : row.productId
+            ? [row.productId]
+            : [];
+
+        return productIds
+          .map((productId) => productById.get(productId)?.name ?? productId)
+          .join(', ');
+      },
     },
     {
       field: 'status',
@@ -182,7 +204,11 @@ export const SecondaryCategoriesPage = () => {
               color: row.color ?? emptyForm.color,
               icon: row.icon ?? emptyForm.icon,
               name: row.name,
-              productId: row.productId ?? '',
+              productIds: row.productIds?.length
+                ? row.productIds
+                : row.productId
+                  ? [row.productId]
+                  : [],
               status: row.status,
               targetSectionId: row.targetSectionId ?? 'top-offers',
             });
@@ -209,8 +235,8 @@ export const SecondaryCategoriesPage = () => {
         throw new Error('Secondary category name is required.');
       }
 
-      if (!payload.productId) {
-        throw new Error('Select a product for this secondary category.');
+      if (!payload.productIds.length) {
+        throw new Error('Select at least one product for this secondary category.');
       }
 
       return editingId
@@ -348,12 +374,24 @@ export const SecondaryCategoriesPage = () => {
             </TextField>
             <TextField
               fullWidth
-              label="Product"
-              onChange={(event) =>
-                setForm((current) => ({ ...current, productId: event.target.value }))
-              }
+              label="Products"
+              onChange={(event) => {
+                setForm((current) => ({
+                  ...current,
+                  productIds: selectedValueToProductIds(event.target.value),
+                }));
+              }}
+              slotProps={{
+                select: {
+                  multiple: true,
+                  renderValue: (selected: unknown) =>
+                    selectedValueToProductIds(selected)
+                      .map((productId) => productById.get(productId)?.name ?? productId)
+                      .join(', '),
+                },
+              }}
               select
-              value={form.productId}
+              value={form.productIds}
             >
               {productsQuery.isLoading ? (
                 <MenuItem disabled value="">
@@ -367,13 +405,11 @@ export const SecondaryCategoriesPage = () => {
               ) : null}
               {products.map((product) => (
                 <MenuItem key={product.id} value={product.id}>
-                  <Stack spacing={0.25}>
-                    <Typography variant="body2">{product.name}</Typography>
-                    <Typography color="text.secondary" variant="caption">
-                      {product.sku}
-                      {product.categoryName ? ` / ${product.categoryName}` : ''}
-                    </Typography>
-                  </Stack>
+                  <Checkbox checked={form.productIds.includes(product.id)} />
+                  <ListItemText
+                    primary={product.name}
+                    secondary={`${product.sku}${product.categoryName ? ` / ${product.categoryName}` : ''}`}
+                  />
                 </MenuItem>
               ))}
             </TextField>

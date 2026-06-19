@@ -2,9 +2,13 @@ import { createTheme } from '@mui/material/styles';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
 
+const fieldBorderColor = 'rgba(71, 55, 47, 0.32)';
+const fieldHoverBorderColor = 'rgba(198, 37, 31, 0.72)';
+const fieldFocusBorderColor = storefrontColors.navy;
+
 const baseThemeOptions = {
   shape: {
-    borderRadius: 14,
+    borderRadius: 6,
   },
   typography: {
     fontFamily: '"Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif',
@@ -96,8 +100,9 @@ export const lightTheme = createTheme({
         root: {
           background: 'linear-gradient(145deg, rgba(255,255,255,0.72), rgba(255,248,240,0.48))',
           backdropFilter: 'blur(24px) saturate(142%)',
+          borderRadius: 6,
           border: '1px solid rgba(255, 255, 255, 0.64)',
-          boxShadow: '0 24px 70px rgba(64, 35, 21, 0.11), inset 0 1px 0 rgba(255,255,255,0.72)',
+          boxShadow: '0 18px 44px rgba(64, 35, 21, 0.1), inset 0 1px 0 rgba(255,255,255,0.72)',
         },
       },
     },
@@ -176,18 +181,33 @@ export const lightTheme = createTheme({
         root: {
           backgroundColor: 'rgba(255,255,255,0.62)',
           backdropFilter: 'blur(16px) saturate(135%)',
-          borderRadius: 14,
+          borderRadius: 6,
           '& fieldset': {
-            borderColor: 'rgba(255,255,255,0.72)',
+            borderColor: fieldBorderColor,
+            borderWidth: 1,
           },
           '&:hover fieldset': {
-            borderColor: storefrontColors.accent,
+            borderColor: fieldHoverBorderColor,
           },
           '&.Mui-focused fieldset': {
-            borderColor: storefrontColors.navy,
+            borderColor: fieldFocusBorderColor,
+            borderWidth: 1,
             boxShadow: '0 0 0 4px rgba(198, 37, 31, 0.1)',
           },
+          '&.Mui-disabled fieldset': {
+            borderColor: 'rgba(71, 55, 47, 0.2)',
+          },
         },
+      },
+    },
+    MuiTextField: {
+      defaultProps: {
+        variant: 'outlined',
+      },
+    },
+    MuiSelect: {
+      defaultProps: {
+        variant: 'outlined',
       },
     },
     MuiPaper: {
@@ -196,7 +216,7 @@ export const lightTheme = createTheme({
           backgroundImage: 'none',
         },
         rounded: {
-          borderRadius: 16,
+          borderRadius: 6,
         },
       },
     },

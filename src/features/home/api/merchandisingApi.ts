@@ -1,4 +1,5 @@
 import { apiClient } from '@shared/api/axios';
+import type { Category } from '@entities/category/types/category.types';
 import { endpoints } from '@shared/api/endpoints';
 import type { ApiResponse } from '../../../types/api';
 import type { User } from '@entities/user/types/user.types';
@@ -10,10 +11,15 @@ import type {
   StorefrontHighlightSection,
   StorefrontProductSection,
   StorefrontProductSectionAssignment,
+  StorefrontSecondaryCategory,
 } from '@features/home/types/home.types';
 
 type MongoEntity = { _id: string };
 type BackendEntity<T extends { id: string }> = Omit<T, 'id'> & MongoEntity;
+type BackendCategory = Omit<Category, 'id' | 'subcategories'> &
+  MongoEntity & {
+    subcategories?: string[];
+  };
 type ListOptions = { signal?: globalThis.AbortSignal };
 type Query = Record<string, string | undefined>;
 
@@ -37,6 +43,8 @@ export type AdminProfilePayload = {
   isActive: boolean;
   lastName: string;
   logoUrl?: string;
+  password?: string;
+  passwordConfirmation?: string;
   supportPhoneCountryCode: string;
   supportPhoneNumber: string;
   topBarTagline: string;
@@ -68,6 +76,24 @@ const mapId = <T extends MongoEntity>({ _id, ...entity }: T) => ({ ...entity, id
 const params = (query: Query) =>
   Object.fromEntries(Object.entries(query).filter(([, value]) => value && value !== 'all'));
 
+const slugify = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+const mapCategory = ({ _id, subcategories = [], ...category }: BackendCategory): Category => ({
+  ...category,
+  id: _id,
+  subcategories: subcategories.map((subcategory) => ({
+    icon: category.icon ?? '',
+    id: `${_id}-${slugify(subcategory)}`,
+    name: subcategory,
+    slug: slugify(subcategory),
+  })),
+});
+
 const normalizeEntity = <T extends { id: string }>(entity: T | BackendEntity<T>) => {
   if ('_id' in entity) {
     return mapId(entity as BackendEntity<T>) as unknown as T;
@@ -89,6 +115,23 @@ const normalizeProductSections = <
     ),
   })),
 });
+
+const normalizeSecondaryCategory = (
+  category: StorefrontSecondaryCategory | BackendEntity<StorefrontSecondaryCategory>,
+): StorefrontSecondaryCategory => {
+  const normalizedCategory = normalizeEntity(category);
+  const productIds = normalizedCategory.productIds?.length
+    ? normalizedCategory.productIds
+    : normalizedCategory.productId
+      ? [normalizedCategory.productId]
+      : [];
+
+  return {
+    ...normalizedCategory,
+    productId: normalizedCategory.productId ?? productIds[0],
+    productIds,
+  };
+};
 
 const carouselFormData = (payload: CarouselPayload) => {
   const formData = new FormData();
@@ -207,6 +250,16 @@ export const merchandisingApi = {
     >(endpoints.storefront.carousel, { params: { placement }, signal: options.signal });
     return response.data.data.map(normalizeEntity);
   },
+  async listStorefrontCategories(options: ListOptions = {}) {
+    const response = await apiClient.get<ApiResponse<BackendCategory[]>>(
+      endpoints.storefront.categories,
+      {
+        signal: options.signal,
+      },
+    );
+
+    return response.data.data.map(mapCategory);
+  },
   async listStorefrontIcons(section: StorefrontHighlightSection, options: ListOptions = {}) {
     const response = await apiClient.get<
       ApiResponse<Array<BackendEntity<StorefrontHighlightItem>>>
@@ -224,6 +277,12 @@ export const merchandisingApi = {
     ).data.data;
 
     return normalizeProductSections(response);
+  },
+  async listStorefrontSecondaryCategories(options: ListOptions = {}) {
+    const response = await apiClient.get<
+      ApiResponse<Array<BackendEntity<StorefrontSecondaryCategory>>>
+    >(endpoints.storefront.secondaryCategories, { signal: options.signal });
+    return response.data.data.map(normalizeSecondaryCategory);
   },
   async updateAdminProfile(payload: AdminProfilePayload) {
     return (await apiClient.put<ApiResponse<AdminProfile>>(endpoints.admin.profile, payload)).data;

@@ -58,7 +58,7 @@ const emptyForm: CarouselForm = {
   placement: 'hero',
   sortOrder: 1,
   startsAt: today,
-  status: 'draft',
+  status: 'active',
   targetCategoryId: 'all',
   targetSearch: '',
   title: '',
@@ -94,9 +94,9 @@ const createCarouselPayload = (form: CarouselForm, removeImage = false): Carouse
   removeImage,
   sortOrder: Number(form.sortOrder) || 1,
   startsAt: form.startsAt,
-  status: form.status,
+  status: 'active',
   targetCategoryId: form.targetCategoryId,
-  targetSearch: form.targetSearch?.trim() || undefined,
+  targetSearch: undefined,
   title: form.title.trim(),
 });
 
@@ -218,7 +218,7 @@ export const CarouselPage = () => {
     queryFn: ({ signal }) => merchandisingApi.listAdminCarousel({}, { signal }),
     queryKey: ['admin', 'carousel'],
   });
-  const slides = carouselQuery.data ?? [];
+  const slides = useMemo(() => carouselQuery.data ?? [], [carouselQuery.data]);
   const [previewSlide, setPreviewSlide] = useState<StorefrontCarouselSlide | null>(
     defaultCarouselSlides[0] ?? null,
   );
@@ -273,19 +273,19 @@ export const CarouselPage = () => {
       field: 'placement',
       headerName: 'Placement',
       renderCell: (params) => placementLabels[params.row.placement],
-      width: 150,
+      width: 170,
     },
-    { field: 'sortOrder', headerName: 'Order', type: 'number', width: 90 },
     {
       field: 'targetCategoryId',
       headerName: 'Target',
-      width: 150,
+      width: 160,
       valueGetter: (_value, row) => row.targetSearch || row.targetCategoryId,
     },
     {
       field: 'startsAt',
       headerName: 'Starts',
-      width: 130,
+      renderCell: (params) => new Date(params.row.startsAt).toLocaleDateString('en-CA'),
+      width: 160,
     },
     {
       field: 'status',
@@ -293,7 +293,7 @@ export const CarouselPage = () => {
       renderCell: (params) => (
         <Chip color={getStatusColor(params.row.status)} label={params.row.status} size="small" />
       ),
-      width: 120,
+      width: 140,
     },
     {
       field: 'actions',
@@ -322,9 +322,9 @@ export const CarouselPage = () => {
               placement: row.placement,
               sortOrder: row.sortOrder,
               startsAt: row.startsAt,
-              status: row.status,
+              status: 'active',
               targetCategoryId: row.targetCategoryId,
-              targetSearch: row.targetSearch ?? '',
+              targetSearch: '',
               title: row.title,
             });
             setIsDialogOpen(true);
@@ -338,7 +338,7 @@ export const CarouselPage = () => {
         />,
       ],
       type: 'actions',
-      width: 120,
+      width: 130,
     },
   ];
 
@@ -463,8 +463,8 @@ export const CarouselPage = () => {
       description="Control homepage hero and showcase carousel slides for the current storefront session."
       title="Carousel"
     >
-      <Stack spacing={2.5}>
-        <Box>
+      <Stack spacing={2.5} sx={{ minWidth: 0 }}>
+        <Box sx={{ maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
           <Stack
             direction={{ lg: 'row', xs: 'column' }}
             spacing={2}
@@ -475,6 +475,7 @@ export const CarouselPage = () => {
               borderColor: 'divider',
               borderRadius: 1,
               mb: 2,
+              minWidth: 0,
               p: 2,
             }}
           >
@@ -491,7 +492,7 @@ export const CarouselPage = () => {
                   ),
                 },
               }}
-              sx={{ minWidth: { lg: 320 } }}
+              sx={{ minWidth: { lg: 320, xs: 0 } }}
               value={search}
             />
             <TextField
@@ -500,7 +501,7 @@ export const CarouselPage = () => {
                 setPlacementFilter(event.target.value as 'all' | StorefrontCarouselPlacement)
               }
               select
-              sx={{ minWidth: { lg: 220 } }}
+              sx={{ minWidth: { lg: 220, xs: 0 } }}
               value={placementFilter}
             >
               <MenuItem value="all">All placements</MenuItem>
@@ -521,9 +522,10 @@ export const CarouselPage = () => {
             }}
             loading={carouselQuery.isLoading}
             rows={filteredSlides}
+            sx={{ minWidth: 980 }}
           />
         </Box>
-        <Box>
+        <Box sx={{ minWidth: 0 }}>
           <Stack spacing={2}>
             <Alert severity="info">
               Carousel edits are saved to the tenant backend and are visible on the storefront
@@ -667,7 +669,7 @@ export const CarouselPage = () => {
                   />
                 </Box>
               </Grid>
-              <Grid size={{ sm: 4, xs: 12 }}>
+              <Grid size={{ sm: 6, xs: 12 }}>
                 <TextField
                   fullWidth
                   label="CTA"
@@ -677,7 +679,7 @@ export const CarouselPage = () => {
                   value={form.cta}
                 />
               </Grid>
-              <Grid size={{ sm: 4, xs: 12 }}>
+              <Grid size={{ sm: 6, xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Placement"
@@ -693,35 +695,6 @@ export const CarouselPage = () => {
                   <MenuItem value="hero">Hero carousel</MenuItem>
                   <MenuItem value="showcase">Showcase carousel</MenuItem>
                 </TextField>
-              </Grid>
-              <Grid size={{ sm: 4, xs: 12 }}>
-                <TextField
-                  fullWidth
-                  label="Status"
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      status: event.target.value as StorefrontCarouselSlide['status'],
-                    }))
-                  }
-                  select
-                  value={form.status}
-                >
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="scheduled">Scheduled</MenuItem>
-                  <MenuItem value="draft">Draft</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid size={{ sm: 4, xs: 12 }}>
-                <TextField
-                  fullWidth
-                  label="Sort order"
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, sortOrder: Number(event.target.value) }))
-                  }
-                  type="number"
-                  value={form.sortOrder}
-                />
               </Grid>
               <Grid size={{ sm: 4, xs: 12 }}>
                 <TextField
@@ -751,16 +724,6 @@ export const CarouselPage = () => {
                     </MenuItem>
                   ))}
                 </TextField>
-              </Grid>
-              <Grid size={{ sm: 4, xs: 12 }}>
-                <TextField
-                  fullWidth
-                  label="Target search"
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, targetSearch: event.target.value }))
-                  }
-                  value={form.targetSearch}
-                />
               </Grid>
               <Grid size={{ sm: 4, xs: 12 }}>
                 <TextField

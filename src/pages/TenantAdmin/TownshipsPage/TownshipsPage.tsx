@@ -29,13 +29,13 @@ import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
 
 type TownshipForm = {
   name: string;
-  region: string;
+  regionId: string;
   status: AdminTownship['status'];
 };
 
 const emptyForm: TownshipForm = {
   name: '',
-  region: '',
+  regionId: '',
   status: 'active',
 };
 
@@ -57,7 +57,7 @@ export const TownshipsPage = () => {
   const townshipsQuery = useQuery({
     queryFn: ({ signal }) =>
       adminApi.listTownships(
-        { region: regionFilter === 'all' ? undefined : regionFilter, search: debouncedSearch },
+        { regionId: regionFilter === 'all' ? undefined : regionFilter, search: debouncedSearch },
         { signal },
       ),
     queryKey: ['admin', 'townships', debouncedSearch, regionFilter],
@@ -66,26 +66,30 @@ export const TownshipsPage = () => {
 
   const openCreateDialog = () => {
     setEditingId(null);
-    setForm({ ...emptyForm, region: regions[0]?.name ?? '' });
+    setForm({ ...emptyForm, regionId: regions[0]?.id ?? '' });
     setIsDialogOpen(true);
   };
 
   const openEditDialog = (township: AdminTownship) => {
     setEditingId(township.id);
-    setForm({ name: township.name, region: township.region, status: township.status });
+    setForm({
+      name: township.name,
+      regionId: township.regionId ?? regions.find((region) => region.name === township.region)?.id ?? '',
+      status: township.status,
+    });
     setIsDialogOpen(true);
   };
 
   const saveMutation = useMutation({
     mutationFn: () => {
       const name = form.name.trim();
-      const region = form.region.trim();
+      const regionId = form.regionId.trim();
 
-      if (!name || !region) {
+      if (!name || !regionId) {
         throw new Error('Township name and region are required.');
       }
 
-      const payload = { name, region, status: form.status };
+      const payload = { country: 'Myanmar' as const, name, regionId, status: form.status };
       return editingId
         ? adminApi.updateTownship(editingId, payload)
         : adminApi.createTownship(payload);
@@ -113,6 +117,7 @@ export const TownshipsPage = () => {
 
   const columns: GridColDef<AdminTownship>[] = [
     { field: 'name', flex: 1, headerName: 'Township', minWidth: 220 },
+    { field: 'country', headerName: 'Country', minWidth: 130 },
     { field: 'region', flex: 1, headerName: 'Region', minWidth: 180 },
     {
       field: 'status',
@@ -195,7 +200,7 @@ export const TownshipsPage = () => {
         >
           <MenuItem value="all">All regions</MenuItem>
           {regions.map((region) => (
-            <MenuItem key={region.id} value={region.name}>
+            <MenuItem key={region.id} value={region.id}>
               {region.name}
             </MenuItem>
           ))}
@@ -205,20 +210,26 @@ export const TownshipsPage = () => {
         </Typography>
       </Stack>
 
-      <AppDataTable columns={columns} loading={townshipsQuery.isLoading} rows={townships} />
+      <AppDataTable
+        columns={columns}
+        initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+        loading={townshipsQuery.isLoading}
+        rows={townships}
+      />
 
       <Dialog fullWidth maxWidth="sm" onClose={() => setIsDialogOpen(false)} open={isDialogOpen}>
         <DialogTitle>{editingId ? 'Edit Township' : 'Create Township'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2.25} sx={{ pt: 1 }}>
+            <TextField disabled fullWidth label="Country" value="Myanmar" />
             <TextField
               fullWidth
               label="Region"
               onChange={(event) =>
-                setForm((current) => ({ ...current, region: event.target.value }))
+                setForm((current) => ({ ...current, regionId: event.target.value }))
               }
               select
-              value={form.region}
+              value={form.regionId}
             >
               {regionsQuery.isLoading ? (
                 <MenuItem disabled value="">
@@ -231,7 +242,7 @@ export const TownshipsPage = () => {
                 </MenuItem>
               ) : null}
               {regions.map((region) => (
-                <MenuItem key={region.id} value={region.name}>
+                <MenuItem key={region.id} value={region.id}>
                   {region.name}
                 </MenuItem>
               ))}

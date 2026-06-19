@@ -14,11 +14,15 @@ export const AccountPage = () => {
       description="Account foundation prepared for profile management, saved addresses, preferences, and customer security controls."
       title="Account"
     >
-      <Card sx={{ borderRadius: 4 }}>
+      <Card sx={{ borderRadius: 1 }}>
         <CardContent>
           <Stack spacing={2}>
-            <Typography variant="h6">{user ? `${user.firstName} ${user.lastName}` : 'Guest User'}</Typography>
-            <Typography color="text.secondary">{user?.email ?? 'Sign in to load account data.'}</Typography>
+            <Typography variant="h6">
+              {user ? `${user.firstName} ${user.lastName}` : 'Guest User'}
+            </Typography>
+            <Typography color="text.secondary">
+              {user?.email ?? 'Sign in to load account data.'}
+            </Typography>
             <Stack direction="row" spacing={1}>
               <Chip icon={<ShieldOutlinedIcon />} label={`Role: ${user?.role ?? 'customer'}`} />
               <Chip label={`Tenant: ${tenant?.name ?? 'N/A'}`} />

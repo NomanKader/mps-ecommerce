@@ -24,6 +24,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { alpha } from '@mui/material/styles';
 
 import { adminApi } from '@features/admin/api/adminApi';
 import type { AdminCategory } from '@features/admin/types/admin.types';
@@ -47,6 +48,7 @@ type SubcategoryOption = {
 };
 type SubcategoryRow = {
   category: AdminCategory;
+  categoryColor: string;
   categoryId: string;
   categoryIcon: string;
   categoryName: string;
@@ -205,6 +207,37 @@ const emptyForm: CategoryForm = {
   primaryCategoryId: '',
 };
 
+const categoryVisuals: Array<{
+  color: string;
+  icon: string;
+  keywords: string[];
+}> = [
+  { color: '#d97706', icon: '🍞', keywords: ['bakery', 'bread', 'pastry', 'cake'] },
+  { color: '#0891b2', icon: '🧃', keywords: ['beverage', 'drink', 'coffee', 'tea', 'juice'] },
+  { color: '#2563eb', icon: '🥛', keywords: ['dairy', 'milk', 'yogurt', 'cheese'] },
+  { color: '#dc2626', icon: '🍎', keywords: ['fruit', 'apple', 'banana', 'berry'] },
+  { color: '#b91c1c', icon: '🥩', keywords: ['meat', 'chicken', 'beef', 'pork'] },
+  { color: '#92400e', icon: '🍚', keywords: ['pantry', 'rice', 'grain', 'pasta'] },
+  { color: '#16a34a', icon: '🥬', keywords: ['vegetable', 'vegetables', 'leafy', 'greens'] },
+  { color: '#7c3aed', icon: '🍪', keywords: ['snack', 'snacks', 'biscuit'] },
+  { color: '#0284c7', icon: '🐟', keywords: ['seafood', 'fish', 'shrimp'] },
+  { color: '#64748b', icon: '🛒', keywords: ['essential', 'grocery', 'category'] },
+];
+
+const subcategoryIconRules: Array<{ icon: string; keywords: string[] }> = [
+  { icon: '🍞', keywords: ['bread', 'loaf', 'bakery'] },
+  { icon: '☕', keywords: ['coffee'] },
+  { icon: '🥛', keywords: ['milk'] },
+  { icon: '🥣', keywords: ['yogurt'] },
+  { icon: '🍎', keywords: ['apple'] },
+  { icon: '🍌', keywords: ['banana'] },
+  { icon: '🍅', keywords: ['tomato'] },
+  { icon: '🥬', keywords: ['leafy', 'green', 'lettuce'] },
+  { icon: '🌱', keywords: ['spinach'] },
+  { icon: '🍗', keywords: ['chicken'] },
+  { icon: '🍚', keywords: ['rice'] },
+];
+
 const slugify = (value: string) =>
   value
     .trim()
@@ -215,6 +248,27 @@ const slugify = (value: string) =>
 
 const subcategoryValue = (option: SubcategoryOption) =>
   option.icon ? `${option.icon} ${option.label}` : option.label;
+
+const getCategoryVisual = (category: Pick<AdminCategory, 'color' | 'icon' | 'name' | 'slug'>) => {
+  const searchableValue = `${category.name} ${category.slug}`.toLowerCase();
+  const match = categoryVisuals.find((visual) =>
+    visual.keywords.some((keyword) => searchableValue.includes(keyword)),
+  );
+
+  return {
+    color: category.color ?? match?.color ?? '#2db34b',
+    icon: category.icon ?? match?.icon ?? '🛒',
+  };
+};
+
+const inferSubcategoryIcon = (name: string, fallbackIcon: string) => {
+  const normalizedName = name.toLowerCase();
+  const match = subcategoryIconRules.find((rule) =>
+    rule.keywords.some((keyword) => normalizedName.includes(keyword)),
+  );
+
+  return match?.icon ?? fallbackIcon;
+};
 
 const normalizeSubcategory = (categoryIcon: string, value: string) => {
   const match = (categorySubcategoryOptions[categoryIcon] ?? []).find(
@@ -228,28 +282,29 @@ const parseSubcategory = (categoryIcon: string, value: string) => {
   const normalized = normalizeSubcategory(categoryIcon, value);
   const [first = '', ...rest] = normalized.split(' ');
   const hasSeparateIcon = rest.length > 0 && first.length <= 6;
+  const name = hasSeparateIcon ? rest.join(' ') : normalized;
 
   return {
-    icon: hasSeparateIcon ? first : categoryIcon,
+    icon: hasSeparateIcon ? first : inferSubcategoryIcon(name, categoryIcon),
     label: normalized,
-    name: hasSeparateIcon ? rest.join(' ') : normalized,
+    name,
   };
 };
 
 const categoryPayloadWithSubcategories = (category: AdminCategory, subcategories: string[]) => ({
-  color: category.color ?? '#2db34b',
-  icon: category.icon ?? '🛒',
+  color: getCategoryVisual(category).color,
+  icon: getCategoryVisual(category).icon,
   name: category.name,
   slug: category.slug,
   subcategories,
 });
 
 const toForm = (category: AdminCategory): CategoryForm => {
-  const icon = category.icon ?? '🛒';
+  const visual = getCategoryVisual(category);
 
   return {
-    color: category.color ?? '#2db34b',
-    icon,
+    color: visual.color,
+    icon: visual.icon,
     name: category.name,
     primaryCategoryId: '',
   };
@@ -303,12 +358,14 @@ export const CategoriesPage = () => {
     () =>
       categories.flatMap((category) =>
         (category.subcategories ?? []).map((subcategory, index) => {
-          const categoryIcon = category.icon ?? '🛒';
+          const categoryVisual = getCategoryVisual(category);
+          const categoryIcon = categoryVisual.icon;
           const parsed = parseSubcategory(categoryIcon, subcategory);
 
           return {
             category,
             categoryId: category.id,
+            categoryColor: categoryVisual.color,
             categoryIcon,
             categoryName: category.name,
             id: `${category.id}:${index}`,
@@ -555,7 +612,15 @@ export const CategoriesPage = () => {
         <Grid container spacing={2}>
           {filteredSubcategoryRows.map((subcategory) => (
             <Grid key={subcategory.id} size={{ lg: 4, md: 6, xs: 12 }}>
-              <Card sx={{ borderRadius: 1, height: '100%' }}>
+              <Card
+                sx={{
+                  bgcolor: alpha(subcategory.categoryColor, 0.08),
+                  border: 1,
+                  borderColor: alpha(subcategory.categoryColor, 0.28),
+                  borderRadius: 1,
+                  height: '100%',
+                }}
+              >
                 <CardContent>
                   <Stack
                     direction="row"
@@ -565,7 +630,8 @@ export const CategoriesPage = () => {
                       <Box
                         sx={{
                           alignItems: 'center',
-                          bgcolor: subcategory.category.color ?? 'primary.main',
+                          bgcolor: subcategory.categoryColor,
+                          boxShadow: `0 12px 24px ${alpha(subcategory.categoryColor, 0.22)}`,
                           borderRadius: 1,
                           color: 'common.white',
                           display: 'flex',
@@ -585,7 +651,16 @@ export const CategoriesPage = () => {
                         <Typography color="text.secondary" variant="body2">
                           {subcategory.categoryName}
                         </Typography>
-                        <Chip label={subcategory.label} size="small" variant="outlined" />
+                        <Chip
+                          label={subcategory.label}
+                          size="small"
+                          sx={{
+                            bgcolor: alpha(subcategory.categoryColor, 0.1),
+                            borderColor: alpha(subcategory.categoryColor, 0.38),
+                            color: 'text.primary',
+                          }}
+                          variant="outlined"
+                        />
                       </Stack>
                     </Stack>
                     <Stack direction="row">
@@ -610,9 +685,20 @@ export const CategoriesPage = () => {
         </Grid>
       ) : (
         <Grid container spacing={2}>
-          {filteredCategories.map((category) => (
+          {filteredCategories.map((category) => {
+            const visual = getCategoryVisual(category);
+
+            return (
             <Grid key={category.id} size={{ lg: 4, md: 6, xs: 12 }}>
-              <Card sx={{ borderRadius: 1, height: '100%' }}>
+              <Card
+                sx={{
+                  bgcolor: alpha(visual.color, 0.08),
+                  border: 1,
+                  borderColor: alpha(visual.color, 0.28),
+                  borderRadius: 1,
+                  height: '100%',
+                }}
+              >
                 <CardContent>
                   <Stack spacing={2}>
                     <Stack
@@ -623,7 +709,8 @@ export const CategoriesPage = () => {
                         <Box
                           sx={{
                             alignItems: 'center',
-                            bgcolor: category.color ?? 'primary.main',
+                            bgcolor: visual.color,
+                            boxShadow: `0 12px 24px ${alpha(visual.color, 0.22)}`,
                             borderRadius: 1,
                             color: 'common.white',
                             display: 'flex',
@@ -634,7 +721,7 @@ export const CategoriesPage = () => {
                             width: 48,
                           }}
                         >
-                          {category.icon ?? '🛒'}
+                          {visual.icon}
                         </Box>
                         <Stack spacing={0.5} sx={{ minWidth: 0 }}>
                           <Typography noWrap variant="h6">
@@ -666,14 +753,23 @@ export const CategoriesPage = () => {
                     </Stack>
 
                     <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                      {category.subcategories.slice(0, 8).map((subcategory) => (
-                        <Chip
-                          key={subcategory}
-                          label={normalizeSubcategory(category.icon ?? '🛒', subcategory)}
-                          size="small"
-                          variant="outlined"
-                        />
-                      ))}
+                      {category.subcategories.slice(0, 8).map((subcategory) => {
+                        const parsed = parseSubcategory(visual.icon, subcategory);
+
+                        return (
+                          <Chip
+                            key={subcategory}
+                            label={`${parsed.icon} ${parsed.name}`}
+                            size="small"
+                            sx={{
+                              bgcolor: alpha(visual.color, 0.08),
+                              borderColor: alpha(visual.color, 0.32),
+                              color: 'text.primary',
+                            }}
+                            variant="outlined"
+                          />
+                        );
+                      })}
                       {(category.subcategories ?? []).length > 8 ? (
                         <Chip
                           label={`+${(category.subcategories ?? []).length - 8} more`}
@@ -685,7 +781,8 @@ export const CategoriesPage = () => {
                 </CardContent>
               </Card>
             </Grid>
-          ))}
+            );
+          })}
         </Grid>
       )}
       {categoriesQuery.isLoading ? <Alert severity="info">Loading categories...</Alert> : null}

@@ -7,7 +7,7 @@ export const AppTextField = (props: TextFieldProps) => (
     {...props}
     sx={{
       '& .MuiOutlinedInput-root': {
-        borderRadius: 3,
+        borderRadius: 1,
       },
       ...props.sx,
     }}

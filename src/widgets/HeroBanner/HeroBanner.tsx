@@ -10,7 +10,7 @@ export const HeroBanner = () => (
     sx={{
       background:
         'radial-gradient(circle at top left, rgba(255,211,38,0.3), transparent 32%), linear-gradient(135deg, #b71916, #e43224)',
-      borderRadius: 6,
+      borderRadius: 1,
       color: '#fff',
       overflow: 'hidden',
       p: { md: 6, xs: 4 },
@@ -50,7 +50,7 @@ export const HeroBanner = () => (
         <Box
           sx={{
             border: '1px solid rgba(255,255,255,0.16)',
-            borderRadius: 5,
+            borderRadius: 1,
             display: 'grid',
             gap: 2,
             p: 3,

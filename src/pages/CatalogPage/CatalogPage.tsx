@@ -3,9 +3,11 @@ import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownR
 import KeyboardArrowRightRoundedIcon from '@mui/icons-material/KeyboardArrowRightRounded';
 import { Box, Button, Checkbox, Grid, Stack, TextField, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
+import { categoryApi } from '@features/category/api/categoryApi';
 import { useCart } from '@features/cart/hooks/useCart';
 import {
   featuredCategoryHighlights,
@@ -14,7 +16,6 @@ import {
   storefrontCategoryMenuItems,
 } from '@features/home/data/homePage.data';
 import type { FeatureHighlight, StoreProduct } from '@features/home/types/home.types';
-import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
 import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
 import { useProducts } from '@features/product/hooks/useProducts';
 import { routePaths } from '@routes/routePaths';
@@ -1257,7 +1258,7 @@ const categoryHeroHeight = { md: 420, xs: 250 };
 const shopsPanelSx = {
   background: 'linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(241,245,252,0.98) 100%)',
   border: `1px solid ${alpha(storefrontColors.navy, 0.04)}`,
-  borderRadius: 2,
+  borderRadius: 1,
   boxShadow: `0 18px 34px ${alpha(storefrontColors.navy, 0.07)}`,
   height: '100%',
   overflow: 'hidden',
@@ -1281,7 +1282,7 @@ const shopsTitleSx = {
 
 const shopTileSx = {
   alignItems: 'center',
-  borderRadius: 2,
+  borderRadius: 1,
   boxShadow: 'none',
   display: 'flex',
   fontSize: { lg: '0.92rem', md: '0.84rem', xs: '0.96rem' },
@@ -1452,6 +1453,7 @@ const getShopCatalogPath = (brandLabel: string, categoryId = 'all', itemLabel?: 
 };
 
 const ShopBrandsPanel = ({ height }: { height: { md: number; xs: number } }) => {
+  const navigate = useNavigate();
   const [activeShopBrandId, setActiveShopBrandId] = useState<string | null>(null);
   const activeShopBrand = shopBrands.find((brand) => brand.id === activeShopBrandId);
   const activeShopBrandIndex = shopBrands.findIndex((brand) => brand.id === activeShopBrandId);
@@ -1587,42 +1589,51 @@ const ShopBrandsPanel = ({ height }: { height: { md: number; xs: number } }) => 
           </Typography>
         </Stack>
         <Grid container spacing={0.65} sx={{ position: 'relative', zIndex: 1 }}>
-          {shopBrands.map((brand) => (
-            <Grid key={brand.id} size={12}>
-              <Box
-                component={Link}
-                onFocus={() => setActiveShopBrandId(brand.id)}
-                onMouseEnter={() => setActiveShopBrandId(brand.id)}
-                sx={{
-                  ...shopTileSx,
-                  background:
-                    brand.color === '#ffffff'
-                      ? 'linear-gradient(180deg, #ffffff 0%, #f9fbff 100%)'
-                      : `linear-gradient(180deg, ${brand.color} 0%, ${brand.color} 100%)`,
-                  border: `1px solid ${brand.color === '#ffffff' ? alpha('#e43224', 0.12) : 'transparent'}`,
-                  boxShadow:
-                    brand.color === '#ffffff'
-                      ? `0 12px 24px ${alpha('#9f1714', 0.08)}`
-                      : `0 16px 28px ${alpha(brand.color, 0.2)}`,
-                  color: brand.textColor ?? storefrontColors.navy,
-                  '&:hover': {
+          {shopBrands.map((brand) => {
+            const brandPath = getShopCatalogPath(brand.label);
+
+            return (
+              <Grid key={brand.id} size={12}>
+                <Box
+                  component={Link}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setActiveShopBrandId(null);
+                    navigate(brandPath);
+                  }}
+                  onFocus={() => setActiveShopBrandId(brand.id)}
+                  onMouseEnter={() => setActiveShopBrandId(brand.id)}
+                  sx={{
+                    ...shopTileSx,
+                    background:
+                      brand.color === '#ffffff'
+                        ? 'linear-gradient(180deg, #ffffff 0%, #f9fbff 100%)'
+                        : `linear-gradient(180deg, ${brand.color} 0%, ${brand.color} 100%)`,
+                    border: `1px solid ${brand.color === '#ffffff' ? alpha('#e43224', 0.12) : 'transparent'}`,
                     boxShadow:
                       brand.color === '#ffffff'
-                        ? `0 18px 30px ${alpha('#9f1714', 0.11)}`
-                        : `0 20px 34px ${alpha(brand.color, 0.28)}`,
-                    transform: 'translateY(-2px)',
-                  },
-                  '&:focus-visible': {
-                    outline: `3px solid ${alpha(brand.color, 0.24)}`,
-                    outlineOffset: 2,
-                  },
-                }}
-                to={getShopCatalogPath(brand.label)}
-              >
-                {brand.label}
-              </Box>
-            </Grid>
-          ))}
+                        ? `0 12px 24px ${alpha('#9f1714', 0.08)}`
+                        : `0 16px 28px ${alpha(brand.color, 0.2)}`,
+                    color: brand.textColor ?? storefrontColors.navy,
+                    '&:hover': {
+                      boxShadow:
+                        brand.color === '#ffffff'
+                          ? `0 18px 30px ${alpha('#9f1714', 0.11)}`
+                          : `0 20px 34px ${alpha(brand.color, 0.28)}`,
+                      transform: 'translateY(-2px)',
+                    },
+                    '&:focus-visible': {
+                      outline: `3px solid ${alpha(brand.color, 0.24)}`,
+                      outlineOffset: 2,
+                    },
+                  }}
+                  to={brandPath}
+                >
+                  {brand.label}
+                </Box>
+              </Grid>
+            );
+          })}
         </Grid>
       </Box>
     </Box>
@@ -2455,18 +2466,42 @@ const CategoryShowcasePage = ({
 export const CatalogPage = () => {
   const { addToCart } = useCart();
   const { data = [] } = useProducts();
+  const { data: categories = [] } = useQuery({
+    queryFn: ({ signal }) => categoryApi.getCategories({ signal }),
+    queryKey: ['categories'],
+  });
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get('search') ?? '';
   const category = searchParams.get('category') ?? 'all';
-  const pageTitle = searchParams.get('title') ?? categoryLabels[category] ?? 'Catalog';
-  const catalogProducts = useMemo(
-    () => [...data, ...allStorefrontProducts.map(mapHomeProductToProduct)],
-    [data],
+  const selectedProductIds = useMemo(
+    () =>
+      (searchParams.get('productIds') ?? '')
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean),
+    [searchParams],
   );
+  const categoryOptions = useMemo(
+    () => [
+      { label: 'All categories', value: 'all' },
+      ...categories.map((item) => ({ label: item.name, value: item.id })),
+    ],
+    [categories],
+  );
+  const pageTitle =
+    searchParams.get('title') ??
+    categories.find((item) => item.id === category)?.name ??
+    categoryLabels[category] ??
+    'Catalog';
+  const catalogProducts = data;
 
   const filteredProducts = useMemo(
     () =>
       catalogProducts.filter((product) => {
+        if (selectedProductIds.length > 0) {
+          return selectedProductIds.includes(product.id);
+        }
+
         const matchesCategory = category === 'all' || product.categoryId === category;
         const matchesSearch =
           search.length === 0 ||
@@ -2477,7 +2512,7 @@ export const CatalogPage = () => {
 
         return matchesCategory && matchesSearch;
       }),
-    [catalogProducts, category, search],
+    [catalogProducts, category, search, selectedProductIds],
   );
 
   const updateSearchParams = (updates: { category?: string; search?: string }) => {
@@ -2486,9 +2521,14 @@ export const CatalogPage = () => {
     if (updates.category !== undefined) {
       nextParams.set('category', updates.category);
       nextParams.set('title', categoryLabels[updates.category] ?? 'Catalog');
+      nextParams.delete('productIds');
+      nextParams.delete('secondaryCategory');
     }
 
     if (updates.search !== undefined) {
+      nextParams.delete('productIds');
+      nextParams.delete('secondaryCategory');
+
       if (updates.search.trim()) {
         nextParams.set('search', updates.search);
       } else {
@@ -2528,6 +2568,7 @@ export const CatalogPage = () => {
       >
         <ProductFilters
           category={category}
+          categoryOptions={categoryOptions}
           onCategoryChange={(value) => updateSearchParams({ category: value })}
           onSearchChange={(value) => updateSearchParams({ search: value })}
           search={search}
@@ -2536,8 +2577,8 @@ export const CatalogPage = () => {
           <ProductGrid onAddToCart={addToCart} products={filteredProducts} />
         ) : (
           <EmptyState
-            description="Adjust filters or connect the live product API later."
-            title="No products match the current filters"
+            description="This catalog area is connected to the live API. Products for this selection will be available soon."
+            title="Items coming soon"
           />
         )}
       </PageSection>

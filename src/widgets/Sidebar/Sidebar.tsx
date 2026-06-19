@@ -33,16 +33,22 @@ type SidebarContentProps = {
 
 const SidebarContent = ({ onMobileClose }: SidebarContentProps) => {
   const location = useLocation();
-  const logoUrl = useSelector((state: RootState) => state.auth.user?.logoUrl);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const logoUrl = user?.logoUrl;
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  const canViewItem = (item: NavigationItem) =>
+    !item.requiredRoles?.length || (user ? item.requiredRoles.includes(user.role) : false);
 
   const toggleGroup = (label: string) => {
     setOpenGroups((current) => ({ ...current, [label]: !current[label] }));
   };
 
   const renderNavigationItem = ({ children, icon: Icon, label, path }: NavigationItem) => {
-    if (children?.length) {
-      const hasActiveChild = children.some((child) => child.path === location.pathname);
+    const visibleChildren = children?.filter(canViewItem);
+
+    if (visibleChildren?.length) {
+      const hasActiveChild = visibleChildren.some((child) => child.path === location.pathname);
       const isOpen = openGroups[label] ?? hasActiveChild;
 
       return (
@@ -66,7 +72,7 @@ const SidebarContent = ({ onMobileClose }: SidebarContentProps) => {
           </ListItemButton>
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
-              {children.map((child) => {
+              {visibleChildren.map((child) => {
                 const ChildIcon = child.icon;
 
                 return (
@@ -134,7 +140,9 @@ const SidebarContent = ({ onMobileClose }: SidebarContentProps) => {
           Admin Console
         </Typography>
       </Stack>
-      <List sx={{ flex: 1, px: 2, py: 1 }}>{dashboardNavigation.map(renderNavigationItem)}</List>
+      <List sx={{ flex: 1, px: 2, py: 1 }}>
+        {dashboardNavigation.filter(canViewItem).map(renderNavigationItem)}
+      </List>
     </Stack>
   );
 };

@@ -28,6 +28,18 @@ export type StorefrontHighlightItem = FeatureHighlight & {
   status: 'active' | 'hidden';
 };
 
+export type StorefrontSecondaryCategory = {
+  color?: string;
+  icon?: string;
+  id: string;
+  name: string;
+  productId?: string;
+  productIds: string[];
+  slug: string;
+  status: 'active' | 'hidden';
+  targetSectionId: StorefrontProductSectionId;
+};
+
 export type StorefrontProductSectionId =
   | 'top-offers'
   | 'top-blooms'

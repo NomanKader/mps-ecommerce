@@ -24,10 +24,12 @@ const isAnonymousPublicRequest = (url: string | undefined) => {
     path === endpoints.categories.list ||
     path === endpoints.products.list ||
     path.startsWith('/products/') ||
+    path === endpoints.storefront.categories ||
     path === endpoints.storefront.carousel ||
     path === endpoints.storefront.headerSettings ||
     path === endpoints.storefront.icons ||
-    path === endpoints.storefront.productSections
+    path === endpoints.storefront.productSections ||
+    path === endpoints.storefront.secondaryCategories
   );
 };
 

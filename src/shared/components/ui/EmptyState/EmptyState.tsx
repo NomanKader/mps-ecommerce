@@ -12,7 +12,7 @@ export const EmptyState = ({ description, title }: EmptyStateProps) => (
       alignItems: 'center',
       border: '1px dashed',
       borderColor: 'divider',
-      borderRadius: 4,
+      borderRadius: 1,
       display: 'grid',
       gap: 1,
       justifyItems: 'center',

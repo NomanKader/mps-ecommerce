@@ -6,6 +6,8 @@ import type {
   AdminCategoryPayload,
   AdminCustomer,
   AdminDashboard,
+  AdminDashboardUser,
+  AdminDashboardUserPayload,
   AdminDeliveryFee,
   AdminDeliveryFeePayload,
   AdminOrder,
@@ -33,6 +35,35 @@ type Query = Record<string, string | undefined>;
 const mapId = <T extends MongoEntity>({ _id, ...entity }: T) => ({ ...entity, id: _id });
 const params = (query: Query) =>
   Object.fromEntries(Object.entries(query).filter(([, value]) => value && value !== 'all'));
+const mapRegion = (region: BackendEntity<AdminRegion>): AdminRegion => ({
+  ...mapId(region),
+  country: region.country ?? 'Myanmar',
+});
+const mapSecondaryCategory = (
+  category: BackendEntity<AdminSecondaryCategory>,
+): AdminSecondaryCategory => {
+  const normalizedCategory = mapId(category) as AdminSecondaryCategory;
+  const productIds = normalizedCategory.productIds?.length
+    ? normalizedCategory.productIds
+    : normalizedCategory.productId
+      ? [normalizedCategory.productId]
+      : [];
+
+  return {
+    ...normalizedCategory,
+    productId: normalizedCategory.productId ?? productIds[0],
+    productIds,
+  };
+};
+const mapTownship = (township: BackendEntity<AdminTownship>): AdminTownship => {
+  const normalizedTownship = mapId(township) as AdminTownship;
+
+  return {
+    ...normalizedTownship,
+    country: normalizedTownship.country ?? 'Myanmar',
+    regionId: normalizedTownship.regionId ? String(normalizedTownship.regionId) : undefined,
+  };
+};
 const productFormData = (payload: AdminProductPayload) => {
   const formData = new FormData();
 
@@ -115,18 +146,25 @@ export const adminApi = {
       endpoints.admin.regions,
       payload,
     );
-    return { ...response.data, data: mapId(response.data.data) };
+    return { ...response.data, data: mapRegion(response.data.data) };
   },
   async createSecondaryCategory(payload: AdminSecondaryCategoryPayload) {
     const response = await apiClient.post<ApiResponse<BackendEntity<AdminSecondaryCategory>>>(
       endpoints.admin.secondaryCategories,
       payload,
     );
-    return { ...response.data, data: mapId(response.data.data) };
+    return { ...response.data, data: mapSecondaryCategory(response.data.data) };
   },
   async createTownship(payload: AdminTownshipPayload) {
     const response = await apiClient.post<ApiResponse<BackendEntity<AdminTownship>>>(
       endpoints.admin.townships,
+      payload,
+    );
+    return { ...response.data, data: mapTownship(response.data.data) };
+  },
+  async createUser(payload: AdminDashboardUserPayload) {
+    const response = await apiClient.post<ApiResponse<BackendEntity<AdminDashboardUser>>>(
+      endpoints.admin.users,
       payload,
     );
     return { ...response.data, data: mapId(response.data.data) };
@@ -155,6 +193,9 @@ export const adminApi = {
   },
   async deleteTownship(id: string) {
     return (await apiClient.delete<ApiResponse<{ id: string }>>(endpoints.admin.township(id))).data;
+  },
+  async deleteUser(id: string) {
+    return (await apiClient.delete<ApiResponse<{ id: string }>>(endpoints.admin.user(id))).data;
   },
   async listCategories(query: Query, options: ListOptions = {}) {
     const response = await apiClient.get<ApiResponse<Array<BackendEntity<AdminCategory>>>>(
@@ -227,19 +268,26 @@ export const adminApi = {
       endpoints.admin.regions,
       { params: params(query), signal: options.signal },
     );
-    return response.data.data.map(mapId);
+    return response.data.data.map(mapRegion);
   },
   async listSecondaryCategories(query: Query, options: ListOptions = {}) {
     const response = await apiClient.get<ApiResponse<Array<BackendEntity<AdminSecondaryCategory>>>>(
       endpoints.admin.secondaryCategories,
       { params: params(query), signal: options.signal },
     );
-    return response.data.data.map(mapId);
+    return response.data.data.map(mapSecondaryCategory);
   },
   async listTownships(query: Query, options: ListOptions = {}) {
     const response = await apiClient.get<ApiResponse<Array<BackendEntity<AdminTownship>>>>(
       endpoints.admin.townships,
       { params: params(query), signal: options.signal },
+    );
+    return response.data.data.map(mapTownship);
+  },
+  async listUsers(options: ListOptions = {}) {
+    const response = await apiClient.get<ApiResponse<Array<BackendEntity<AdminDashboardUser>>>>(
+      endpoints.admin.users,
+      { signal: options.signal },
     );
     return response.data.data.map(mapId);
   },
@@ -293,18 +341,25 @@ export const adminApi = {
       endpoints.admin.region(id),
       payload,
     );
-    return { ...response.data, data: mapId(response.data.data) };
+    return { ...response.data, data: mapRegion(response.data.data) };
   },
   async updateSecondaryCategory(id: string, payload: AdminSecondaryCategoryPayload) {
     const response = await apiClient.put<ApiResponse<BackendEntity<AdminSecondaryCategory>>>(
       endpoints.admin.secondaryCategory(id),
       payload,
     );
-    return { ...response.data, data: mapId(response.data.data) };
+    return { ...response.data, data: mapSecondaryCategory(response.data.data) };
   },
   async updateTownship(id: string, payload: AdminTownshipPayload) {
     const response = await apiClient.put<ApiResponse<BackendEntity<AdminTownship>>>(
       endpoints.admin.township(id),
+      payload,
+    );
+    return { ...response.data, data: mapTownship(response.data.data) };
+  },
+  async updateUser(id: string, payload: AdminDashboardUserPayload) {
+    const response = await apiClient.put<ApiResponse<BackendEntity<AdminDashboardUser>>>(
+      endpoints.admin.user(id),
       payload,
     );
     return { ...response.data, data: mapId(response.data.data) };

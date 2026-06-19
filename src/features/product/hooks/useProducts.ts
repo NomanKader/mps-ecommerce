@@ -4,6 +4,6 @@ import { productApi } from '@features/product/api/productApi';
 
 export const useProducts = () =>
   useQuery({
-    queryFn: productApi.getProducts,
+    queryFn: ({ signal }) => productApi.getProducts({ signal }),
     queryKey: ['products'],
   });

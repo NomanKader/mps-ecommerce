@@ -36,9 +36,15 @@ export const endpoints = {
     storefrontIcons: '/admin/storefront-icons',
     township: (id: string) => `/admin/townships/${id}`,
     townships: '/admin/townships',
+    user: (id: string) => `/admin/users/${id}`,
+    users: '/admin/users',
   },
   categories: {
     list: '/categories',
+  },
+  favorites: {
+    list: '/favorites',
+    toggle: (productId: string) => `/favorites/${productId}/toggle`,
   },
   orders: {
     list: '/orders',
@@ -48,10 +54,12 @@ export const endpoints = {
     list: '/products',
   },
   storefront: {
+    categories: '/storefront/categories',
     carousel: '/storefront/carousel',
     headerSettings: '/storefront/header-settings',
     icons: '/storefront/icons',
     productSections: '/storefront/product-sections',
+    secondaryCategories: '/storefront/secondary-categories',
   },
   tenants: {
     create: '/tenants',

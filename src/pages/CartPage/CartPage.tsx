@@ -11,56 +11,22 @@ import { Link } from 'react-router-dom';
 import type { CartItem } from '@entities/cart/types/cart.types';
 import type { Product } from '@entities/product/types/product.types';
 import { useCart } from '@features/cart/hooks/useCart';
-import {
-  pantryProducts,
-  seasonalProducts,
-  topBlooms,
-  topOffers,
-} from '@features/home/data/homePage.data';
-import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
-import type { StoreProduct } from '@features/home/types/home.types';
+import { useProducts } from '@features/product/hooks/useProducts';
 import { routePaths } from '@routes/routePaths';
 import { EmptyState } from '@shared/components/ui/EmptyState/EmptyState';
 import { storefrontColors } from '@app/providers/theme/tokens';
 import { formatCurrency } from '@utils/formatCurrency';
 
-const catalogProducts = [...topBlooms, ...pantryProducts, ...seasonalProducts, ...topOffers];
-
-const suggestionProducts = [
-  pantryProducts[0],
-  seasonalProducts[0],
-  pantryProducts[1],
-  seasonalProducts[1],
-  topOffers[2],
-  topBlooms[0],
-  pantryProducts[2],
-].filter((product): product is StoreProduct => Boolean(product));
-
-const getStorefrontProduct = (productId: string) => catalogProducts.find((product) => product.id === productId);
-
-const getUnitLabel = (storeProduct: StoreProduct | undefined) => {
-  if (!storeProduct?.unit) {
-    return '';
-  }
-
-  if (storeProduct.unit.includes('/')) {
-    return storeProduct.unit.split('/').at(-1)?.trim() ?? '';
-  }
-
-  return storeProduct.unit;
-};
-
-const getProductPath = (productId: string) => routePaths.productDetails.replace(':productId', productId);
+const getProductPath = (productId: string) =>
+  routePaths.productDetails.replace(':productId', productId);
 
 const CartSuggestionCard = ({
   onAddToCart,
   product,
 }: {
   onAddToCart: (product: Product) => void;
-  product: StoreProduct;
+  product: Product;
 }) => {
-  const unitLabel = getUnitLabel(product);
-
   return (
     <Box
       sx={{
@@ -108,14 +74,9 @@ const CartSuggestionCard = ({
       </Typography>
       <Typography sx={{ color: '#53565c', fontSize: '0.95rem', fontWeight: 800, mt: 0.35 }}>
         {formatCurrency(product.price, product.currency)}
-        {unitLabel ? (
-          <Typography component="span" sx={{ color: '#53565c', fontSize: '0.82rem', fontWeight: 600 }}>
-            /{unitLabel}
-          </Typography>
-        ) : null}
       </Typography>
       <Button
-        onClick={() => onAddToCart(mapHomeProductToProduct(product))}
+        onClick={() => onAddToCart(product)}
         sx={{
           backgroundColor: '#f3f5fa',
           borderRadius: 999,
@@ -148,10 +109,7 @@ const CartLineItem = ({
   onDecrease: (productId: string) => void;
   onRemove: (productId: string) => void;
 }) => {
-  const storefrontProduct = getStorefrontProduct(item.product.id);
-  const unitLabel = getUnitLabel(storefrontProduct);
   const lineTotal = item.product.price * item.quantity;
-  const firstBadge = storefrontProduct?.badges[0]?.label;
 
   return (
     <Box
@@ -159,7 +117,10 @@ const CartLineItem = ({
         borderTop: `1px solid ${storefrontColors.border}`,
         display: 'grid',
         gap: { md: 3, xs: 2 },
-        gridTemplateColumns: { md: '180px minmax(220px, 1fr) minmax(360px, 1.35fr)', xs: '96px 1fr' },
+        gridTemplateColumns: {
+          md: '180px minmax(220px, 1fr) minmax(360px, 1.35fr)',
+          xs: '96px 1fr',
+        },
         px: { md: 3, xs: 2 },
         py: 3,
       }}
@@ -186,49 +147,21 @@ const CartLineItem = ({
         <Typography
           component={Link}
           to={getProductPath(item.product.id)}
-          sx={{ color: '#56585e', fontSize: { md: '1.18rem', xs: '1rem' }, fontWeight: 800, lineHeight: 1.15 }}
+          sx={{
+            color: '#56585e',
+            fontSize: { md: '1.18rem', xs: '1rem' },
+            fontWeight: 800,
+            lineHeight: 1.15,
+          }}
         >
           {item.product.name}
         </Typography>
-        {storefrontProduct?.origin ? (
-          <Typography sx={{ color: storefrontColors.accent, fontSize: '0.92rem', fontWeight: 800, textTransform: 'uppercase' }}>
-            {storefrontProduct.origin}
-          </Typography>
-        ) : null}
         <Typography sx={{ color: '#53565c', fontSize: '0.94rem', fontWeight: 700 }}>
           {item.product.description}
         </Typography>
         <Typography sx={{ color: '#53565c', fontSize: '1rem', fontWeight: 900 }}>
           {formatCurrency(item.product.price, item.product.currency)}
-          {unitLabel ? (
-            <Typography component="span" sx={{ color: '#53565c', fontSize: '0.84rem', fontWeight: 700 }}>
-              /{unitLabel}
-            </Typography>
-          ) : null}
         </Typography>
-        {firstBadge ? (
-          <Box
-            sx={{
-              alignItems: 'center',
-              backgroundColor: '#8cc84a',
-              border: '2px solid #ffffff',
-              borderRadius: '50%',
-              boxShadow: `0 8px 16px ${alpha('#8cc84a', 0.22)}`,
-              color: '#ffffff',
-              display: 'flex',
-              fontSize: '0.66rem',
-              fontWeight: 900,
-              height: 48,
-              justifyContent: 'center',
-              lineHeight: 1,
-              mt: 1,
-              textTransform: 'uppercase',
-              width: 48,
-            }}
-          >
-            {firstBadge}
-          </Box>
-        ) : null}
       </Stack>
 
       <Stack spacing={2.6} sx={{ gridColumn: { md: 'auto', xs: '1 / -1' }, minWidth: 0 }}>
@@ -237,14 +170,30 @@ const CartLineItem = ({
           spacing={1.2}
           sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}
         >
-          <Stack direction="row" spacing={1.7} sx={{ alignItems: 'center', color: storefrontColors.navy }}>
-            <IconButton aria-label={`Share ${item.product.name}`} size="small" sx={{ color: 'inherit' }}>
+          <Stack
+            direction="row"
+            spacing={1.7}
+            sx={{ alignItems: 'center', color: storefrontColors.navy }}
+          >
+            <IconButton
+              aria-label={`Share ${item.product.name}`}
+              size="small"
+              sx={{ color: 'inherit' }}
+            >
               <ShareRoundedIcon />
             </IconButton>
-            <IconButton aria-label={`Gift ${item.product.name}`} size="small" sx={{ color: 'inherit' }}>
+            <IconButton
+              aria-label={`Gift ${item.product.name}`}
+              size="small"
+              sx={{ color: 'inherit' }}
+            >
               <GiftIcon />
             </IconButton>
-            <IconButton aria-label={`Save ${item.product.name}`} size="small" sx={{ color: 'inherit' }}>
+            <IconButton
+              aria-label={`Save ${item.product.name}`}
+              size="small"
+              sx={{ color: 'inherit' }}
+            >
               <FavoriteBorderRoundedIcon />
             </IconButton>
           </Stack>
@@ -340,13 +289,17 @@ const CartLineItem = ({
             placeholder="add a message"
             sx={{
               '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
+                borderRadius: 1,
                 color: storefrontColors.navy,
                 fontWeight: 700,
               },
             }}
           />
-          <Stack direction="row" spacing={1.2} sx={{ justifyContent: { sm: 'center', xs: 'flex-start' } }}>
+          <Stack
+            direction="row"
+            spacing={1.2}
+            sx={{ justifyContent: { sm: 'center', xs: 'flex-start' } }}
+          >
             <Button
               sx={{
                 backgroundColor: '#f1f3f8',
@@ -381,15 +334,9 @@ const CartLineItem = ({
 };
 
 export const CartPage = () => {
-  const {
-    addToCart,
-    clearCart,
-    decreaseQuantity,
-    items,
-    removeFromCart,
-    totalItems,
-    totalPrice,
-  } = useCart();
+  const { addToCart, clearCart, decreaseQuantity, items, removeFromCart, totalItems, totalPrice } =
+    useCart();
+  const { data: suggestionProducts = [] } = useProducts();
   const currency = items[0]?.product.currency ?? 'USD';
 
   if (!items.length) {
@@ -429,7 +376,9 @@ export const CartPage = () => {
       </Box>
 
       <Box>
-        <Typography sx={{ color: storefrontColors.navy, fontSize: '1.25rem', fontWeight: 900, mb: 1.5 }}>
+        <Typography
+          sx={{ color: storefrontColors.navy, fontSize: '1.25rem', fontWeight: 900, mb: 1.5 }}
+        >
           Things you might like
         </Typography>
         <Box
@@ -446,9 +395,20 @@ export const CartPage = () => {
             },
           }}
         >
-          {suggestionProducts.map((product) => (
-            <CartSuggestionCard key={product.id} onAddToCart={addToCart} product={product} />
-          ))}
+          {suggestionProducts.length ? (
+            suggestionProducts
+              .slice(0, 7)
+              .map((product) => (
+                <CartSuggestionCard key={product.id} onAddToCart={addToCart} product={product} />
+              ))
+          ) : (
+            <Box sx={{ minWidth: '100%' }}>
+              <EmptyState
+                description="Recommended products are connected to the live catalog and will appear here soon."
+                title="Suggestions coming soon"
+              />
+            </Box>
+          )}
         </Box>
       </Box>
 

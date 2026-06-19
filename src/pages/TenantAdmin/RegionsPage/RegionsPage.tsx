@@ -98,9 +98,10 @@ export const RegionsPage = () => {
   });
 
   const columns: GridColDef<AdminRegion>[] = [
-    { field: 'name', flex: 1, headerName: 'Region', minWidth: 220 },
+    { field: 'name', headerName: 'Region', width: 360 },
     {
       field: 'status',
+      flex: 1,
       headerName: 'Status',
       renderCell: (params) => (
         <Chip
@@ -109,7 +110,7 @@ export const RegionsPage = () => {
           size="small"
         />
       ),
-      width: 130,
+      minWidth: 220,
     },
     {
       field: 'actions',
@@ -128,7 +129,7 @@ export const RegionsPage = () => {
         />,
       ],
       type: 'actions',
-      width: 90,
+      width: 120,
     },
   ];
 
@@ -176,7 +177,24 @@ export const RegionsPage = () => {
         </Typography>
       </Stack>
 
-      <AppDataTable columns={columns} loading={regionsQuery.isLoading} rows={regions} />
+      <AppDataTable
+        columns={columns}
+        initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+        loading={regionsQuery.isLoading}
+        rowHeight={64}
+        rows={regions}
+        sx={{
+          '& .MuiDataGrid-cell[data-field="status"], & .MuiDataGrid-columnHeader[data-field="status"]': {
+            justifyContent: 'center',
+          },
+          '& .MuiDataGrid-columnHeader[data-field="status"] .MuiDataGrid-columnHeaderTitleContainer': {
+            justifyContent: 'center',
+          },
+          '& .MuiDataGrid-cell[data-field="actions"], & .MuiDataGrid-columnHeader[data-field="actions"]': {
+            justifyContent: 'center',
+          },
+        }}
+      />
 
       <Dialog fullWidth maxWidth="sm" onClose={() => setIsDialogOpen(false)} open={isDialogOpen}>
         <DialogTitle>{editingId ? 'Edit Region' : 'Create Region'}</DialogTitle>

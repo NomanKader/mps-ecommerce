@@ -4,8 +4,8 @@ import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import { Box, Button, Grid, IconButton, Stack, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { routePaths } from '@routes/routePaths';
 import { storefrontColors, storefrontGradients } from '@app/providers/theme/tokens';
@@ -14,21 +14,20 @@ import { merchandisingApi } from '@features/home/api/merchandisingApi';
 import {
   defaultCarouselSlides,
   defaultHighlightItems,
-  pantryProducts,
   promoTiles,
-  seasonalProducts,
   shopBrands,
   storefrontCategories,
-  topBlooms,
-  topOffers,
 } from '@features/home/data/homePage.data';
 import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
+import { useProducts } from '@features/product/hooks/useProducts';
 import {
   StoreProductCard,
   StoreProductCardSkeleton,
 } from '@shared/components/storefront/StoreProductCard';
 import { StorefrontSectionHeader } from '@shared/components/storefront/StorefrontSectionHeader';
+import { EmptyState } from '@shared/components/ui/EmptyState/EmptyState';
 import { storefrontMutedPanelSx, storefrontPanelSx } from '@shared/styles/storefront';
+import { ProductGrid } from '@widgets/ProductGrid/ProductGrid';
 import type {
   StoreProduct,
   StorefrontCarouselPlacement,
@@ -58,6 +57,33 @@ const getPromoTilePath = (tile: {
 
   if (tile.targetSearch) {
     params.set('search', tile.targetSearch);
+  }
+
+  return `${routePaths.catalog}?${params.toString()}`;
+};
+
+const getFeaturedHighlightPath = (item: {
+  id: string;
+  label: string;
+  productId?: string;
+  productIds?: string[];
+}) => {
+  const category = storefrontCategories.find((categoryItem) => categoryItem.id === item.id);
+  const productIds = item.productIds?.length
+    ? item.productIds
+    : item.productId
+      ? [item.productId]
+      : [];
+  const params = new URLSearchParams({
+    category: category?.id ?? 'all',
+    title: item.label,
+  });
+
+  if (productIds.length) {
+    params.set('productIds', productIds.join(','));
+    params.set('secondaryCategory', item.id);
+  } else {
+    params.set('search', item.label);
   }
 
   return `${routePaths.catalog}?${params.toString()}`;
@@ -330,6 +356,12 @@ const LazyProductSection = ({
   return (
     <Stack ref={rootRef} spacing={3}>
       <StorefrontSectionHeader description={description} title={title} />
+      {isLoaded && !products.length ? (
+        <EmptyState
+          description="This storefront section is connected to the live API. Items assigned here will be available soon."
+          title={`${title} coming soon`}
+        />
+      ) : null}
       {mobileHorizontal ? (
         <Box
           sx={{
@@ -391,6 +423,11 @@ type MobileHomeLandingProps = {
   activeSlideIndex: number;
   onSlideChange: (index: number) => void;
   slides: StorefrontCarouselSlide[];
+};
+
+type FeaturedHighlightTile = StorefrontHighlightItem & {
+  productId?: string;
+  productIds?: string[];
 };
 
 const MobileHomeLanding = ({ activeSlideIndex, onSlideChange, slides }: MobileHomeLandingProps) => {
@@ -614,7 +651,9 @@ const MobileHomeLanding = ({ activeSlideIndex, onSlideChange, slides }: MobileHo
 };
 
 export const HomePage = () => {
+  const navigate = useNavigate();
   const { addToCart } = useCart();
+  const allProductsQuery = useProducts();
   const heroCarouselQuery = useQuery({
     queryFn: ({ signal }) => merchandisingApi.listStorefrontCarousel('hero', { signal }),
     queryKey: ['storefront', 'carousel', 'hero'],
@@ -623,9 +662,9 @@ export const HomePage = () => {
     queryFn: ({ signal }) => merchandisingApi.listStorefrontCarousel('showcase', { signal }),
     queryKey: ['storefront', 'carousel', 'showcase'],
   });
-  const featuredIconsQuery = useQuery({
-    queryFn: ({ signal }) => merchandisingApi.listStorefrontIcons('featured', { signal }),
-    queryKey: ['storefront', 'icons', 'featured'],
+  const secondaryCategoriesQuery = useQuery({
+    queryFn: ({ signal }) => merchandisingApi.listStorefrontSecondaryCategories({ signal }),
+    queryKey: ['storefront', 'secondary-categories'],
   });
   const merchandisingIconsQuery = useQuery({
     queryFn: ({ signal }) => merchandisingApi.listStorefrontIcons('merchandising', { signal }),
@@ -642,9 +681,20 @@ export const HomePage = () => {
   const showcaseSlides = showcaseCarouselQuery.data?.length
     ? showcaseCarouselQuery.data
     : getDefaultCarouselSlides('showcase');
-  const featuredHighlights: StorefrontHighlightItem[] = featuredIconsQuery.data?.length
-    ? featuredIconsQuery.data
-    : getDefaultHighlightItems('featured');
+  const featuredHighlights: FeaturedHighlightTile[] = useMemo(
+    () =>
+      (secondaryCategoriesQuery.data ?? []).map((item) => ({
+        color: item.color ?? storefrontColors.success,
+        icon: item.icon ?? '🏷️',
+        id: item.id,
+        label: item.name,
+        productId: item.productId,
+        productIds: item.productIds,
+        section: 'featured',
+        status: item.status,
+      })),
+    [secondaryCategoriesQuery.data],
+  );
   const merchandisingHighlights: StorefrontHighlightItem[] = merchandisingIconsQuery.data?.length
     ? merchandisingIconsQuery.data
     : getDefaultHighlightItems('merchandising');
@@ -691,6 +741,9 @@ export const HomePage = () => {
                 ...storefrontPanelSx,
                 background: storefrontGradients.hero,
                 color: storefrontColors.surface,
+                display: 'flex',
+                height: '100%',
+                minHeight: { lg: 520, md: 460 },
                 overflow: 'hidden',
                 position: 'relative',
                 p: { md: 4, xs: 2.5 },
@@ -707,10 +760,16 @@ export const HomePage = () => {
               <Grid
                 container
                 spacing={{ md: 3, xs: 2.5 }}
-                sx={{ alignItems: 'center', position: 'relative', zIndex: 1 }}
+                sx={{
+                  alignItems: 'center',
+                  flex: 1,
+                  minHeight: 0,
+                  position: 'relative',
+                  zIndex: 1,
+                }}
               >
                 <Grid size={{ md: 6.8, xs: 12 }}>
-                  <Stack spacing={1.75}>
+                  <Stack spacing={1.75} sx={{ minWidth: 0 }}>
                     <Typography
                       sx={{
                         backdropFilter: 'blur(14px)',
@@ -730,12 +789,22 @@ export const HomePage = () => {
                     </Typography>
                     <Typography
                       sx={{
-                        fontSize: { lg: '3.8rem', md: '3.15rem', sm: '2.75rem', xs: '2.15rem' },
+                        display: '-webkit-box',
+                        fontSize: {
+                          lg: 'clamp(2.6rem, 3.2vw, 3.8rem)',
+                          md: 'clamp(2.25rem, 3vw, 3.15rem)',
+                          sm: '2.75rem',
+                          xs: '2.15rem',
+                        },
                         fontWeight: 900,
                         letterSpacing: '-0.05em',
                         lineHeight: 0.98,
                         maxWidth: 640,
+                        overflow: 'hidden',
                         textWrap: 'balance',
+                        WebkitBoxOrient: 'vertical',
+                        WebkitLineClamp: 4,
+                        wordBreak: 'break-word',
                       }}
                       variant="h1"
                     >
@@ -744,9 +813,14 @@ export const HomePage = () => {
                     <Typography
                       sx={{
                         color: alpha('#ffffff', 0.82),
+                        display: '-webkit-box',
                         fontSize: { md: '1.35rem', xs: '1.02rem' },
                         lineHeight: 1.4,
                         maxWidth: 560,
+                        overflow: 'hidden',
+                        WebkitBoxOrient: 'vertical',
+                        WebkitLineClamp: 3,
+                        wordBreak: 'break-word',
                       }}
                       variant="h5"
                     >
@@ -781,15 +855,6 @@ export const HomePage = () => {
                       >
                         {activeHeroSlide.cta}
                       </Button>
-                      <Typography
-                        sx={{
-                          color: alpha('#ffffff', 0.72),
-                          maxWidth: 260,
-                        }}
-                        variant="body2"
-                      >
-                        {activeHeroSlide.partner}
-                      </Typography>
                     </Stack>
                     <Stack direction="row" spacing={1} sx={{ pt: 0.5 }}>
                       {visibleHeroSlides.map((slide, index) => (
@@ -817,14 +882,15 @@ export const HomePage = () => {
                   </Stack>
                 </Grid>
                 <Grid size={{ md: 5.2, xs: 12 }}>
-                  <Box sx={{ position: 'relative' }}>
+                  <Box sx={{ minWidth: 0, position: 'relative' }}>
                     <Box
                       sx={{
                         background:
                           'linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04))',
                         border: `1px solid ${alpha('#ffffff', 0.18)}`,
-                        borderRadius: { md: '2rem', xs: '1.4rem' },
+                        borderRadius: 1,
                         boxShadow: '0 26px 60px rgba(5, 18, 56, 0.3)',
+                        maxHeight: { lg: 440, md: 380 },
                         p: { md: 1, xs: 0.9 },
                       }}
                     >
@@ -834,9 +900,11 @@ export const HomePage = () => {
                         loading="lazy"
                         src={activeHeroSlide.imageUrl}
                         sx={{
-                          borderRadius: { md: '1.6rem', xs: '1.1rem' },
+                          aspectRatio: '4 / 3',
+                          borderRadius: 1,
                           display: 'block',
-                          height: { md: 300, xs: 210 },
+                          height: 'auto',
+                          maxHeight: { lg: 420, md: 360 },
                           objectFit: 'cover',
                           width: '100%',
                         }}
@@ -847,9 +915,10 @@ export const HomePage = () => {
                         backdropFilter: 'blur(18px)',
                         backgroundColor: alpha('#ffffff', 0.12),
                         border: `1px solid ${alpha('#ffffff', 0.2)}`,
-                        borderRadius: 2,
+                        borderRadius: 1,
                         bottom: { md: 14, xs: 10 },
                         left: { md: -24, xs: 12 },
+                        maxWidth: 'min(86%, 430px)',
                         p: 1.25,
                         position: 'absolute',
                       }}
@@ -1030,89 +1099,101 @@ export const HomePage = () => {
                 </Typography>
               </Stack>
               <Grid container spacing={0.8} sx={{ position: 'relative', zIndex: 1 }}>
-                {shopBrands.map((brand) => (
-                  <Grid key={brand.id} size={12}>
-                    <Box
-                      component={Link}
-                      onFocus={() => setActiveShopBrandId(brand.id)}
-                      onMouseEnter={() => setActiveShopBrandId(brand.id)}
-                      sx={{
-                        alignItems: 'center',
-                        background:
-                          brand.color === '#ffffff'
-                            ? 'linear-gradient(180deg, #ffffff 0%, #f9fbff 100%)'
-                            : `linear-gradient(180deg, ${brand.color} 0%, ${brand.color} 100%)`,
-                        border: `1px solid ${brand.color === '#ffffff' ? alpha('#e43224', 0.12) : 'transparent'}`,
-                        borderRadius: 2,
-                        boxShadow:
-                          brand.color === '#ffffff'
-                            ? `0 12px 24px ${alpha('#9f1714', 0.08)}`
-                            : `0 16px 28px ${alpha(brand.color, 0.2)}`,
-                        color: brand.textColor ?? '#ffffff',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        minHeight: 50,
-                        p: 0.8,
-                        position: 'relative',
-                        textAlign: 'center',
-                        textDecoration: 'none',
-                        transition: 'transform 180ms ease, box-shadow 180ms ease',
-                        '&:hover': {
+                {shopBrands.map((brand) => {
+                  const brandPath = getShopCatalogPath(brand.label);
+
+                  return (
+                    <Grid key={brand.id} size={12}>
+                      <Box
+                        component={Link}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setActiveShopBrandId(null);
+                          navigate(brandPath);
+                        }}
+                        onFocus={() => setActiveShopBrandId(brand.id)}
+                        onMouseEnter={() => setActiveShopBrandId(brand.id)}
+                        sx={{
+                          alignItems: 'center',
+                          background:
+                            brand.color === '#ffffff'
+                              ? 'linear-gradient(180deg, #ffffff 0%, #f9fbff 100%)'
+                              : `linear-gradient(180deg, ${brand.color} 0%, ${brand.color} 100%)`,
+                          border: `1px solid ${brand.color === '#ffffff' ? alpha('#e43224', 0.12) : 'transparent'}`,
+                          borderRadius: 1,
                           boxShadow:
                             brand.color === '#ffffff'
-                              ? `0 18px 30px ${alpha('#9f1714', 0.11)}`
-                              : `0 20px 34px ${alpha(brand.color, 0.28)}`,
-                          transform: 'translateY(-2px)',
-                        },
-                        '&:focus-visible': {
-                          outline: `3px solid ${alpha(brand.color, 0.24)}`,
-                          outlineOffset: 2,
-                        },
-                      }}
-                      to={getShopCatalogPath(brand.label)}
-                    >
-                      <Typography
-                        sx={{
-                          color: brand.textColor ?? storefrontColors.navy,
-                          fontSize: { md: '0.92rem', xs: '0.86rem' },
-                          fontWeight: 900,
-                          letterSpacing: '-0.02em',
-                          lineHeight: 1.05,
+                              ? `0 12px 24px ${alpha('#9f1714', 0.08)}`
+                              : `0 16px 28px ${alpha(brand.color, 0.2)}`,
+                          color: brand.textColor ?? '#ffffff',
+                          display: 'flex',
+                          justifyContent: 'center',
+                          minHeight: 50,
+                          p: 0.8,
+                          position: 'relative',
+                          textAlign: 'center',
+                          textDecoration: 'none',
+                          transition: 'transform 180ms ease, box-shadow 180ms ease',
+                          '&:hover': {
+                            boxShadow:
+                              brand.color === '#ffffff'
+                                ? `0 18px 30px ${alpha('#9f1714', 0.11)}`
+                                : `0 20px 34px ${alpha(brand.color, 0.28)}`,
+                            transform: 'translateY(-2px)',
+                          },
+                          '&:focus-visible': {
+                            outline: `3px solid ${alpha(brand.color, 0.24)}`,
+                            outlineOffset: 2,
+                          },
                         }}
+                        to={brandPath}
                       >
-                        {brand.label}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                ))}
+                        <Typography
+                          sx={{
+                            color: brand.textColor ?? storefrontColors.navy,
+                            fontSize: { md: '0.92rem', xs: '0.86rem' },
+                            fontWeight: 900,
+                            letterSpacing: '-0.02em',
+                            lineHeight: 1.05,
+                          }}
+                        >
+                          {brand.label}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  );
+                })}
               </Grid>
             </Box>
           </Grid>
         </Grid>
 
-        <Box sx={{ ...storefrontMutedPanelSx, borderRadius: 2, px: { md: 3, xs: 2 }, py: 3 }}>
+        <Box sx={{ ...storefrontMutedPanelSx, borderRadius: 1, px: { md: 3, xs: 2 }, py: 3 }}>
           <Stack direction="row" spacing={{ md: 1.5, xs: 1.25 }} sx={{ overflowX: 'auto', pb: 1 }}>
             {featuredHighlights.map((item) => (
               <Stack
+                component={Link}
                 key={item.id}
                 spacing={1}
                 sx={{
                   alignItems: 'center',
                   backgroundColor: item.surfaceColor ?? storefrontColors.surface,
                   border: `1px solid ${alpha(item.color, 0.1)}`,
-                  borderRadius: 2,
+                  borderRadius: 1,
                   boxShadow: `0 14px 22px ${alpha(item.color, 0.08)}`,
                   flex: '0 0 auto',
                   minWidth: 112,
                   px: 1.1,
                   py: 1.25,
                   textAlign: 'center',
+                  textDecoration: 'none',
                   transition: 'transform 180ms ease, box-shadow 180ms ease',
                   '&:hover': {
                     boxShadow: `0 18px 28px ${alpha(item.color, 0.12)}`,
                     transform: 'translateY(-2px)',
                   },
                 }}
+                to={getFeaturedHighlightPath(item)}
               >
                 <Box
                   sx={{
@@ -1257,7 +1338,7 @@ export const HomePage = () => {
           gridSize={{ lg: 2.4, md: 4, sm: 6, xs: 12 }}
           mobileHorizontal
           onAddToCart={(item) => addToCart(mapHomeProductToProduct(item))}
-          products={assignedTopOffers.length ? assignedTopOffers : topOffers}
+          products={assignedTopOffers}
           title="Top Offers"
         />
 
@@ -1312,7 +1393,7 @@ export const HomePage = () => {
                   loading="lazy"
                   src={activeShowcase.imageUrl}
                   sx={{
-                    borderRadius: 2,
+                    borderRadius: 1,
                     display: 'block',
                     height: 220,
                     objectFit: 'cover',
@@ -1370,7 +1451,7 @@ export const HomePage = () => {
           description="Fresh-cut bouquets and floral gift picks presented in the same storefront card style for quick browsing."
           gridSize={{ lg: 2, md: 4, sm: 6, xs: 12 }}
           onAddToCart={(item) => addToCart(mapHomeProductToProduct(item))}
-          products={assignedTopBlooms.length ? assignedTopBlooms : topBlooms}
+          products={assignedTopBlooms}
           title="Top Blooms"
         />
 
@@ -1378,7 +1459,7 @@ export const HomePage = () => {
           description="Seasonal, produce-led content blocks stay separate from the catalog API and can later be replaced with CMS or backend-fed content."
           gridSize={{ lg: 2, md: 4, sm: 6, xs: 12 }}
           onAddToCart={(item) => addToCart(mapHomeProductToProduct(item))}
-          products={assignedSeasonalProducts.length ? assignedSeasonalProducts : seasonalProducts}
+          products={assignedSeasonalProducts}
           title="New In Season"
         />
 
@@ -1501,7 +1582,7 @@ export const HomePage = () => {
         <Box
           sx={{
             ...storefrontPanelSx,
-            borderRadius: 2,
+            borderRadius: 1,
             boxShadow: 'none',
             px: { md: 1.3, xs: 0.9 },
             py: { md: 1.5, xs: 1.1 },
@@ -1600,9 +1681,26 @@ export const HomePage = () => {
           description="Prepared meals, bakery, and pantry modules can reuse the exact same card component and only swap data."
           gridSize={{ lg: 3, md: 6, xs: 6 }}
           onAddToCart={(item) => addToCart(mapHomeProductToProduct(item))}
-          products={assignedPantryProducts.length ? assignedPantryProducts : pantryProducts}
+          products={assignedPantryProducts}
           title="Pantry & Ready Meals"
         />
+
+        <Box sx={{ ...storefrontMutedPanelSx, borderRadius: 1, p: { md: 3, xs: 2 } }}>
+          <Stack spacing={3}>
+            <StorefrontSectionHeader
+              description="Browse the full live catalog, with the newest products shown first."
+              title="All Products"
+            />
+            {allProductsQuery.data?.length ? (
+              <ProductGrid onAddToCart={addToCart} products={allProductsQuery.data} />
+            ) : (
+              <EmptyState
+                description="The all-products shelf is connected to the live catalog. Products will appear here as soon as they are published."
+                title="All products coming soon"
+              />
+            )}
+          </Stack>
+        </Box>
       </Stack>
     </>
   );

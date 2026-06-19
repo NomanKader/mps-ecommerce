@@ -67,30 +67,108 @@ const iconGroups = [
     label: 'Fresh food',
     options: [
       { label: 'Fresh fruit', value: '🍎' },
+      { label: 'Apple', value: '🍏' },
+      { label: 'Pear', value: '🍐' },
+      { label: 'Orange', value: '🍊' },
       { label: 'Strawberry', value: '🍓' },
+      { label: 'Blueberries', value: '🫐' },
+      { label: 'Grapes', value: '🍇' },
+      { label: 'Watermelon', value: '🍉' },
       { label: 'Banana', value: '🍌' },
       { label: 'Lemon', value: '🍋' },
+      { label: 'Pineapple', value: '🍍' },
+      { label: 'Mango', value: '🥭' },
       { label: 'Avocado', value: '🥑' },
       { label: 'Vegetables', value: '🥬' },
       { label: 'Carrot', value: '🥕' },
       { label: 'Tomato', value: '🍅' },
+      { label: 'Cucumber', value: '🥒' },
+      { label: 'Broccoli', value: '🥦' },
       { label: 'Corn', value: '🌽' },
+      { label: 'Potato', value: '🥔' },
+      { label: 'Onion', value: '🧅' },
+      { label: 'Garlic', value: '🧄' },
       { label: 'Chilli', value: '🌶️' },
+      { label: 'Mushroom', value: '🍄' },
     ],
   },
   {
     label: 'Departments',
     options: [
       { label: 'Bakery', value: '🍞' },
+      { label: 'Croissant', value: '🥐' },
+      { label: 'Bagel', value: '🥯' },
+      { label: 'Baguette', value: '🥖' },
+      { label: 'Pretzel', value: '🥨' },
       { label: 'Dairy', value: '🥛' },
       { label: 'Cheese', value: '🧀' },
       { label: 'Eggs', value: '🥚' },
       { label: 'Meat', value: '🥩' },
       { label: 'Chicken', value: '🍗' },
+      { label: 'Bacon', value: '🥓' },
+      { label: 'Burger', value: '🍔' },
       { label: 'Seafood', value: '🐟' },
       { label: 'Shrimp', value: '🦐' },
+      { label: 'Crab', value: '🦀' },
+      { label: 'Lobster', value: '🦞' },
+      { label: 'Sushi', value: '🍣' },
       { label: 'Pantry', value: '🥫' },
       { label: 'Frozen', value: '❄️' },
+    ],
+  },
+  {
+    label: 'Global staples',
+    options: [
+      { label: 'Rice', value: '🍚' },
+      { label: 'Cooked rice', value: '🍙' },
+      { label: 'Noodles', value: '🍜' },
+      { label: 'Spaghetti', value: '🍝' },
+      { label: 'Flatbread', value: '🫓' },
+      { label: 'Taco', value: '🌮' },
+      { label: 'Burrito', value: '🌯' },
+      { label: 'Dumpling', value: '🥟' },
+      { label: 'Curry', value: '🍛' },
+      { label: 'Soup', value: '🍲' },
+      { label: 'Salad', value: '🥗' },
+      { label: 'Beans', value: '🫘' },
+      { label: 'Peanuts', value: '🥜' },
+      { label: 'Honey', value: '🍯' },
+      { label: 'Olive', value: '🫒' },
+    ],
+  },
+  {
+    label: 'Drinks and snacks',
+    options: [
+      { label: 'Water', value: '💧' },
+      { label: 'Soft drink', value: '🥤' },
+      { label: 'Juice box', value: '🧃' },
+      { label: 'Coffee', value: '☕' },
+      { label: 'Tea', value: '🍵' },
+      { label: 'Bubble tea', value: '🧋' },
+      { label: 'Chocolate', value: '🍫' },
+      { label: 'Candy', value: '🍬' },
+      { label: 'Cookie', value: '🍪' },
+      { label: 'Doughnut', value: '🍩' },
+      { label: 'Cake', value: '🍰' },
+      { label: 'Ice cream', value: '🍨' },
+      { label: 'Popcorn', value: '🍿' },
+    ],
+  },
+  {
+    label: 'Prepared meals',
+    options: [
+      { label: 'Pizza', value: '🍕' },
+      { label: 'Sandwich', value: '🥪' },
+      { label: 'Hot dog', value: '🌭' },
+      { label: 'Fries', value: '🍟' },
+      { label: 'Pancakes', value: '🥞' },
+      { label: 'Waffle', value: '🧇' },
+      { label: 'Tamale', value: '🫔' },
+      { label: 'Fondue', value: '🫕' },
+      { label: 'Takeout box', value: '🥡' },
+      { label: 'Bento', value: '🍱' },
+      { label: 'Pot of food', value: '🍲' },
+      { label: 'Stew', value: '🥘' },
     ],
   },
   {
@@ -106,6 +184,18 @@ const iconGroups = [
       { label: 'Healthy heart', value: '💚' },
       { label: 'Baby care', value: '🧸' },
       { label: 'Home care', value: '🧼' },
+      { label: 'Pet care', value: '🐾' },
+      { label: 'Medicine', value: '💊' },
+      { label: 'First aid', value: '🩹' },
+      { label: 'Tooth care', value: '🪥' },
+      { label: 'Paper goods', value: '🧻' },
+      { label: 'Cleaning sponge', value: '🧽' },
+      { label: 'Laundry', value: '🧺' },
+      { label: 'Soap', value: '🧼' },
+      { label: 'Lotion', value: '🧴' },
+      { label: 'Razor', value: '🪒' },
+      { label: 'Cosmetics', value: '💄' },
+      { label: 'Perfume', value: '🧴' },
     ],
   },
   {
@@ -121,6 +211,40 @@ const iconGroups = [
       { label: 'Star', value: '⭐' },
       { label: 'Sparkles', value: '✨' },
       { label: 'Diamond', value: '💎' },
+    ],
+  },
+  {
+    label: 'Household and pets',
+    options: [
+      { label: 'Home', value: '🏠' },
+      { label: 'Kitchen', value: '🍽️' },
+      { label: 'Cutlery', value: '🍴' },
+      { label: 'Cooking pot', value: '🍳' },
+      { label: 'Basket', value: '🧺' },
+      { label: 'Broom', value: '🧹' },
+      { label: 'Bucket', value: '🪣' },
+      { label: 'Tissue', value: '🧻' },
+      { label: 'Dog', value: '🐶' },
+      { label: 'Cat', value: '🐱' },
+      { label: 'Pet food', value: '🦴' },
+      { label: 'Paw', value: '🐾' },
+    ],
+  },
+  {
+    label: 'Service and trust',
+    options: [
+      { label: 'Verified', value: '✅' },
+      { label: 'Quality', value: '🏅' },
+      { label: 'Eco', value: '♻️' },
+      { label: 'Fast', value: '⚡' },
+      { label: 'Clock', value: '🕒' },
+      { label: 'Support', value: '🎧' },
+      { label: 'Phone', value: '☎️' },
+      { label: 'Location', value: '📍' },
+      { label: 'Wallet', value: '👛' },
+      { label: 'Receipt', value: '🧾' },
+      { label: 'Shield', value: '🛡️' },
+      { label: 'Warning', value: '⚠️' },
     ],
   },
 ];
@@ -267,6 +391,7 @@ export const StorefrontIconsPage = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<StorefrontHighlightItem | null>(null);
   const [form, setForm] = useState<HighlightForm>(emptyForm);
+  const [iconSearch, setIconSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [search, setSearch] = useState('');
   const iconsQuery = useQuery({
@@ -274,6 +399,18 @@ export const StorefrontIconsPage = ({
     queryKey: ['admin', 'storefront-icons'],
   });
   const items = useMemo(() => iconsQuery.data ?? [], [iconsQuery.data]);
+  const iconUsageByValue = useMemo(
+    () =>
+      items.reduce<Record<string, number>>((usage, item) => {
+        usage[item.icon] = (usage[item.icon] ?? 0) + 1;
+        return usage;
+      }, {}),
+    [items],
+  );
+  const repeatedIconCount = useMemo(
+    () => Object.values(iconUsageByValue).filter((count) => count > 1).length,
+    [iconUsageByValue],
+  );
 
   const filteredItems = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -286,6 +423,22 @@ export const StorefrontIconsPage = ({
       )
       .sort((first, second) => first.label.localeCompare(second.label));
   }, [items, search]);
+  const filteredIconGroups = useMemo(() => {
+    const normalizedSearch = iconSearch.trim().toLowerCase();
+
+    if (!normalizedSearch) {
+      return iconGroups;
+    }
+
+    return iconGroups
+      .map((group) => ({
+        ...group,
+        options: group.options.filter((option) =>
+          `${option.label} ${option.value}`.toLowerCase().includes(normalizedSearch),
+        ),
+      }))
+      .filter((group) => group.options.length > 0);
+  }, [iconSearch]);
 
   const columns: GridColDef<StorefrontHighlightItem>[] = [
     {
@@ -329,6 +482,24 @@ export const StorefrontIconsPage = ({
       width: 120,
     },
     {
+      field: 'iconUsage',
+      headerName: 'Used',
+      renderCell: (params) => {
+        const usageCount = iconUsageByValue[params.row.icon] ?? 0;
+
+        return (
+          <Chip
+            color={usageCount > 1 ? 'warning' : 'default'}
+            label={`${usageCount} ${usageCount === 1 ? 'time' : 'times'}`}
+            size="small"
+            variant={usageCount > 1 ? 'filled' : 'outlined'}
+          />
+        );
+      },
+      sortable: false,
+      width: 130,
+    },
+    {
       field: 'section',
       headerName: 'Section',
       renderCell: (params) => (
@@ -345,6 +516,7 @@ export const StorefrontIconsPage = ({
           label="Edit"
           onClick={() => {
             setEditingId(row.id);
+            setIconSearch('');
             setForm({
               color: row.color,
               icon: row.icon,
@@ -434,6 +606,7 @@ export const StorefrontIconsPage = ({
           <AppButton
             onClick={() => {
               setForm(emptyForm);
+              setIconSearch('');
               setEditingId(null);
               setIsDialogOpen(true);
             }}
@@ -479,6 +652,17 @@ export const StorefrontIconsPage = ({
         <Typography color="text.secondary" sx={{ ml: { lg: 'auto' } }} variant="body2">
           Showing {filteredItems.length}
         </Typography>
+        <Chip
+          color={repeatedIconCount > 0 ? 'warning' : 'success'}
+          label={
+            repeatedIconCount > 0
+              ? `${repeatedIconCount} repeated ${repeatedIconCount === 1 ? 'icon' : 'icons'}`
+              : 'No repeated icons'
+          }
+          size="small"
+          sx={{ alignSelf: { lg: 'center', xs: 'flex-start' }, fontWeight: 800 }}
+          variant={repeatedIconCount > 0 ? 'filled' : 'outlined'}
+        />
       </Stack>
 
       <AppDataTable
@@ -614,7 +798,7 @@ export const StorefrontIconsPage = ({
                           MenuProps: {
                             slotProps: {
                               paper: {
-                                sx: { borderRadius: 1, maxHeight: 420 },
+                                sx: { borderRadius: 1, maxHeight: 460 },
                               },
                             },
                           },
@@ -628,8 +812,46 @@ export const StorefrontIconsPage = ({
                       sx={fieldSx}
                       value={form.icon}
                     >
-                      {iconGroups.flatMap((group) => [
+                      <ListSubheader
+                        disableSticky={false}
+                        sx={{
+                          backgroundColor: '#ffffff',
+                          borderBottom: `1px solid ${alpha(storefrontColors.navy, 0.08)}`,
+                          lineHeight: 'normal',
+                          p: 1.25,
+                          position: 'sticky',
+                          top: 0,
+                          zIndex: 2,
+                        }}
+                      >
+                        <TextField
+                          autoFocus
+                          fullWidth
+                          onChange={(event) => setIconSearch(event.target.value)}
+                          onClick={(event) => event.stopPropagation()}
+                          onKeyDown={(event) => event.stopPropagation()}
+                          placeholder="Search icons"
+                          size="small"
+                          slotProps={{
+                            input: {
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <SearchRoundedIcon fontSize="small" />
+                                </InputAdornment>
+                              ),
+                            },
+                          }}
+                          value={iconSearch}
+                        />
+                      </ListSubheader>
+                      {filteredIconGroups.length === 0 ? (
+                        <MenuItem disabled value="">
+                          No icons found
+                        </MenuItem>
+                      ) : null}
+                      {filteredIconGroups.flatMap((group) => [
                         <ListSubheader
+                          disableSticky
                           key={group.label}
                           sx={{
                             backgroundColor: '#ffffff',

@@ -1,6 +1,7 @@
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EventOutlinedIcon from '@mui/icons-material/EventOutlined';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
+import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 import {
   Box,
   Card,
@@ -13,6 +14,7 @@ import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
+import { useFavorites } from '@features/favorites/hooks/useFavorites';
 import type { StoreProduct, StoreProductBadge } from '@features/home/types/home.types';
 import { routePaths } from '@routes/routePaths';
 import { formatCurrency } from '@utils/formatCurrency';
@@ -171,11 +173,13 @@ const renderCircleBadge = (badge: StoreProductBadge) => {
 
 export const StoreProductCard = ({ disableNavigation = false, onAddToCart, product }: StoreProductCardProps) => {
   const navigate = useNavigate();
+  const { isFavorite, isToggling, toggleFavorite } = useFavorites();
   const { detail, oldPrice, qualifier } = parseUnitDisplay(product.unit);
   const lowerBadges = product.badges.filter((badge) => circleBadgeLabels.has(badge.label.toLowerCase()));
   const topBadges = product.badges.filter((badge) => !circleBadgeLabels.has(badge.label.toLowerCase()));
   const displayOldPrice = oldPrice && oldPrice > product.price ? oldPrice : null;
   const productPath = routePaths.productDetails.replace(':productId', product.id);
+  const productIsFavorite = isFavorite(product.id);
 
   const handleNavigate = () => {
     if (!disableNavigation) {
@@ -211,21 +215,32 @@ export const StoreProductCard = ({ disableNavigation = false, onAddToCart, produ
       </Stack>
 
       <IconButton
-        aria-label={`Save ${product.name}`}
+        aria-label={`${productIsFavorite ? 'Remove' : 'Save'} ${product.name}`}
+        disabled={isToggling}
         onClick={(event) => {
           event.stopPropagation();
+          toggleFavorite(product.id);
         }}
         sx={{
-          color: '#d9d4cf',
+          backgroundColor: alpha('#ffffff', 0.86),
+          color: productIsFavorite ? storefrontColors.navy : '#d9d4cf',
           height: 42,
           position: 'absolute',
           right: 12,
           top: 9,
           width: 42,
           zIndex: 3,
+          '&:hover': {
+            backgroundColor: '#ffffff',
+            color: storefrontColors.navy,
+          },
         }}
       >
-        <FavoriteBorderRoundedIcon sx={{ fontSize: 36 }} />
+        {productIsFavorite ? (
+          <FavoriteRoundedIcon sx={{ fontSize: 34 }} />
+        ) : (
+          <FavoriteBorderRoundedIcon sx={{ fontSize: 36 }} />
+        )}
       </IconButton>
 
       <Box

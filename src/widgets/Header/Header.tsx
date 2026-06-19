@@ -5,16 +5,27 @@ import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
 import FmdGoodOutlinedIcon from '@mui/icons-material/FmdGoodOutlined';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
+import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
 import PhoneInTalkOutlinedIcon from '@mui/icons-material/PhoneInTalkOutlined';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
-import { Badge, Box, Button, IconButton, Stack, Toolbar, Typography } from '@mui/material';
+import {
+  Badge,
+  Box,
+  Button,
+  ClickAwayListener,
+  IconButton,
+  InputBase,
+  Stack,
+  Toolbar,
+  Typography,
+} from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
 
@@ -45,24 +56,126 @@ const getCatalogPath = (categoryId: string, title: string, search?: string) => {
   return `${routePaths.catalog}?${params.toString()}`;
 };
 
+const groceryIconRules: Array<[string[], string]> = [
+  [['tomato'], '🍅'],
+  [['leafy', 'lettuce', 'green', 'spinach'], '🥬'],
+  [['root', 'carrot'], '🥕'],
+  [['broccoli', 'cauliflower'], '🥦'],
+  [['cucumber'], '🥒'],
+  [['pepper', 'chilli'], '🌶️'],
+  [['vegetable', 'veg'], '🥬'],
+  [['apple', 'pear'], '🍎'],
+  [['banana'], '🍌'],
+  [['berry', 'berries', 'strawberry'], '🍓'],
+  [['grape'], '🍇'],
+  [['citrus', 'orange'], '🍊'],
+  [['fruit'], '🍓'],
+  [['bread', 'roll'], '🍞'],
+  [['bagel'], '🥯'],
+  [['croissant'], '🥐'],
+  [['cake', 'cupcake'], '🧁'],
+  [['cookie', 'biscuit'], '🍪'],
+  [['bakery'], '🥐'],
+  [['milk'], '🥛'],
+  [['cheese'], '🧀'],
+  [['butter'], '🧈'],
+  [['yoghurt', 'yogurt'], '🍦'],
+  [['egg'], '🥚'],
+  [['dairy'], '🥛'],
+  [['meat', 'beef', 'steak'], '🥩'],
+  [['chicken'], '🍗'],
+  [['sausage'], '🌭'],
+  [['seafood', 'fish'], '🐟'],
+  [['prawn', 'shrimp'], '🦐'],
+  [['crab'], '🦀'],
+  [['lobster'], '🦞'],
+  [['pantry', 'can', 'jar'], '🥫'],
+  [['rice', 'grain'], '🍚'],
+  [['pasta', 'noodle'], '🍝'],
+  [['oil', 'vinegar'], '🫒'],
+  [['honey', 'jam', 'spread'], '🍯'],
+  [['drink', 'beverage', 'soft drink'], '🥤'],
+  [['juice'], '🧃'],
+  [['water'], '💧'],
+  [['coffee'], '☕'],
+  [['tea'], '🍵'],
+  [['frozen', 'ice'], '❄️'],
+  [['flower', 'bouquet'], '💐'],
+  [['gift'], '🎁'],
+  [['home', 'household'], '🏠'],
+  [['cleaning'], '🧽'],
+  [['care', 'beauty'], '🧴'],
+  [['kid', 'baby'], '🧸'],
+  [['pet'], '🐾'],
+  [['quick meal', 'ready meal', 'heat'], '🍽️'],
+  [['snack', 'crisps'], '🥨'],
+];
+
+const getGroceryIcon = (label: string, fallback = '🏷️') => {
+  const normalizedLabel = label.toLowerCase();
+  const matchedRule = groceryIconRules.find(([keywords]) =>
+    keywords.some((keyword) => normalizedLabel.includes(keyword)),
+  );
+
+  return matchedRule?.[1] ?? fallback;
+};
+
+const sustainableShoppingLinks = [
+  { label: 'Our Story', to: routePaths.sustainability.story },
+  { label: 'Our Vision', to: routePaths.sustainability.vision },
+  { label: 'Our Brand', to: routePaths.sustainability.brand },
+  { label: "AV's Store Cares", to: routePaths.sustainability.cares },
+  { label: 'Quality', to: routePaths.sustainability.quality },
+  { label: 'Media', to: routePaths.sustainability.media },
+  { label: 'Awards', to: routePaths.sustainability.awards },
+  { label: "AV's Store Kitchen", to: routePaths.sustainability.kitchen },
+];
+
 export const Header = () => {
   const { totalItems } = useCart();
   const signOut = useSignOut();
   const location = useLocation();
+  const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const [isAppPromptVisible, setIsAppPromptVisible] = useState(true);
   const [isAuthDrawerOpen, setIsAuthDrawerOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+  const [isSustainableMenuOpen, setIsSustainableMenuOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
   const headerSettingsQuery = useQuery({
     queryFn: ({ signal }) => merchandisingApi.getHeaderSettings({ signal }),
     queryKey: ['storefront', 'header-settings'],
   });
+  const storefrontCategoriesQuery = useQuery({
+    queryFn: ({ signal }) => merchandisingApi.listStorefrontCategories({ signal }),
+    queryKey: ['storefront', 'categories'],
+  });
   const scrollFrameRef = useRef<number | null>(null);
-  const activeCategory = storefrontCategories.find((category) => category.id === activeCategoryId);
-  const activeMenuItems = activeCategoryId
-    ? (storefrontCategoryMenuItems[activeCategoryId] ?? [])
-    : [];
+  const headerCategories = useMemo(() => {
+    if (!storefrontCategoriesQuery.data?.length) {
+      return storefrontCategories.map((category) => ({
+        color: category.color,
+        icon: category.icon,
+        id: category.id,
+        label: category.label,
+        menuItems: storefrontCategoryMenuItems[category.id] ?? [],
+      }));
+    }
+
+    return storefrontCategoriesQuery.data.map((category) => ({
+      color: category.color ?? storefrontColors.success,
+      icon: getGroceryIcon(category.name, category.icon ?? '🏷️'),
+      id: category.id,
+      label: category.name,
+      menuItems: (category.subcategories ?? []).map((subcategory) => ({
+        icon: getGroceryIcon(subcategory.name, subcategory.icon || category.icon || '•'),
+        label: subcategory.name,
+      })),
+    }));
+  }, [storefrontCategoriesQuery.data]);
+  const activeCategory = headerCategories.find((category) => category.id === activeCategoryId);
+  const activeMenuItems = activeCategory?.menuItems ?? [];
   const isCustomer = isAuthenticated && user?.role === 'customer';
   const isTenantAdmin = isAuthenticated && user?.role === 'tenant_admin';
   const deliveryHeadline =
@@ -82,7 +195,7 @@ export const Header = () => {
   useEffect(() => {
     const updateScrolledState = () => {
       scrollFrameRef.current = null;
-      setIsScrolled(window.scrollY > 0);
+      setIsScrolled(window.scrollY > 24);
     };
 
     const handleScroll = () => {
@@ -102,6 +215,29 @@ export const Header = () => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (location.pathname === routePaths.catalog) {
+      const nextSearchValue = new URLSearchParams(location.search).get('search') ?? '';
+      const timeoutId = window.setTimeout(() => setSearchValue(nextSearchValue), 0);
+
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, [location.pathname, location.search]);
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const normalizedSearch = searchValue.trim();
+    const params = new URLSearchParams();
+
+    if (normalizedSearch) {
+      params.set('search', normalizedSearch);
+      params.set('title', `Search: ${normalizedSearch}`);
+    }
+
+    navigate(`${routePaths.catalog}${params.toString() ? `?${params.toString()}` : ''}`);
+  };
 
   return (
     <Box
@@ -214,7 +350,87 @@ export const Header = () => {
             </Button>
           </Stack>
           <Stack direction="row" spacing={3} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            {topBarTagline ? <Typography variant="body2">{topBarTagline}</Typography> : null}
+            {topBarTagline ? (
+              <ClickAwayListener onClickAway={() => setIsSustainableMenuOpen(false)}>
+                <Box sx={{ position: 'relative' }}>
+                  <Stack
+                    aria-expanded={isSustainableMenuOpen}
+                    aria-haspopup="menu"
+                    component="button"
+                    direction="row"
+                    onClick={() => setIsSustainableMenuOpen((isOpen) => !isOpen)}
+                    spacing={0.45}
+                    sx={{
+                      alignItems: 'center',
+                      background: 'transparent',
+                      border: 0,
+                      color: 'inherit',
+                      cursor: 'pointer',
+                      font: 'inherit',
+                      p: 0,
+                    }}
+                    type="button"
+                  >
+                    <Typography sx={{ fontWeight: 700 }} variant="body2">
+                      {topBarTagline}
+                    </Typography>
+                    <KeyboardArrowDownRoundedIcon
+                      sx={{
+                        fontSize: 20,
+                        transform: isSustainableMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 160ms ease',
+                      }}
+                    />
+                  </Stack>
+
+                  {isSustainableMenuOpen ? (
+                    <Box
+                      role="menu"
+                      sx={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: 0.5,
+                        boxShadow: `0 14px 34px ${alpha(storefrontColors.navyDark, 0.24)}`,
+                        color: '#55565c',
+                        minWidth: 260,
+                        overflow: 'hidden',
+                        position: 'absolute',
+                        right: 0,
+                        top: 'calc(100% + 15px)',
+                        zIndex: 60,
+                      }}
+                    >
+                      {sustainableShoppingLinks.map((item) => (
+                        <Box
+                          component={Link}
+                          key={item.to}
+                          onClick={() => setIsSustainableMenuOpen(false)}
+                          role="menuitem"
+                          sx={{
+                            color: '#55565c',
+                            display: 'block',
+                            fontSize: '0.98rem',
+                            fontWeight: 700,
+                            lineHeight: 1.25,
+                            px: 2.2,
+                            py: 1.25,
+                            textDecoration: 'none',
+                            transition: 'background-color 140ms ease, color 140ms ease',
+                            '&:hover, &:focus-visible': {
+                              backgroundColor: alpha(storefrontColors.navy, 0.08),
+                              color: storefrontColors.navy,
+                              outline: 'none',
+                            },
+                          }}
+                          to={item.to}
+                        >
+                          {item.label}
+                        </Box>
+                      ))}
+                    </Box>
+                  ) : null}
+                </Box>
+              </ClickAwayListener>
+            ) : null}
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               <PhoneInTalkOutlinedIcon sx={{ fontSize: 18 }} />
               <Typography sx={{ fontWeight: 800 }} variant="body2">
@@ -329,11 +545,13 @@ export const Header = () => {
         </Box>
 
         <Stack
+          component="form"
           direction="row"
+          onSubmit={handleSearchSubmit}
           spacing={0}
           sx={{
             border: `1px solid ${storefrontColors.border}`,
-            borderRadius: 3,
+            borderRadius: 1,
             display: { md: 'flex', xs: 'none' },
             flex: 1,
             maxWidth: 760,
@@ -343,16 +561,28 @@ export const Header = () => {
         >
           <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center', flex: 1, px: 2 }}>
             <SearchRoundedIcon sx={{ color: '#97a4ba', fontSize: 28 }} />
-            <Typography
-              color="#a1acc0"
-              sx={{ fontSize: { md: '1.05rem', lg: '1.1rem' }, fontWeight: 700 }}
-              variant="h6"
-            >
-              Search for pantry essentials
-            </Typography>
+            <InputBase
+              fullWidth
+              inputProps={{ 'aria-label': 'Search products' }}
+              onChange={(event) => setSearchValue(event.target.value)}
+              placeholder="Search for pantry essentials"
+              sx={{
+                color: storefrontColors.navy,
+                fontSize: { md: '1.05rem', lg: '1.1rem' },
+                fontWeight: 800,
+                minWidth: 0,
+                '& input::placeholder': {
+                  color: alpha(storefrontColors.navy, 0.34),
+                  fontWeight: 700,
+                  opacity: 1,
+                },
+              }}
+              value={searchValue}
+            />
           </Stack>
           <IconButton
             aria-label="Search"
+            type="submit"
             sx={{
               backgroundColor: storefrontColors.navy,
               borderRadius: 0,
@@ -409,19 +639,22 @@ export const Header = () => {
           px: { lg: 5, xs: 2 },
           position: 'relative',
           py: isScrolled ? 0.45 : 1.2,
-          transition: 'padding 180ms ease',
+          transition: 'padding 260ms cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >
-        <Stack
-          direction="row"
-          spacing={isScrolled ? 0.65 : 0.9}
+        <Box
           sx={{
-            flexWrap: 'nowrap',
+            display: 'flex',
+            gap: isScrolled ? 0.65 : 0.9,
             maxWidth: 1600,
             mx: 'auto',
             overflowX: 'auto',
+            overflowY: 'hidden',
             pb: isScrolled ? 0.35 : 0.5,
-            transition: 'padding 180ms ease, gap 180ms ease',
+            scrollBehavior: 'smooth',
+            scrollSnapType: 'x proximity',
+            WebkitOverflowScrolling: 'touch',
+            transition: 'padding 260ms cubic-bezier(0.22, 1, 0.36, 1), gap 260ms cubic-bezier(0.22, 1, 0.36, 1)',
             '&::-webkit-scrollbar': {
               height: 8,
             },
@@ -431,7 +664,7 @@ export const Header = () => {
             },
           }}
         >
-          {storefrontCategories.map((category) => (
+          {headerCategories.map((category) => (
             <Box
               component={Link}
               key={category.id}
@@ -442,21 +675,40 @@ export const Header = () => {
                 backgroundColor: category.color,
                 border: 0,
                 borderRadius: 1.25,
-                color: category.id === 'gifts' ? storefrontColors.navy : storefrontColors.surface,
+                color:
+                  category.color.toLowerCase() === '#ffffff' || category.id === 'gifts'
+                    ? storefrontColors.navy
+                    : storefrontColors.surface,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 flexDirection: 'column',
-                flex: '0 0 auto',
-                gap: isScrolled ? 0 : 0.85,
+                flex: {
+                  xl: isScrolled ? '0 0 116px' : '1 0 168px',
+                  lg: isScrolled ? '0 0 108px' : '1 0 148px',
+                  md: isScrolled ? '0 0 104px' : '0 0 126px',
+                },
+                gap: isScrolled ? 0 : { xl: 1, lg: 0.85, md: 0.65 },
+                height: {
+                  xl: isScrolled ? 36 : 118,
+                  lg: isScrolled ? 34 : 108,
+                  md: isScrolled ? 34 : 92,
+                },
                 justifyContent: 'center',
-                minHeight: isScrolled ? 34 : 102,
-                minWidth: isScrolled ? 112 : 104,
-                px: isScrolled ? 1.4 : 1.1,
+                minHeight: {
+                  xl: isScrolled ? 36 : 118,
+                  lg: isScrolled ? 34 : 108,
+                  md: isScrolled ? 34 : 92,
+                },
+                minWidth: 0,
+                px: isScrolled ? 0.6 : { xl: 1.1, lg: 0.9, md: 0.75 },
                 py: isScrolled ? 0.45 : 1,
+                scrollSnapAlign: 'start',
                 textAlign: 'center',
                 textDecoration: 'none',
+                transform: 'translateZ(0)',
                 transition:
-                  'min-height 180ms ease, min-width 180ms ease, padding 180ms ease, gap 180ms ease',
+                  'flex-basis 260ms cubic-bezier(0.22, 1, 0.36, 1), height 260ms cubic-bezier(0.22, 1, 0.36, 1), min-height 260ms cubic-bezier(0.22, 1, 0.36, 1), padding 260ms cubic-bezier(0.22, 1, 0.36, 1), gap 260ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, filter 180ms ease, transform 180ms ease',
+                willChange: 'flex-basis, height, padding, gap',
                 '&:hover': {
                   boxShadow: `0 10px 22px ${alpha(category.color, 0.28)}`,
                   filter: 'brightness(1.06)',
@@ -470,18 +722,33 @@ export const Header = () => {
               to={getCatalogPath(category.id, category.label)}
             >
               <Typography
-                sx={{ display: isScrolled ? 'none' : 'block', fontSize: '2rem', lineHeight: 1 }}
+                sx={{
+                  fontSize: { xl: '2.55rem', lg: '2.25rem', md: '1.9rem' },
+                  height: isScrolled ? 0 : { xl: 42, lg: 38, md: 32 },
+                  lineHeight: 1,
+                  opacity: isScrolled ? 0 : 1,
+                  overflow: 'hidden',
+                  transform: isScrolled ? 'scale(0.72) translateY(-8px)' : 'scale(1) translateY(0)',
+                  transition:
+                    'opacity 220ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1), height 260ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  willChange: 'opacity, transform, height',
+                }}
                 variant="body1"
               >
                 {category.icon}
               </Typography>
               <Typography
                 sx={{
-                  fontSize: isScrolled ? '0.74rem' : '0.8rem',
+                  fontSize: {
+                    xl: isScrolled ? '0.72rem' : '0.86rem',
+                    lg: isScrolled ? '0.68rem' : '0.78rem',
+                    md: isScrolled ? '0.64rem' : '0.72rem',
+                  },
                   fontWeight: 800,
                   lineHeight: 1.1,
-                  maxWidth: isScrolled ? 'none' : 78,
-                  whiteSpace: isScrolled ? 'nowrap' : 'normal',
+                  maxWidth: '100%',
+                  overflowWrap: 'anywhere',
+                  whiteSpace: 'normal',
                   textTransform: 'uppercase',
                 }}
                 variant="caption"
@@ -490,7 +757,7 @@ export const Header = () => {
               </Typography>
             </Box>
           ))}
-        </Stack>
+        </Box>
 
         {activeCategory && activeMenuItems.length > 0 ? (
           <Box
@@ -500,21 +767,32 @@ export const Header = () => {
               borderRadius: 1.5,
               boxShadow: `0 22px 50px ${alpha('#9f1714', 0.16)}`,
               left: { lg: 5, xs: 2 },
-              minHeight: isScrolled ? 280 : 360,
-              p: { md: 2.5, xs: 2 },
+              maxHeight: {
+                md: isScrolled
+                  ? 'min(420px, calc(100vh - 170px))'
+                  : 'min(460px, calc(100vh - 260px))',
+                xs: 'min(70vh, 520px)',
+              },
+              overflowY: 'auto',
+              p: { md: 2.1, xs: 1.6 },
               position: 'absolute',
               right: { lg: 5, xs: 2 },
               top: '100%',
               zIndex: 30,
+              '&::-webkit-scrollbar': { width: 8 },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: alpha(storefrontColors.navy, 0.18),
+                borderRadius: 999,
+              },
             }}
           >
             <Typography
               sx={{
                 color: storefrontColors.navy,
-                fontSize: { md: '1.8rem', xs: '1.35rem' },
+                fontSize: { md: '1.45rem', xs: '1.2rem' },
                 fontWeight: 700,
                 lineHeight: 1.2,
-                mb: 2.4,
+                mb: { md: 1.4, xs: 1.1 },
               }}
               variant="h3"
             >
@@ -522,18 +800,15 @@ export const Header = () => {
             </Typography>
             <Box
               sx={{
-                borderRight: { md: `1px solid ${storefrontColors.border}`, xs: 0 },
                 display: 'grid',
-                gap: { md: '26px 28px', xs: '18px 16px' },
+                gap: { md: '12px 18px', xs: '10px 12px' },
                 gridTemplateColumns: {
-                  lg: 'repeat(8, minmax(96px, 1fr))',
-                  md: 'repeat(6, minmax(90px, 1fr))',
-                  sm: 'repeat(4, minmax(88px, 1fr))',
-                  xs: 'repeat(2, minmax(88px, 1fr))',
+                  lg: 'repeat(auto-fit, minmax(104px, 128px))',
+                  md: 'repeat(auto-fit, minmax(96px, 120px))',
+                  sm: 'repeat(auto-fit, minmax(92px, 112px))',
+                  xs: 'repeat(2, minmax(0, 1fr))',
                 },
-                maxWidth: { lg: '74%', md: '82%', xs: '100%' },
-                minHeight: isScrolled ? 190 : 250,
-                pr: { md: 4, xs: 0 },
+                justifyContent: { md: 'start', xs: 'stretch' },
               }}
             >
               {activeMenuItems.map((item) => (
@@ -546,8 +821,8 @@ export const Header = () => {
                     color: storefrontColors.slate,
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 1,
-                    p: 1,
+                    gap: 0.65,
+                    p: { md: 0.8, xs: 0.7 },
                     borderRadius: 1.25,
                     minWidth: 0,
                     textDecoration: 'none',
@@ -582,12 +857,12 @@ export const Header = () => {
                     sx={{
                       alignItems: 'center',
                       display: 'flex',
-                      fontSize: { md: '2.45rem', xs: '2rem' },
-                      height: 56,
+                      fontSize: { md: '2.05rem', xs: '1.8rem' },
+                      height: { md: 42, xs: 38 },
                       justifyContent: 'center',
                       lineHeight: 1,
                       transition: 'transform 160ms ease',
-                      width: 72,
+                      width: { md: 58, xs: 50 },
                     }}
                   >
                     {item.icon}
@@ -596,7 +871,7 @@ export const Header = () => {
                     className="category-menu-label"
                     sx={{
                       color: '#555a64',
-                      fontSize: { md: '0.95rem', xs: '0.84rem' },
+                      fontSize: { md: '0.86rem', xs: '0.8rem' },
                       fontWeight: 700,
                       lineHeight: 1.25,
                       transition: 'color 160ms ease',
