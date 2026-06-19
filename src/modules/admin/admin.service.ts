@@ -1,4 +1,5 @@
 import { isValidObjectId } from 'mongoose';
+import * as XLSX from 'xlsx';
 
 import { getTenantModels, TenantModels } from '@core/database/tenant-database';
 import { Category } from '@modules/categories/category.types';
@@ -28,13 +29,21 @@ import {
 } from './admin.models';
 
 const LOW_STOCK_THRESHOLD = 40;
+const MAX_REMOTE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
 type ListQuery = Record<string, unknown>;
 type MongoFilter = Record<string, unknown>;
 type ProductPayload = Partial<Product> & { removeImage?: boolean };
 type BulkProductPayload = {
   mode?: 'upsert' | 'create-only';
-  products: ProductPayload[];
+  products?: ProductPayload[];
+};
+type BulkProductImportItem = {
+  productPayload: Partial<Product>;
+  row: number;
+  subcategoryIcon?: StorefrontHighlightIcon;
+  sku: string;
+  uploadedImageKey?: string;
 };
 type AdminProfilePayload = Pick<UserResponse, 'firstName' | 'lastName' | 'email' | 'isActive'> &
   Pick<
@@ -55,6 +64,12 @@ const slugify = (value: string): string =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
 
+const normalizeHeader = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+
 const isDuplicateKeyError = (error: unknown): error is { code: number } =>
   typeof error === 'object' &&
   error !== null &&
@@ -66,7 +81,6 @@ const productImageFields = [
   'imageMimeType',
   'imageSize',
   'imageDriveFileId',
-  'imageUrl',
   'removeImage'
 ] as const;
 const carouselImageFields = [
@@ -92,6 +106,52 @@ const productSections = [
     description: 'Everyday staples ready for the storefront.'
   }
 ] as const;
+
+const categoryVisualDefaults = [
+  { keywords: ['fruit', 'apple', 'banana', 'berry', 'citrus'], icon: '🍎', color: '#16A34A' },
+  { keywords: ['vegetable', 'produce', 'fresh'], icon: '🥬', color: '#22C55E' },
+  {
+    keywords: ['meat', 'chicken', 'beef', 'pork', 'seafood', 'fish'],
+    icon: '🥩',
+    color: '#DC2626'
+  },
+  { keywords: ['dairy', 'milk', 'cheese', 'yogurt'], icon: '🥛', color: '#2563EB' },
+  { keywords: ['bakery', 'bread', 'cake', 'pastry'], icon: '🥐', color: '#D97706' },
+  {
+    keywords: ['drink', 'beverage', 'juice', 'water', 'coffee', 'tea'],
+    icon: '🥤',
+    color: '#0891B2'
+  },
+  { keywords: ['snack', 'chips', 'candy', 'sweet'], icon: '🍪', color: '#C026D3' },
+  { keywords: ['pantry', 'rice', 'pasta', 'grain', 'oil', 'sauce'], icon: '📦', color: '#7C3AED' },
+  { keywords: ['frozen', 'ice'], icon: '❄️', color: '#0284C7' },
+  { keywords: ['health', 'beauty', 'personal'], icon: '💊', color: '#DB2777' },
+  { keywords: ['home', 'household', 'cleaning'], icon: '🏠', color: '#475569' },
+  { keywords: ['baby', 'kids', 'child'], icon: '🍼', color: '#F59E0B' }
+] as const;
+
+const bulkProductColumnAliases: Record<string, keyof ProductPayload | 'imageUrl'> = {
+  category: 'categoryName',
+  categoryid: 'categoryId',
+  categoryname: 'categoryName',
+  currency: 'currency',
+  description: 'description',
+  image: 'imageUrl',
+  imagelink: 'imageUrl',
+  imageurl: 'imageUrl',
+  name: 'name',
+  price: 'price',
+  productname: 'name',
+  rating: 'rating',
+  sku: 'sku',
+  status: 'status',
+  stock: 'stock',
+  subcategory: 'subcategory',
+  subcategoryname: 'subcategory',
+  tags: 'tags'
+};
+
+type IconSection = StorefrontHighlightIcon['section'];
 
 export class AdminService {
   constructor(private readonly imageStorageService = new S3Service()) {}
@@ -246,11 +306,20 @@ export class AdminService {
     }
   }
 
-  async bulkImportProducts(tenantId: string | undefined, payload: BulkProductPayload) {
+  async bulkImportProducts(
+    tenantId: string | undefined,
+    payload: BulkProductPayload,
+    file?: Express.Multer.File
+  ) {
     const scopedTenant = this.requireTenantId(tenantId);
-    const { CategoryModel, ProductModel } = this.models(scopedTenant);
+    const { CategoryModel, ProductModel, StorefrontHighlightIconModel } = this.models(scopedTenant);
     const mode = payload.mode ?? 'upsert';
-    const products = payload.products ?? [];
+    const products = file ? this.productsFromBulkFile(file) : (payload.products ?? []);
+
+    if (products.length === 0) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'At least one product row is required');
+    }
+
     const categories = await CategoryModel.find({
       tenantId: scopedTenant,
       isDeleted: { $ne: true }
@@ -262,30 +331,207 @@ export class AdminService {
     const categoryBySlug = new Map(
       categories.map((category) => [category.slug.toLowerCase(), category])
     );
+    const storefrontIcons = await StorefrontHighlightIconModel.find({
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true }
+    }).lean<StorefrontHighlightIcon[]>();
+    const storefrontIconByLabel = new Map(
+      storefrontIcons.map((icon) => [this.storefrontIconKey(icon.label, icon.section), icon])
+    );
+    let nextIconSortOrder =
+      storefrontIcons.reduce((max, icon) => Math.max(max, Number(icon.sortOrder || 0)), 0) + 1;
+    const ensureStorefrontIcon = async (
+      label: string | undefined,
+      section: IconSection
+    ): Promise<StorefrontHighlightIcon | undefined> => {
+      const normalizedLabel = label?.trim();
+      if (!normalizedLabel) return undefined;
+
+      const key = this.storefrontIconKey(normalizedLabel, section);
+      const existingIcon = storefrontIconByLabel.get(key);
+      if (existingIcon) return existingIcon;
+
+      const visualDefaults = this.categoryVisualDefaults(normalizedLabel);
+      let createdIcon: StorefrontHighlightIcon | null;
+
+      try {
+        createdIcon = await StorefrontHighlightIconModel.findOneAndUpdate(
+          { tenantId: scopedTenant, section, label: normalizedLabel },
+          {
+            $set: {
+              color: visualDefaults.color,
+              icon: visualDefaults.icon,
+              isDeleted: false,
+              label: normalizedLabel,
+              section,
+              status: 'active'
+            },
+            $setOnInsert: {
+              sortOrder: nextIconSortOrder++,
+              tenantId: scopedTenant
+            }
+          },
+          { new: true, setDefaultsOnInsert: true, upsert: true }
+        ).lean<StorefrontHighlightIcon>();
+      } catch (error) {
+        if (!isDuplicateKeyError(error)) throw error;
+
+        createdIcon = await StorefrontHighlightIconModel.findOne({
+          tenantId: scopedTenant,
+          section,
+          label: normalizedLabel,
+          isDeleted: { $ne: true }
+        }).lean<StorefrontHighlightIcon>();
+      }
+
+      if (createdIcon) storefrontIconByLabel.set(key, createdIcon);
+      return createdIcon ?? undefined;
+    };
+    const resolveCategory = async (
+      product: ProductPayload,
+      categoryIcon?: StorefrontHighlightIcon
+    ): Promise<Category | undefined> => {
+      const categoryId = product.categoryId ? String(product.categoryId) : '';
+      const categoryName = product.categoryName?.trim();
+      const existingCategory =
+        (categoryId ? categoryById.get(categoryId) : undefined) ??
+        (categoryName ? categoryByName.get(categoryName.toLowerCase()) : undefined) ??
+        (categoryName ? categoryBySlug.get(slugify(categoryName)) : undefined);
+
+      if (existingCategory) {
+        if (!existingCategory.icon || !existingCategory.color) {
+          const visualDefaults = categoryIcon ?? this.categoryVisualDefaults(existingCategory.name);
+          await CategoryModel.updateOne(
+            { _id: existingCategory._id, tenantId: scopedTenant },
+            {
+              $set: {
+                icon: existingCategory.icon ?? visualDefaults.icon,
+                color: existingCategory.color ?? visualDefaults.color
+              }
+            }
+          );
+          existingCategory.icon = existingCategory.icon ?? visualDefaults.icon;
+          existingCategory.color = existingCategory.color ?? visualDefaults.color;
+        }
+
+        return existingCategory;
+      }
+
+      if (!categoryName) {
+        return existingCategory;
+      }
+
+      const slug = slugify(categoryName);
+      const visualDefaults = categoryIcon ?? this.categoryVisualDefaults(categoryName);
+      let createdCategory: Category | null;
+
+      try {
+        createdCategory = await CategoryModel.findOneAndUpdate(
+          { tenantId: scopedTenant, slug },
+          {
+            $set: {
+              color: visualDefaults.color,
+              icon: visualDefaults.icon,
+              isDeleted: false,
+              name: categoryName,
+              slug
+            },
+            $setOnInsert: {
+              itemCount: 0,
+              subcategories: [],
+              tenantId: scopedTenant
+            }
+          },
+          { new: true, setDefaultsOnInsert: true, upsert: true }
+        ).lean<Category>();
+      } catch (error) {
+        if (!isDuplicateKeyError(error)) {
+          throw error;
+        }
+
+        createdCategory = await CategoryModel.findOne({
+          tenantId: scopedTenant,
+          slug,
+          isDeleted: { $ne: true }
+        }).lean<Category>();
+      }
+
+      if (!createdCategory) {
+        return undefined;
+      }
+
+      categoryById.set(String(createdCategory._id), createdCategory);
+      categoryByName.set(createdCategory.name.toLowerCase(), createdCategory);
+      categoryBySlug.set(createdCategory.slug.toLowerCase(), createdCategory);
+
+      return createdCategory;
+    };
+    const ensureSubcategory = async (category: Category | undefined, subcategory?: string) => {
+      const name = subcategory?.trim();
+
+      if (!category || !name) {
+        return;
+      }
+
+      const existingSubcategory = category.subcategories.some(
+        (item) => item.toLowerCase() === name.toLowerCase()
+      );
+
+      if (existingSubcategory) {
+        return;
+      }
+
+      const nextSubcategories = this.uniqueSubcategories([...category.subcategories, name]);
+      await CategoryModel.updateOne(
+        { _id: category._id, tenantId: scopedTenant },
+        { subcategories: nextSubcategories }
+      );
+
+      category.subcategories = nextSubcategories;
+      categoryById.set(String(category._id), category);
+      categoryByName.set(category.name.toLowerCase(), category);
+      categoryBySlug.set(category.slug.toLowerCase(), category);
+    };
     const seenSkus = new Set<string>();
     const skipped: Array<{ row: number; sku?: string; reason: string }> = [];
-    const importable = products.flatMap((product, index) => {
-      const row = index + 1;
+    const importable: BulkProductImportItem[] = [];
+
+    for (const [index, product] of products.entries()) {
+      const row = file ? index + 2 : index + 1;
       const sku = String(product.sku ?? '').trim();
       const skuKey = sku.toLowerCase();
 
       if (!sku) {
         skipped.push({ row, reason: 'SKU is required' });
-        return [];
+        continue;
       }
 
       if (seenSkus.has(skuKey)) {
         skipped.push({ row, sku, reason: 'Duplicate SKU in import file' });
-        return [];
+        continue;
       }
 
       seenSkus.add(skuKey);
-      const category =
-        (product.categoryId ? categoryById.get(String(product.categoryId)) : undefined) ??
-        (product.categoryName
-          ? categoryByName.get(product.categoryName.toLowerCase())
-          : undefined) ??
-        (product.categoryName ? categoryBySlug.get(slugify(product.categoryName)) : undefined);
+      const categoryIcon = await ensureStorefrontIcon(product.categoryName, 'featured');
+      const subcategoryIcon = await ensureStorefrontIcon(product.subcategory, 'merchandising');
+      const category = await resolveCategory(product, categoryIcon);
+      await ensureSubcategory(category, product.subcategory);
+      let imageMetadata: ProductImageMetadata | undefined;
+      const productImageUrl = typeof product.imageUrl === 'string' ? product.imageUrl.trim() : '';
+
+      if (productImageUrl) {
+        try {
+          imageMetadata = await this.uploadProductImageFromUrl(productImageUrl, scopedTenant, sku);
+        } catch (error) {
+          skipped.push({
+            row,
+            sku,
+            reason: error instanceof ApiError ? error.message : 'Unable to upload product image'
+          });
+          continue;
+        }
+      }
+
       const productPayload = this.productPayload({
         ...product,
         categoryId: category ? String(category._id) : product.categoryId,
@@ -296,16 +542,29 @@ export class AdminService {
         status: product.status || 'active',
         tags: product.tags ?? []
       });
+      delete productPayload.imageUrl;
 
-      return [{ row, sku, productPayload }];
-    });
+      importable.push({
+        row,
+        subcategoryIcon,
+        sku,
+        productPayload: {
+          ...productPayload,
+          ...imageMetadata
+        },
+        uploadedImageKey: imageMetadata?.imageDriveFileId
+      });
+    }
     const existingProducts = await ProductModel.find({
       tenantId: scopedTenant,
       sku: { $in: importable.map((item) => item.sku) }
     })
-      .select('sku')
-      .lean<Pick<Product, 'sku'>[]>();
+      .select('sku imageDriveFileId')
+      .lean<Pick<Product, 'sku' | 'imageDriveFileId'>[]>();
     const existingSkus = new Set(existingProducts.map((product) => product.sku.toLowerCase()));
+    const existingImageKeyBySku = new Map(
+      existingProducts.map((product) => [product.sku.toLowerCase(), product.imageDriveFileId])
+    );
     const operations = importable.flatMap(({ row, sku, productPayload }) => {
       const exists = existingSkus.has(sku.toLowerCase());
 
@@ -328,13 +587,49 @@ export class AdminService {
       ];
     });
 
-    if (operations.length > 0) {
-      await ProductModel.bulkWrite(operations, { ordered: false });
+    const skippedUploadedImageKeys = importable
+      .filter(({ sku, uploadedImageKey }) =>
+        Boolean(mode === 'create-only' && existingSkus.has(sku.toLowerCase()) && uploadedImageKey)
+      )
+      .map((item) => item.uploadedImageKey)
+      .filter((imageKey): imageKey is string => Boolean(imageKey));
+
+    await Promise.all(
+      skippedUploadedImageKeys.map((imageKey) =>
+        this.imageStorageService.deleteProductImage(imageKey)
+      )
+    );
+
+    try {
+      if (operations.length > 0) {
+        await ProductModel.bulkWrite(operations, { ordered: false });
+      }
+    } catch (error) {
+      await Promise.all(
+        importable
+          .map((item) => item.uploadedImageKey)
+          .filter((imageKey): imageKey is string => Boolean(imageKey))
+          .map((imageKey) => this.imageStorageService.deleteProductImage(imageKey))
+      );
+      throw error;
     }
 
     const processedSkus = importable
       .filter(({ sku }) => !(mode === 'create-only' && existingSkus.has(sku.toLowerCase())))
       .map(({ sku }) => sku);
+    await Promise.all(
+      importable
+        .filter(({ sku, uploadedImageKey }) => {
+          const existingImageKey = existingImageKeyBySku.get(sku.toLowerCase());
+          return Boolean(
+            uploadedImageKey && existingImageKey && existingImageKey !== uploadedImageKey
+          );
+        })
+        .map(({ sku }) =>
+          this.imageStorageService.deleteProductImage(existingImageKeyBySku.get(sku.toLowerCase()))
+        )
+    );
+    await this.ensureSecondaryCategoriesFromImport(scopedTenant, importable, processedSkus);
 
     return {
       created: processedSkus.filter((sku) => !existingSkus.has(sku.toLowerCase())).length,
@@ -376,7 +671,8 @@ export class AdminService {
               imageName: '',
               imageMimeType: '',
               imageSize: '',
-              imageDriveFileId: ''
+              imageDriveFileId: '',
+              imageUrl: ''
             }
           };
 
@@ -659,7 +955,11 @@ export class AdminService {
       filter.$or = [{ name: regex }, { slug: regex }, { icon: regex }];
     }
 
-    return SecondaryCategoryModel.find(filter).sort({ name: 1 }).lean<SecondaryCategory[]>();
+    const secondaryCategories = await SecondaryCategoryModel.find(filter)
+      .sort({ name: 1 })
+      .lean<SecondaryCategory[]>();
+
+    return secondaryCategories.map((category) => this.secondaryCategoryResponse(category));
   }
 
   async createSecondaryCategory(
@@ -669,15 +969,20 @@ export class AdminService {
     const scopedTenant = this.requireTenantId(tenantId);
     const { SecondaryCategoryModel } = this.models(scopedTenant);
     const name = String(payload.name ?? '').trim();
-    await this.requireTenantProduct(scopedTenant, String(payload.productId));
+    const productIds = this.normalizeSecondaryCategoryProductIds(payload);
+    await this.requireTenantProducts(scopedTenant, productIds);
 
     try {
       return SecondaryCategoryModel.create({
         ...payload,
         name,
+        productId: productIds[0],
+        productIds,
         slug: typeof payload.slug === 'string' ? slugify(payload.slug) : slugify(name),
         tenantId: scopedTenant
-      }).then((document) => document.toObject() as SecondaryCategory);
+      }).then((document) =>
+        this.secondaryCategoryResponse(document.toObject() as SecondaryCategory)
+      );
     } catch (error) {
       if (isDuplicateKeyError(error)) {
         throw new ApiError(HTTP_STATUS.CONFLICT, 'Secondary category slug already exists');
@@ -694,9 +999,14 @@ export class AdminService {
   ): Promise<SecondaryCategory> {
     const scopedTenant = this.requireTenantId(tenantId);
     const { SecondaryCategoryModel } = this.models(scopedTenant);
-    if (payload.productId) await this.requireTenantProduct(scopedTenant, String(payload.productId));
+    const productIds =
+      payload.productIds || payload.productId
+        ? this.normalizeSecondaryCategoryProductIds(payload)
+        : undefined;
+    if (productIds) await this.requireTenantProducts(scopedTenant, productIds);
     const updatePayload = {
       ...payload,
+      ...(productIds ? { productId: productIds[0], productIds } : {}),
       ...(typeof payload.name === 'string' ? { name: payload.name.trim() } : {}),
       ...(typeof payload.slug === 'string'
         ? { slug: slugify(payload.slug) }
@@ -715,7 +1025,7 @@ export class AdminService {
         throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Secondary category not found');
       }
 
-      return secondaryCategory;
+      return this.secondaryCategoryResponse(secondaryCategory);
     } catch (error) {
       if (isDuplicateKeyError(error)) {
         throw new ApiError(HTTP_STATUS.CONFLICT, 'Secondary category slug already exists');
@@ -930,6 +1240,21 @@ export class AdminService {
     };
   }
 
+  async storefrontSecondaryCategories(tenantId?: string): Promise<SecondaryCategory[]> {
+    const scopedTenant = this.requireTenantId(tenantId);
+    const { SecondaryCategoryModel } = this.models(scopedTenant);
+
+    const secondaryCategories = await SecondaryCategoryModel.find({
+      tenantId: scopedTenant,
+      status: 'active',
+      isDeleted: { $ne: true }
+    })
+      .sort({ name: 1, createdAt: 1 })
+      .lean<SecondaryCategory[]>();
+
+    return secondaryCategories.map((category) => this.secondaryCategoryResponse(category));
+  }
+
   private productPayload(payload: ProductPayload): Partial<Product> {
     const sanitizedPayload = { ...payload };
 
@@ -938,6 +1263,234 @@ export class AdminService {
     }
 
     return sanitizedPayload;
+  }
+
+  private async ensureSecondaryCategoriesFromImport(
+    tenantId: string,
+    importable: BulkProductImportItem[],
+    processedSkus: string[]
+  ): Promise<void> {
+    const processedSkuSet = new Set(processedSkus.map((sku) => sku.toLowerCase()));
+    const secondaryCategoryRows = importable.filter((item) => {
+      const subcategory = item.productPayload.subcategory?.trim();
+      return Boolean(subcategory && processedSkuSet.has(item.sku.toLowerCase()));
+    });
+
+    if (secondaryCategoryRows.length === 0) return;
+
+    const { ProductModel, SecondaryCategoryModel } = this.models(tenantId);
+    const products = await ProductModel.find({
+      tenantId,
+      sku: { $in: secondaryCategoryRows.map((item) => item.sku) },
+      isDeleted: { $ne: true }
+    })
+      .select('_id sku')
+      .lean<Pick<Product, '_id' | 'sku'>[]>();
+    const productBySku = new Map(products.map((product) => [product.sku.toLowerCase(), product]));
+    const seenSlugs = new Set<string>();
+    const targetSectionId: SecondaryCategory['targetSectionId'] = 'top-offers';
+    const status: SecondaryCategory['status'] = 'active';
+    const operations = secondaryCategoryRows.flatMap((item) => {
+      const name = item.productPayload.subcategory?.trim();
+      const product = productBySku.get(item.sku.toLowerCase());
+      if (!name || !product) return [];
+
+      const slug = slugify(name);
+      if (seenSlugs.has(slug)) return [];
+      seenSlugs.add(slug);
+
+      const visualDefaults = item.subcategoryIcon ?? this.categoryVisualDefaults(name);
+
+      return [
+        {
+          updateOne: {
+            filter: { tenantId, slug },
+            update: {
+              $set: {
+                color: visualDefaults.color,
+                icon: visualDefaults.icon,
+                isDeleted: false,
+                name,
+                productId: String(product._id),
+                status,
+                targetSectionId
+              },
+              $setOnInsert: {
+                tenantId
+              }
+            },
+            upsert: true
+          }
+        }
+      ];
+    });
+
+    if (operations.length > 0) {
+      await SecondaryCategoryModel.bulkWrite(operations, { ordered: false });
+    }
+  }
+
+  private productsFromBulkFile(file: Express.Multer.File): ProductPayload[] {
+    try {
+      const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+
+      if (!sheetName) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Bulk file does not contain a worksheet');
+      }
+
+      const sheet = workbook.Sheets[sheetName];
+      if (!sheet) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Bulk file does not contain a worksheet');
+      }
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+        defval: '',
+        raw: false
+      });
+
+      return rows
+        .map((row) => this.productFromBulkRow(row))
+        .filter((product) =>
+          Object.values(product).some((value) => value !== undefined && value !== '')
+        );
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Unable to parse CSV or Excel product file');
+    }
+  }
+
+  private productFromBulkRow(row: Record<string, unknown>): ProductPayload {
+    const product: ProductPayload = {};
+
+    for (const [header, value] of Object.entries(row)) {
+      const field = bulkProductColumnAliases[normalizeHeader(header)];
+      if (!field) continue;
+
+      const normalizedValue = this.bulkCellValue(value);
+      if (normalizedValue === undefined) continue;
+
+      if (field === 'price' || field === 'stock' || field === 'rating') {
+        const numberValue = Number(normalizedValue);
+        if (!Number.isNaN(numberValue)) product[field] = numberValue;
+        continue;
+      }
+
+      if (field === 'tags') {
+        product.tags = String(normalizedValue)
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean);
+        continue;
+      }
+
+      product[field] = normalizedValue as never;
+    }
+
+    return product;
+  }
+
+  private bulkCellValue(value: unknown): string | number | undefined {
+    if (value === undefined || value === null) return undefined;
+    const stringValue = String(value).trim();
+    return stringValue === '' ? undefined : stringValue;
+  }
+
+  private categoryVisualDefaults(categoryName: string): Pick<Category, 'icon' | 'color'> {
+    const normalizedCategoryName = categoryName.toLowerCase();
+    const defaults = categoryVisualDefaults.find((item) =>
+      item.keywords.some((keyword) => normalizedCategoryName.includes(keyword))
+    );
+
+    return {
+      icon: defaults?.icon ?? '🏷️',
+      color: defaults?.color ?? '#64748B'
+    };
+  }
+
+  private storefrontIconKey(label: string, section: IconSection): string {
+    return `${section}:${label.trim().toLowerCase()}`;
+  }
+
+  private async uploadProductImageFromUrl(
+    imageUrl: string,
+    tenantId: string,
+    sku: string
+  ): Promise<ProductImageMetadata> {
+    let parsedUrl: URL;
+
+    try {
+      parsedUrl = new URL(imageUrl);
+    } catch {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Product image link is not a valid URL');
+    }
+
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Product image link must use HTTP or HTTPS');
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const response = await fetch(parsedUrl, { signal: controller.signal });
+
+      if (!response.ok) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Product image link could not be downloaded');
+      }
+
+      const contentType = response.headers.get('content-type')?.split(';')[0]?.trim() || '';
+      if (!contentType.startsWith('image/')) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Product image link must point to an image');
+      }
+
+      const contentLength = Number(response.headers.get('content-length') || 0);
+      if (contentLength > MAX_REMOTE_IMAGE_SIZE_BYTES) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Product image link is larger than 5MB');
+      }
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      if (buffer.length > MAX_REMOTE_IMAGE_SIZE_BYTES) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Product image link is larger than 5MB');
+      }
+
+      return this.uploadProductImage(
+        {
+          buffer,
+          fieldname: 'image',
+          originalname: this.remoteImageFilename(parsedUrl, contentType),
+          encoding: '7bit',
+          mimetype: contentType,
+          size: buffer.length,
+          stream: undefined as never,
+          destination: '',
+          filename: '',
+          path: ''
+        },
+        tenantId,
+        sku
+      );
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Product image link could not be downloaded');
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private remoteImageFilename(url: URL, contentType: string): string {
+    const pathnameName = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() ?? '');
+    if (pathnameName.includes('.')) return pathnameName;
+
+    const extensionByContentType: Record<string, string> = {
+      'image/gif': 'gif',
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/svg+xml': 'svg',
+      'image/webp': 'webp'
+    };
+    const extension = extensionByContentType[contentType] ?? 'img';
+
+    return `product-image.${extension}`;
   }
 
   private carouselPayload(payload: CarouselPayload): Partial<StorefrontCarouselSlide> {
@@ -985,7 +1538,7 @@ export class AdminService {
       product.imageDriveFileId,
       product.imageName
     );
-    return { ...product, imageUrl };
+    return { ...product, imageUrl: imageUrl ?? product.imageUrl ?? null };
   }
 
   private async withCarouselImageUrl(
@@ -1039,6 +1592,72 @@ export class AdminService {
       isDeleted: { $ne: true }
     });
     if (!product) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Product not found');
+  }
+
+  private normalizeSecondaryCategoryProductIds(
+    payload: Partial<Omit<SecondaryCategory, 'productIds'> & { productIds: string[] | string }>
+  ): string[] {
+    const productIds = Array.isArray(payload.productIds)
+      ? payload.productIds
+      : payload.productId
+        ? [payload.productId]
+        : [];
+    const normalizedProductIds = [
+      ...new Set(
+        productIds
+          .flatMap((productId) => String(productId).split(','))
+          .map((productId) => productId.trim())
+          .filter(Boolean)
+      )
+    ];
+
+    if (!normalizedProductIds.length) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Select at least one product.');
+    }
+
+    return normalizedProductIds;
+  }
+
+  private secondaryCategoryResponse(category: SecondaryCategory): SecondaryCategory {
+    const productIds = this.normalizeSecondaryCategoryProductIds(category);
+
+    return {
+      ...category,
+      productId: category.productId ?? productIds[0],
+      productIds
+    };
+  }
+
+  private async requireTenantProducts(tenantId: string, productIds: string[]): Promise<void> {
+    const { ProductModel } = this.models(tenantId);
+    const products = await ProductModel.find({
+      _id: { $in: productIds },
+      tenantId,
+      isDeleted: { $ne: true }
+    })
+      .select({ _id: 1 })
+      .lean<Array<{ _id: string }>>();
+    const foundProductIds = new Set(products.map((product) => String(product._id)));
+    let missingProductIds = productIds.filter((productId) => !foundProductIds.has(productId));
+
+    if (missingProductIds.length) {
+      const tenantScopedProducts = await ProductModel.find({
+        _id: { $in: missingProductIds },
+        isDeleted: { $ne: true }
+      })
+        .select({ _id: 1 })
+        .lean<Array<{ _id: string }>>();
+      const tenantScopedProductIds = new Set(
+        tenantScopedProducts.map((product) => String(product._id))
+      );
+      missingProductIds = missingProductIds.filter(
+        (productId) => !tenantScopedProductIds.has(productId)
+      );
+    }
+
+    if (missingProductIds.length) {
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'One or more selected products were not found');
+    }
   }
 
   async listCategories(tenantId?: string, query: ListQuery = {}) {
@@ -1406,6 +2025,8 @@ export class AdminService {
       filter.$or = [{ name: regex }, { status: regex }];
     }
 
+    filter.$and = [{ $or: [{ country: 'Myanmar' }, { country: { $exists: false } }] }];
+
     if (typeof query.status === 'string' && query.status && query.status !== 'all') {
       filter.status = query.status;
     }
@@ -1419,8 +2040,9 @@ export class AdminService {
 
     try {
       return await RegionModel.create({
-        ...payload,
+        country: 'Myanmar',
         name: String(payload.name ?? '').trim(),
+        status: payload.status ?? 'active',
         tenantId: scopedTenant
       }).then((document) => document.toObject() as Region);
     } catch (error) {
@@ -1451,7 +2073,7 @@ export class AdminService {
     try {
       const region = await RegionModel.findOneAndUpdate(
         { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
-        { ...payload, name: nextName },
+        { country: 'Myanmar', name: nextName, status: payload.status ?? existingRegion.status },
         { new: true }
       ).lean<Region>();
       if (!region) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Region not found');
@@ -1459,7 +2081,11 @@ export class AdminService {
       if (nextName !== existingRegion.name) {
         await Promise.all([
           TownshipModel.updateMany(
-            { tenantId: scopedTenant, region: existingRegion.name, isDeleted: { $ne: true } },
+            {
+              tenantId: scopedTenant,
+              isDeleted: { $ne: true },
+              $or: [{ regionId: existingRegion._id }, { region: existingRegion.name }]
+            },
             { region: nextName }
           ),
           DeliveryFeeModel.updateMany(
@@ -1492,9 +2118,8 @@ export class AdminService {
     const [referencedTownship, referencedDeliveryFee] = await Promise.all([
       TownshipModel.exists({
         tenantId: scopedTenant,
-        region: region.name,
         isDeleted: { $ne: true }
-      }),
+      }).or([{ regionId: region._id }, { region: region.name }]),
       DeliveryFeeModel.exists({
         tenantId: scopedTenant,
         region: region.name,
@@ -1516,14 +2141,20 @@ export class AdminService {
   async listTownships(tenantId?: string, query: ListQuery = {}): Promise<Township[]> {
     const scopedTenant = this.tenantId(tenantId);
     const { TownshipModel } = this.models(scopedTenant);
-    const filter: MongoFilter = { tenantId: scopedTenant, isDeleted: { $ne: true } };
+    const filter: MongoFilter = {
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true }
+    };
 
     if (typeof query.search === 'string' && query.search) {
       const regex = new RegExp(escapeRegex(query.search), 'i');
       filter.$or = [{ name: regex }, { region: regex }, { status: regex }];
     }
 
+    filter.$and = [{ $or: [{ country: 'Myanmar' }, { country: { $exists: false } }] }];
+
     if (typeof query.region === 'string' && query.region) filter.region = query.region;
+    if (typeof query.regionId === 'string' && query.regionId) filter.regionId = query.regionId;
     if (typeof query.status === 'string' && query.status && query.status !== 'all') {
       filter.status = query.status;
     }
@@ -1536,13 +2167,27 @@ export class AdminService {
     payload: Partial<Township>
   ): Promise<Township> {
     const scopedTenant = this.tenantId(tenantId);
-    const { TownshipModel } = this.models(scopedTenant);
+    const { RegionModel, TownshipModel } = this.models(scopedTenant);
+    const regionId = String(payload.regionId ?? '').trim();
+    if (!isValidObjectId(regionId)) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'A valid Myanmar region is required');
+    }
+
+    const region = await RegionModel.findOne({
+      _id: regionId,
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true },
+      $or: [{ country: 'Myanmar' }, { country: { $exists: false } }]
+    }).lean<Region>();
+    if (!region) throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'A valid Myanmar region is required');
 
     try {
       return await TownshipModel.create({
-        ...payload,
+        country: 'Myanmar',
         name: String(payload.name ?? '').trim(),
-        region: String(payload.region ?? '').trim(),
+        region: region.name,
+        regionId: region._id,
+        status: payload.status ?? 'active',
         tenantId: scopedTenant
       }).then((document) => document.toObject() as Township);
     } catch (error) {
@@ -1560,7 +2205,7 @@ export class AdminService {
     payload: Partial<Township>
   ): Promise<Township> {
     const scopedTenant = this.tenantId(tenantId);
-    const { TownshipModel, DeliveryFeeModel } = this.models(scopedTenant);
+    const { RegionModel, TownshipModel, DeliveryFeeModel } = this.models(scopedTenant);
     const existingTownship = await TownshipModel.findOne({
       _id: id,
       tenantId: scopedTenant,
@@ -1569,18 +2214,34 @@ export class AdminService {
     if (!existingTownship) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Township not found');
 
     const nextName = typeof payload.name === 'string' ? payload.name.trim() : existingTownship.name;
-    const nextRegion =
-      typeof payload.region === 'string' ? payload.region.trim() : existingTownship.region;
+    const nextRegionId = String(payload.regionId ?? existingTownship.regionId ?? '').trim();
+    if (!isValidObjectId(nextRegionId)) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'A valid Myanmar region is required');
+    }
+
+    const nextRegion = await RegionModel.findOne({
+      _id: nextRegionId,
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true },
+      $or: [{ country: 'Myanmar' }, { country: { $exists: false } }]
+    }).lean<Region>();
+    if (!nextRegion) throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'A valid Myanmar region is required');
 
     try {
       const township = await TownshipModel.findOneAndUpdate(
         { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
-        { ...payload, name: nextName, region: nextRegion },
+        {
+          country: 'Myanmar',
+          name: nextName,
+          region: nextRegion.name,
+          regionId: nextRegion._id,
+          status: payload.status ?? existingTownship.status
+        },
         { new: true }
       ).lean<Township>();
       if (!township) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Township not found');
 
-      if (nextName !== existingTownship.name || nextRegion !== existingTownship.region) {
+      if (nextName !== existingTownship.name || nextRegion.name !== existingTownship.region) {
         await DeliveryFeeModel.updateMany(
           {
             tenantId: scopedTenant,
@@ -1588,7 +2249,7 @@ export class AdminService {
             township: existingTownship.name,
             isDeleted: { $ne: true }
           },
-          { region: nextRegion, township: nextName }
+          { region: nextRegion.name, township: nextName }
         );
       }
 

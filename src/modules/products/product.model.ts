@@ -17,6 +17,7 @@ export const productSchema = new Schema<Product>(
     imageMimeType: { type: String },
     imageSize: { type: Number, min: 0 },
     imageDriveFileId: { type: String },
+    imageUrl: { type: String, trim: true },
     price: { type: Number, required: true },
     currency: { type: String, default: 'USD' },
     stock: { type: Number, default: 0, min: 0 },

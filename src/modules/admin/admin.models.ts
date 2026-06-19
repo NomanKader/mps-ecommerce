@@ -1,4 +1,4 @@
-import { Schema } from 'mongoose';
+import { Schema, Types } from 'mongoose';
 
 import { addSoftDeleteFields, baseSchemaOptions } from '@core/database/base.schema';
 
@@ -48,6 +48,7 @@ export interface DeliveryFee {
 export interface Region {
   _id: string;
   tenantId: string;
+  country: 'Myanmar';
   name: string;
   status: 'active' | 'paused';
   isDeleted: boolean;
@@ -58,7 +59,9 @@ export interface Region {
 export interface Township {
   _id: string;
   tenantId: string;
+  country: 'Myanmar';
   name: string;
+  regionId: Types.ObjectId;
   region: string;
   status: 'active' | 'paused';
   isDeleted: boolean;
@@ -128,7 +131,8 @@ export interface SecondaryCategory {
   slug: string;
   icon?: string;
   color?: string;
-  productId: string;
+  productId?: string;
+  productIds: string[];
   targetSectionId: 'top-offers' | 'top-blooms' | 'new-season' | 'pantry-ready';
   status: 'active' | 'hidden';
   isDeleted: boolean;
@@ -201,6 +205,7 @@ export const deliveryFeeSchema = new Schema<DeliveryFee>(
 export const regionSchema = new Schema<Region>(
   {
     tenantId: { type: String, required: true, index: true },
+    country: { type: String, enum: ['Myanmar'], default: 'Myanmar', required: true, index: true },
     name: { type: String, required: true, trim: true },
     status: { type: String, enum: ['active', 'paused'], default: 'active', index: true }
   },
@@ -210,7 +215,9 @@ export const regionSchema = new Schema<Region>(
 export const townshipSchema = new Schema<Township>(
   {
     tenantId: { type: String, required: true, index: true },
+    country: { type: String, enum: ['Myanmar'], default: 'Myanmar', required: true, index: true },
     name: { type: String, required: true, trim: true },
+    regionId: { type: Schema.Types.ObjectId, required: true, index: true },
     region: { type: String, required: true, trim: true, index: true },
     status: { type: String, enum: ['active', 'paused'], default: 'active', index: true }
   },
@@ -285,7 +292,8 @@ export const secondaryCategorySchema = new Schema<SecondaryCategory>(
     slug: { type: String, required: true, trim: true, lowercase: true },
     icon: { type: String, trim: true },
     color: { type: String, trim: true },
-    productId: { type: String, required: true, index: true },
+    productId: { type: String, index: true },
+    productIds: [{ type: String, required: true, index: true }],
     targetSectionId: {
       type: String,
       enum: ['top-offers', 'top-blooms', 'new-season', 'pantry-ready'],
@@ -327,10 +335,13 @@ addSoftDeleteFields(productSectionAssignmentSchema);
 customerSchema.index({ tenantId: 1, email: 1 }, { unique: true });
 promotionSchema.index({ tenantId: 1, code: 1 }, { unique: true });
 deliveryFeeSchema.index({ tenantId: 1, region: 1, township: 1 }, { unique: true });
-regionSchema.index({ tenantId: 1, name: 1 }, { unique: true });
-regionSchema.index({ tenantId: 1, status: 1, name: 1 });
-townshipSchema.index({ tenantId: 1, region: 1, name: 1 }, { unique: true });
-townshipSchema.index({ tenantId: 1, status: 1, region: 1, name: 1 });
+regionSchema.index({ tenantId: 1, country: 1, name: 1 }, { unique: true });
+regionSchema.index({ tenantId: 1, country: 1, status: 1, name: 1 });
+townshipSchema.index(
+  { tenantId: 1, country: 1, regionId: 1, name: 1 },
+  { partialFilterExpression: { regionId: { $exists: true } }, unique: true }
+);
+townshipSchema.index({ tenantId: 1, country: 1, status: 1, regionId: 1, name: 1 });
 tenantAdminSettingsSchema.index({ tenantId: 1 }, { unique: true });
 carouselSlideSchema.index({ tenantId: 1, status: 1 });
 carouselSlideSchema.index({ tenantId: 1, placement: 1, status: 1, sortOrder: 1 });
@@ -340,6 +351,7 @@ highlightIconSchema.index({ tenantId: 1, section: 1, status: 1, sortOrder: 1, cr
 secondaryCategorySchema.index({ tenantId: 1, slug: 1 }, { unique: true });
 secondaryCategorySchema.index({ tenantId: 1, status: 1, name: 1 });
 secondaryCategorySchema.index({ tenantId: 1, targetSectionId: 1, productId: 1 });
+secondaryCategorySchema.index({ tenantId: 1, targetSectionId: 1, productIds: 1 });
 productSectionAssignmentSchema.index({ tenantId: 1, status: 1 });
 productSectionAssignmentSchema.index({ tenantId: 1, sectionId: 1, status: 1, sortOrder: 1 });
 productSectionAssignmentSchema.index(

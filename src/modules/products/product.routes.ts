@@ -7,5 +7,6 @@ const router = Router();
 const controller = new ProductController();
 
 router.get('/', tenantMiddleware, controller.list);
+router.get('/:productId', tenantMiddleware, controller.getById);
 
 export default router;

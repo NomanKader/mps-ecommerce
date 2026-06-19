@@ -14,6 +14,20 @@ export const userSchema = new Schema<User>(
     phoneVerifiedAt: { type: Date },
     password: { type: String, required: true },
     role: { type: String, enum: Object.values(Role), default: Role.CUSTOMER, index: true },
+    dashboardRole: {
+      type: String,
+      enum: [
+        'store_owner',
+        'operations_manager',
+        'catalog_manager',
+        'order_fulfillment',
+        'customer_support',
+        'marketing_manager',
+        'delivery_manager',
+        'finance_viewer'
+      ],
+      index: true
+    },
     isActive: { type: Boolean, default: true }
   },
   baseSchemaOptions

@@ -76,6 +76,7 @@ export const productBodySchema = z.object({
     stock: z.coerce.number().int().nonnegative().default(0),
     rating: z.coerce.number().min(0).max(5).default(0),
     status: z.enum(['draft', 'active', 'archived']).default('active'),
+    imageUrl: z.url().optional(),
     removeImage: booleanStringSchema
   })
 });
@@ -91,7 +92,7 @@ export const bulkProductsBodySchema = z.object({
     (value) => (Array.isArray(value) ? { products: value } : value),
     z.object({
       mode: z.enum(['upsert', 'create-only']).default('upsert'),
-      products: z.array(bulkProductItemSchema).min(1).max(1000)
+      products: z.array(bulkProductItemSchema).min(1).max(1000).optional()
     })
   )
 });
@@ -122,7 +123,7 @@ export const deliveryFeeBodySchema = z.object({
   body: z.object({
     region: z.string().min(2),
     township: z.string().min(2),
-    fee: z.coerce.number().nonnegative(),
+    fee: z.coerce.number().min(45000),
     freeOver: z.coerce.number().nonnegative().default(0),
     eta: z.string().min(2),
     status: z.enum(['active', 'paused']).default('active')
@@ -131,6 +132,7 @@ export const deliveryFeeBodySchema = z.object({
 
 export const regionBodySchema = z.object({
   body: z.object({
+    country: z.literal('Myanmar').default('Myanmar'),
     name: z.string().min(2).max(120),
     status: z.enum(['active', 'paused']).default('active')
   })
@@ -138,6 +140,7 @@ export const regionBodySchema = z.object({
 
 export const regionQuerySchema = z.object({
   query: z.object({
+    country: z.literal('Myanmar').optional(),
     search: z.string().optional(),
     status: z.enum(['active', 'paused', 'all']).optional()
   })
@@ -145,16 +148,19 @@ export const regionQuerySchema = z.object({
 
 export const townshipBodySchema = z.object({
   body: z.object({
+    country: z.literal('Myanmar').default('Myanmar'),
     name: z.string().min(2).max(120),
-    region: z.string().min(2).max(120),
+    regionId: z.string().min(1),
     status: z.enum(['active', 'paused']).default('active')
   })
 });
 
 export const townshipQuerySchema = z.object({
   query: z.object({
+    country: z.literal('Myanmar').optional(),
     search: z.string().optional(),
     region: z.string().optional(),
+    regionId: z.string().optional(),
     status: z.enum(['active', 'paused', 'all']).optional()
   })
 });
@@ -228,15 +234,21 @@ export const storefrontIconQuerySchema = z.object({
 });
 
 export const secondaryCategoryBodySchema = z.object({
-  body: z.object({
-    name: z.string().min(1).max(100),
-    slug: z.string().min(1).max(120).optional(),
-    icon: z.string().trim().max(24).optional(),
-    color: hexColorSchema,
-    productId: z.string().min(1),
-    targetSectionId: z.enum(productSectionIds),
-    status: z.enum(['active', 'hidden']).default('active')
-  })
+  body: z
+    .object({
+      name: z.string().min(1).max(100),
+      slug: z.string().min(1).max(120).optional(),
+      icon: z.string().trim().max(24).optional(),
+      color: hexColorSchema,
+      productId: z.string().min(1).optional(),
+      productIds: z.union([z.array(z.string().min(1)).min(1), z.string().min(1)]).optional(),
+      targetSectionId: z.enum(productSectionIds),
+      status: z.enum(['active', 'hidden']).default('active')
+    })
+    .refine((body) => Boolean(body.productIds?.length || body.productId), {
+      message: 'Select at least one product.',
+      path: ['productIds']
+    })
 });
 
 export const secondaryCategoryQuerySchema = z.object({

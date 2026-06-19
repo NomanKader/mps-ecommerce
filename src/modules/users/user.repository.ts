@@ -15,4 +15,23 @@ export class UserRepository extends BaseRepository<User> {
   async findManyByEmail(email: string): Promise<User[]> {
     return this.find({ email });
   }
+
+  async findTenantDashboardUsers(tenantId: string): Promise<User[]> {
+    return this.model
+      .find({
+        tenantId,
+        isDeleted: { $ne: true },
+        role: 'staff'
+      })
+      .sort({ createdAt: -1 })
+      .lean<User[]>()
+      .exec();
+  }
+
+  async updateById(id: string, payload: Record<string, unknown>): Promise<User | null> {
+    return this.model
+      .findOneAndUpdate({ _id: id, isDeleted: { $ne: true } }, payload, { new: true })
+      .lean<User | null>()
+      .exec();
+  }
 }

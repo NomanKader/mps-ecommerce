@@ -2,11 +2,13 @@ import { NextFunction, Request, Response, Router } from 'express';
 
 import { Role } from '@common/enums/role.enum';
 import { HTTP_STATUS } from '@core/response/http-status';
+import { bulkProductUploadMiddleware } from '@middlewares/bulk-product-upload.middleware';
 import { authMiddleware } from '@middlewares/auth.middleware';
 import { productImageUploadMiddleware } from '@middlewares/product-image-upload.middleware';
 import { roleMiddleware } from '@middlewares/role.middleware';
 import { validateMiddleware } from '@middlewares/validate.middleware';
 import { AdminController } from '@modules/admin/admin.controller';
+import { UserController } from '@modules/users/user.controller';
 import { ApiError } from '@utils/ApiError';
 import {
   adminProfileBodySchema,
@@ -33,9 +35,15 @@ import {
   townshipBodySchema,
   townshipQuerySchema
 } from '@modules/admin/admin.validation';
+import {
+  createTenantDashboardUserSchema,
+  tenantDashboardUserIdSchema,
+  updateTenantDashboardUserSchema
+} from '@modules/users/user.validation';
 
 const router = Router();
 const controller = new AdminController();
+const userController = new UserController();
 
 const useAuthenticatedTenant = (req: Request, _res: Response, next: NextFunction): void => {
   const tokenTenant = req.auth?.tenantId;
@@ -54,38 +62,64 @@ const useAuthenticatedTenant = (req: Request, _res: Response, next: NextFunction
 };
 
 const tenantAdminOnly = [authMiddleware, roleMiddleware(Role.TENANT_ADMIN), useAuthenticatedTenant];
+const dashboardAccess = [
+  authMiddleware,
+  roleMiddleware(Role.TENANT_ADMIN, Role.STAFF),
+  useAuthenticatedTenant
+];
 
-router.get('/dashboard', tenantAdminOnly, controller.dashboard);
+router.get('/dashboard', dashboardAccess, controller.dashboard);
+
+router.get('/users', tenantAdminOnly, userController.listTenantDashboardUsers);
+router.post(
+  '/users',
+  tenantAdminOnly,
+  validateMiddleware(createTenantDashboardUserSchema),
+  userController.createTenantDashboardUser
+);
+router.put(
+  '/users/:id',
+  tenantAdminOnly,
+  validateMiddleware(updateTenantDashboardUserSchema),
+  userController.updateTenantDashboardUser
+);
+router.delete(
+  '/users/:id',
+  tenantAdminOnly,
+  validateMiddleware(tenantDashboardUserIdSchema),
+  userController.deleteTenantDashboardUser
+);
 
 router.get(
   '/products',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(productQuerySchema),
   controller.listProducts
 );
 router.post(
   '/products',
-  tenantAdminOnly,
+  dashboardAccess,
   productImageUploadMiddleware,
   validateMiddleware(productBodySchema),
   controller.createProduct
 );
 router.post(
   '/products/bulk',
-  tenantAdminOnly,
+  dashboardAccess,
+  bulkProductUploadMiddleware,
   validateMiddleware(bulkProductsBodySchema),
   controller.bulkImportProducts
 );
 router.put(
   '/products/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   productImageUploadMiddleware,
   validateMiddleware(productBodySchema),
   controller.updateProduct
 );
 router.delete(
   '/products/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(idParamSchema),
   controller.deleteProduct
 );
@@ -100,223 +134,223 @@ router.put(
 
 router.get(
   '/carousel',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(carouselQuerySchema),
   controller.listCarousel
 );
 router.post(
   '/carousel',
-  tenantAdminOnly,
+  dashboardAccess,
   productImageUploadMiddleware,
   validateMiddleware(carouselBodySchema),
   controller.createCarouselSlide
 );
 router.put(
   '/carousel/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   productImageUploadMiddleware,
   validateMiddleware(carouselBodySchema),
   controller.updateCarouselSlide
 );
 router.delete(
   '/carousel/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(idParamSchema),
   controller.deleteCarouselSlide
 );
 
 router.get(
   '/storefront-icons',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(storefrontIconQuerySchema),
   controller.listStorefrontIcons
 );
 router.post(
   '/storefront-icons',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(storefrontIconBodySchema),
   controller.createStorefrontIcon
 );
 router.put(
   '/storefront-icons/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(storefrontIconBodySchema),
   controller.updateStorefrontIcon
 );
 router.delete(
   '/storefront-icons/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(idParamSchema),
   controller.deleteStorefrontIcon
 );
 
 router.get(
   '/secondary-categories',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(secondaryCategoryQuerySchema),
   controller.listSecondaryCategories
 );
 router.post(
   '/secondary-categories',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(secondaryCategoryBodySchema),
   controller.createSecondaryCategory
 );
 router.put(
   '/secondary-categories/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(secondaryCategoryBodySchema),
   controller.updateSecondaryCategory
 );
 router.delete(
   '/secondary-categories/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(idParamSchema),
   controller.deleteSecondaryCategory
 );
 
-router.get('/product-sections', tenantAdminOnly, controller.listProductSections);
+router.get('/product-sections', dashboardAccess, controller.listProductSections);
 router.post(
   '/product-sections/assignments',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(productSectionAssignmentBodySchema),
   controller.createProductSectionAssignment
 );
 router.put(
   '/product-sections/assignments/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(productSectionAssignmentUpdateSchema),
   controller.updateProductSectionAssignment
 );
 router.delete(
   '/product-sections/assignments/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(idParamSchema),
   controller.deleteProductSectionAssignment
 );
 
-router.get('/categories', tenantAdminOnly, controller.listCategories);
+router.get('/categories', dashboardAccess, controller.listCategories);
 router.post(
   '/categories',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(categoryBodySchema),
   controller.createCategory
 );
 router.put(
   '/categories/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(categoryBodySchema),
   controller.updateCategory
 );
 router.delete(
   '/categories/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(idParamSchema),
   controller.deleteCategory
 );
 
-router.get('/orders', tenantAdminOnly, validateMiddleware(orderQuerySchema), controller.listOrders);
-router.get('/orders/stats', tenantAdminOnly, controller.orderStats);
+router.get('/orders', dashboardAccess, validateMiddleware(orderQuerySchema), controller.listOrders);
+router.get('/orders/stats', dashboardAccess, controller.orderStats);
 router.patch(
   '/orders/:id/status',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(orderStatusSchema),
   controller.updateOrderStatus
 );
 
 router.get(
   '/customers',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(customerQuerySchema),
   controller.listCustomers
 );
 
-router.get('/promotions', tenantAdminOnly, controller.listPromotions);
+router.get('/promotions', dashboardAccess, controller.listPromotions);
 router.post(
   '/promotions',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(promotionBodySchema),
   controller.createPromotion
 );
 router.put(
   '/promotions/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(promotionBodySchema),
   controller.updatePromotion
 );
 router.delete(
   '/promotions/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(idParamSchema),
   controller.deletePromotion
 );
 
 router.get(
   '/regions',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(regionQuerySchema),
   controller.listRegions
 );
 router.post(
   '/regions',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(regionBodySchema),
   controller.createRegion
 );
 router.put(
   '/regions/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(regionBodySchema),
   controller.updateRegion
 );
 router.delete(
   '/regions/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(idParamSchema),
   controller.deleteRegion
 );
 
 router.get(
   '/townships',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(townshipQuerySchema),
   controller.listTownships
 );
 router.post(
   '/townships',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(townshipBodySchema),
   controller.createTownship
 );
 router.put(
   '/townships/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(townshipBodySchema),
   controller.updateTownship
 );
 router.delete(
   '/townships/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(idParamSchema),
   controller.deleteTownship
 );
 
-router.get('/delivery-fees', tenantAdminOnly, controller.listDeliveryFees);
+router.get('/delivery-fees', dashboardAccess, controller.listDeliveryFees);
 router.post(
   '/delivery-fees',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(deliveryFeeBodySchema),
   controller.createDeliveryFee
 );
 router.put(
   '/delivery-fees/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(deliveryFeeBodySchema),
   controller.updateDeliveryFee
 );
 router.delete(
   '/delivery-fees/:id',
-  tenantAdminOnly,
+  dashboardAccess,
   validateMiddleware(idParamSchema),
   controller.deleteDeliveryFee
 );

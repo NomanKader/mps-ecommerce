@@ -27,6 +27,8 @@ import { cartSchema } from '@modules/carts/cart.model';
 import { Cart } from '@modules/carts/cart.types';
 import { categorySchema } from '@modules/categories/category.model';
 import { Category } from '@modules/categories/category.types';
+import { favoriteSchema } from '@modules/favorites/favorite.model';
+import { Favorite } from '@modules/favorites/favorite.types';
 import { orderSchema } from '@modules/orders/order.model';
 import { Order } from '@modules/orders/order.types';
 import { productSchema } from '@modules/products/product.model';
@@ -40,6 +42,7 @@ export type TenantModels = {
   CategoryModel: Model<Category>;
   OrderModel: Model<Order>;
   CartModel: Model<Cart>;
+  FavoriteModel: Model<Favorite>;
   PhoneOtpModel: Model<PhoneOtp>;
   AdminCustomerModel: Model<AdminCustomer>;
   PromotionModel: Model<Promotion>;
@@ -86,6 +89,7 @@ export const getTenantModels = (tenantSlug: string): TenantModels => {
     CategoryModel: connection.model<Category>('Category', categorySchema, 'categories'),
     OrderModel: connection.model<Order>('Order', orderSchema, 'orders'),
     CartModel: connection.model<Cart>('Cart', cartSchema, 'carts'),
+    FavoriteModel: connection.model<Favorite>('Favorite', favoriteSchema, 'favorites'),
     PhoneOtpModel: connection.model<PhoneOtp>('PhoneOtp', phoneOtpSchema, 'phone_otps'),
     AdminCustomerModel: connection.model<AdminCustomer>(
       'AdminCustomer',

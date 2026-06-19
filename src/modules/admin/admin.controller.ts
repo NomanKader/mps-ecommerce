@@ -36,7 +36,7 @@ export class AdminController extends BaseController {
   bulkImportProducts = asyncHandler(async (req: Request, res: Response) => {
     this.ok(
       res,
-      await this.adminService.bulkImportProducts(req.tenant?.tenantId, req.body),
+      await this.adminService.bulkImportProducts(req.tenant?.tenantId, req.body, req.file),
       'Products imported',
       HTTP_STATUS.CREATED
     );
