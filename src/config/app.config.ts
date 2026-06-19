@@ -1,6 +1,8 @@
 import { env } from '@config/env';
 
-const apiBaseUrl = env.VITE_API_BASE_URL.replace(/\/$/, '');
+const selectedApiBaseUrl =
+  env.VITE_APP_ENV === 'production' ? env.VITE_PRODUCTION_API_BASE_URL : env.VITE_API_BASE_URL;
+const apiBaseUrl = selectedApiBaseUrl.replace(/\/$/, '');
 const versionedApiBaseUrl = apiBaseUrl.endsWith('/api/v1') ? apiBaseUrl : `${apiBaseUrl}/api/v1`;
 
 export const appConfig = {
