@@ -63,7 +63,7 @@ const emptyForm: ProductForm = {
   removeImage: false,
   inventory: '25',
   name: '',
-  price: '9.99',
+  price: '1000',
   sku: '',
   subcategory: '',
 };
@@ -188,7 +188,7 @@ const normalizeBulkRow = (row: Record<string, unknown>): AdminProductBulkItem =>
     categoryName:
       String(readField(normalizedRow, ['categoryname', 'category', 'department']) ?? '') ||
       undefined,
-    currency: String(readField(normalizedRow, ['currency']) ?? 'USD') || 'USD',
+    currency: String(readField(normalizedRow, ['currency']) ?? 'MMK') || 'MMK',
     description: String(readField(normalizedRow, ['description', 'desc']) ?? ''),
     imageUrl:
       String(readField(normalizedRow, ['imageurl', 'imagelink', 'image', 'photo']) ?? '') ||
@@ -524,18 +524,18 @@ export const ProductsPage = () => {
         !name ||
         !sku ||
         !Number.isFinite(price) ||
-        price < 0 ||
+        price < 100 ||
         !Number.isInteger(stock) ||
         stock < 0
       ) {
-        throw new Error('Enter a product name, SKU, and valid non-negative price and stock.');
+        throw new Error('Enter a product name, SKU, price of at least 100 MMK, and valid stock.');
       }
 
       const existing = products.find((product) => product.id === editingId);
       const payload = {
         categoryId: form.categoryId || undefined,
         categoryName: category?.name,
-        currency: existing?.currency ?? 'USD',
+        currency: existing?.currency ?? 'MMK',
         description: existing?.description ?? `${name} managed from the admin dashboard.`,
         image: form.imageFile,
         name,
@@ -618,14 +618,14 @@ export const ProductsPage = () => {
             !product.name ||
             !product.sku ||
             !Number.isFinite(product.price) ||
-            product.price < 0 ||
+            product.price < 100 ||
             !Number.isInteger(product.stock) ||
             product.stock < 0,
         );
 
       if (invalidRows.length > 0) {
         setBulkUploadError(
-          `Rows ${invalidRows.map((row) => row.index).join(', ')} need SKU, Product name, Price, and Stock. Price and Stock must be zero or higher.`,
+          `Rows ${invalidRows.map((row) => row.index).join(', ')} need SKU, Product name, Price, and Stock. Price must be at least 100 MMK and stock must be zero or higher.`,
         );
         return;
       }
@@ -1124,6 +1124,7 @@ export const ProductsPage = () => {
                   onChange={(event) =>
                     setForm((current) => ({ ...current, price: event.target.value }))
                   }
+                  slotProps={{ htmlInput: { min: 100, step: 100 } }}
                   type="number"
                   value={form.price}
                 />

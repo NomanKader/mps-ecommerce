@@ -1,9 +1,14 @@
 export const endpoints = {
+  addresses: {
+    item: (id: string) => `/addresses/${id}`,
+    list: '/addresses',
+  },
   auth: {
     bootstrap: '/auth/bootstrap',
     login: '/auth/login',
     logout: '/auth/logout',
     me: '/auth/me',
+    password: '/auth/password',
     requestOtp: '/auth/otp/request',
     register: '/auth/register',
   },
@@ -38,6 +43,9 @@ export const endpoints = {
     townships: '/admin/townships',
     user: (id: string) => `/admin/users/${id}`,
     users: '/admin/users',
+    walletTopUpApprove: (id: string) => `/admin/wallet-topups/${id}/approve`,
+    walletTopUpReject: (id: string) => `/admin/wallet-topups/${id}/reject`,
+    walletTopUps: '/admin/wallet-topups',
   },
   categories: {
     list: '/categories',
@@ -45,6 +53,9 @@ export const endpoints = {
   favorites: {
     list: '/favorites',
     toggle: (productId: string) => `/favorites/${productId}/toggle`,
+  },
+  locations: {
+    myanmar: '/locations/myanmar',
   },
   orders: {
     list: '/orders',
@@ -65,5 +76,9 @@ export const endpoints = {
     create: '/tenants',
     details: (tenantId: string) => `/tenants/${tenantId}`,
     list: '/tenants',
+  },
+  wallet: {
+    summary: '/wallet',
+    topUps: '/wallet/topups',
   },
 };

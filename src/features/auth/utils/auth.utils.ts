@@ -9,7 +9,7 @@ export const getAuthenticatedRedirect = (role: Role) =>
   adminRoles.includes(role)
     ? routePaths.tenantAdmin.dashboard
     : role === 'customer'
-      ? routePaths.account
+      ? routePaths.home
       : routePaths.home;
 
 export const isKnownRole = (role: string): role is Role => knownRoles.includes(role as Role);

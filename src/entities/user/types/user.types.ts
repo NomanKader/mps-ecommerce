@@ -9,6 +9,7 @@ export type User = {
   isActive?: boolean;
   lastName: string;
   logoUrl?: string;
+  phone?: string;
   role: Role;
   supportPhoneLabel?: string;
   tenantId?: string;

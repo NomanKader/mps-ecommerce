@@ -63,5 +63,6 @@ export const routePaths = {
     secondaryCategory: '/admin/secondary-category',
     subCategory: '/admin/sub-category',
     townships: '/admin/townships',
+    walletTopUps: '/admin/wallet-topups',
   },
 } as const;

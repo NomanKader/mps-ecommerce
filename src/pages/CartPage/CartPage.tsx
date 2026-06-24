@@ -337,7 +337,7 @@ export const CartPage = () => {
   const { addToCart, clearCart, decreaseQuantity, items, removeFromCart, totalItems, totalPrice } =
     useCart();
   const { data: suggestionProducts = [] } = useProducts();
-  const currency = items[0]?.product.currency ?? 'USD';
+  const currency = items[0]?.product.currency ?? 'MMK';
 
   if (!items.length) {
     return (

@@ -5,10 +5,13 @@ import type { User } from '@entities/user/types/user.types';
 import type {
   AuthApiResult,
   AuthSession,
+  ChangePasswordPayload,
+  DeleteAccountPayload,
   LoginPayload,
   RegisterPayload,
   RequestOtpPayload,
   RequestOtpResult,
+  UpdateProfilePayload,
 } from '@features/auth/types/auth.types';
 
 type BackendResponse<T> = {
@@ -41,6 +44,28 @@ const mapSession = (session: BackendAuthSession): AuthSession => ({
 });
 
 export const authApi = {
+  async changePassword(payload: ChangePasswordPayload): Promise<AuthApiResult<{ updated: boolean }>> {
+    const response = await apiClient.put<BackendResponse<{ updated: boolean }>>(
+      endpoints.auth.password,
+      payload,
+    );
+
+    return {
+      data: response.data.data,
+      message: response.data.message,
+    };
+  },
+  async deleteAccount(payload: DeleteAccountPayload): Promise<AuthApiResult<{ deleted: boolean }>> {
+    const response = await apiClient.delete<BackendResponse<{ deleted: boolean }>>(
+      endpoints.auth.me,
+      { data: payload },
+    );
+
+    return {
+      data: response.data.data,
+      message: response.data.message,
+    };
+  },
   async getCurrentUser(): Promise<AuthApiResult<User>> {
     const response = await apiClient.get<BackendResponse<BackendUser>>(endpoints.auth.me);
 
@@ -94,6 +119,14 @@ export const authApi = {
 
     return {
       data: response.data.data,
+      message: response.data.message,
+    };
+  },
+  async updateProfile(payload: UpdateProfilePayload): Promise<AuthApiResult<User>> {
+    const response = await apiClient.put<BackendResponse<BackendUser>>(endpoints.auth.me, payload);
+
+    return {
+      data: mapUser(response.data.data),
       message: response.data.message,
     };
   },

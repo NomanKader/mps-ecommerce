@@ -26,6 +26,22 @@ export type RequestOtpResult = {
   expiresInSeconds: number;
 };
 
+export type UpdateProfilePayload = {
+  email: string;
+  name: string;
+  phone: string;
+};
+
+export type ChangePasswordPayload = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+export type DeleteAccountPayload = {
+  confirmation: 'DELETE';
+  password: string;
+};
+
 export type AuthApiResult<T> = {
   data: T;
   message: string;

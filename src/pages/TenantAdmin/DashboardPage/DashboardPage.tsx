@@ -78,7 +78,7 @@ export const DashboardPage = () => {
                   <BarChart data={dashboard.weeklySales}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="day" />
-                    <YAxis tickFormatter={(value: number) => `$${value / 1000}k`} />
+                    <YAxis tickFormatter={(value: number) => `${value / 1000}k MMK`} />
                     <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
                     <Bar dataKey="sales" fill="#e43224" radius={[4, 4, 0, 0]} />
                   </BarChart>

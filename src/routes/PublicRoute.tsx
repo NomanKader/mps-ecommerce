@@ -20,7 +20,7 @@ export const PublicRoute = () => {
     user?.role === 'tenant_admin'
       ? routePaths.tenantAdmin.dashboard
       : user?.role === 'customer'
-        ? routePaths.account
+        ? routePaths.home
         : routePaths.home;
 
   return <Navigate replace to={redirectTo} />;

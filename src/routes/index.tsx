@@ -30,6 +30,7 @@ import { RegionsPage } from '@pages/TenantAdmin/RegionsPage/RegionsPage';
 import { SecondaryCategoriesPage } from '@pages/TenantAdmin/SecondaryCategoriesPage/SecondaryCategoriesPage';
 import { StorefrontIconsPage } from '@pages/TenantAdmin/StorefrontIconsPage/StorefrontIconsPage';
 import { TownshipsPage } from '@pages/TenantAdmin/TownshipsPage/TownshipsPage';
+import { WalletTopUpsPage } from '@pages/TenantAdmin/WalletTopUpsPage/WalletTopUpsPage';
 import { ProtectedRoute } from '@routes/ProtectedRoute';
 import { PublicRoute } from '@routes/PublicRoute';
 import { routePaths } from '@routes/routePaths';
@@ -149,6 +150,7 @@ export const router = createBrowserRouter([
               },
               { element: <CategoriesPage />, path: routePaths.tenantAdmin.subCategory },
               { element: <OrdersManagementPage />, path: routePaths.tenantAdmin.orders },
+              { element: <WalletTopUpsPage />, path: routePaths.tenantAdmin.walletTopUps },
               { element: <CustomersPage />, path: routePaths.tenantAdmin.customers },
               { element: <ProductSectionsPage />, path: routePaths.tenantAdmin.productSections },
               { element: <CarouselPage />, path: routePaths.tenantAdmin.carousel },

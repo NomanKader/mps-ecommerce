@@ -23,7 +23,7 @@ export const CheckoutPage = () => {
   const { clearCart, items, totalItems, totalPrice } = useCart();
   const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyCheckoutForm);
-  const currency = items[0]?.product.currency ?? 'USD';
+  const currency = items[0]?.product.currency ?? 'MMK';
   const createOrderMutation = useMutation({
     mutationFn: () =>
       orderApi.createOrder({

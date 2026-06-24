@@ -8,6 +8,7 @@ import ManageAccountsOutlinedIcon from '@mui/icons-material/ManageAccountsOutlin
 import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import SegmentOutlinedIcon from '@mui/icons-material/SegmentOutlined';
 import ShoppingBasketOutlinedIcon from '@mui/icons-material/ShoppingBasketOutlined';
 import ViewAgendaOutlinedIcon from '@mui/icons-material/ViewAgendaOutlined';
@@ -67,6 +68,7 @@ export const dashboardNavigation: NavigationItem[] = [
   },
   { icon: DiscountOutlinedIcon, label: 'Promotion', path: routePaths.tenantAdmin.promotions },
   { icon: ReceiptLongOutlinedIcon, label: 'Orders', path: routePaths.tenantAdmin.orders },
+  { icon: AccountBalanceWalletOutlinedIcon, label: 'Wallet Top-ups', path: routePaths.tenantAdmin.walletTopUps },
   {
     icon: PeopleAltOutlinedIcon,
     label: 'Customers',

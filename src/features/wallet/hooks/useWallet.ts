@@ -53,7 +53,7 @@ const getUserWalletKey = (user: User | null) => {
 
 const getEmailWalletKey = (email: string) => email.trim().toLowerCase();
 
-const normalizeAmount = (amount: number) => Math.round(amount * 100) / 100;
+const normalizeAmount = (amount: number) => Math.round(amount / 100) * 100;
 
 export const useWallet = (user: User | null) => {
   const userKey = useMemo(() => getUserWalletKey(user), [user]);
@@ -86,7 +86,7 @@ export const useWallet = (user: User | null) => {
     (amount: number, description = 'Wallet top-up') => {
       const normalizedAmount = normalizeAmount(amount);
 
-      if (normalizedAmount <= 0) {
+      if (normalizedAmount < 100) {
         return false;
       }
 
@@ -113,7 +113,7 @@ export const useWallet = (user: User | null) => {
       const normalizedAmount = normalizeAmount(amount);
       const normalizedBonus = normalizeAmount(bonus);
 
-      if (normalizedAmount <= 0) {
+      if (normalizedAmount < 100) {
         return false;
       }
 
@@ -150,7 +150,7 @@ export const useWallet = (user: User | null) => {
       if (
         !friendKey ||
         friendKey === userKey ||
-        normalizedAmount <= 0 ||
+        normalizedAmount < 100 ||
         normalizedAmount > normalizeAmount(wallet.balance - wallet.reservedBalance)
       ) {
         return false;

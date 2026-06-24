@@ -1,3 +1,10 @@
 import { Outlet } from 'react-router-dom';
 
-export const App = () => <Outlet />;
+import { ScrollToTop } from '@app/providers/router/ScrollToTop';
+
+export const App = () => (
+  <>
+    <ScrollToTop />
+    <Outlet />
+  </>
+);

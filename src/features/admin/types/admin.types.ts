@@ -163,6 +163,29 @@ export type AdminDeliveryFee = {
 
 export type AdminDeliveryFeePayload = Omit<AdminDeliveryFee, 'id'>;
 
+export type AdminWalletTopUpStatus = 'pending' | 'approved' | 'rejected';
+
+export type AdminWalletTopUpRequest = {
+  adminNote?: string;
+  amount: number;
+  approvedAmount?: number;
+  createdAt: string;
+  customerEmail: string;
+  customerName: string;
+  customerPhone?: string;
+  id: string;
+  paymentMethod?: string;
+  promoCode?: string;
+  receiptImageKey: string;
+  receiptImageName: string;
+  receiptImageSize: number;
+  receiptImageUrl?: string | null;
+  reviewedAt?: string;
+  status: AdminWalletTopUpStatus;
+  updatedAt: string;
+  userId: string;
+};
+
 export type AdminDashboardRole =
   | 'store_owner'
   | 'operations_manager'

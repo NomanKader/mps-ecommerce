@@ -29,7 +29,8 @@ const isAnonymousPublicRequest = (url: string | undefined) => {
     path === endpoints.storefront.headerSettings ||
     path === endpoints.storefront.icons ||
     path === endpoints.storefront.productSections ||
-    path === endpoints.storefront.secondaryCategories
+    path === endpoints.storefront.secondaryCategories ||
+    path === endpoints.locations.myanmar
   );
 };
 

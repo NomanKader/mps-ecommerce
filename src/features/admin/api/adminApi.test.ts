@@ -25,10 +25,10 @@ describe('adminApi', () => {
         data: [
           {
             _id: 'product-1',
-            currency: 'USD',
+            currency: 'MMK',
             description: '',
             name: 'Apples',
-            price: 4,
+            price: 4000,
             rating: 5,
             sku: 'APL',
             status: 'active',

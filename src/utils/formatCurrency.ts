@@ -1,5 +1,4 @@
-export const formatCurrency = (amount: number, currency = 'USD') =>
-  new Intl.NumberFormat('en-US', {
-    currency,
-    style: 'currency',
-  }).format(amount);
+export const formatCurrency = (amount: number, _currency = 'MMK') =>
+  `${new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 0,
+  }).format(amount)} MMK`;

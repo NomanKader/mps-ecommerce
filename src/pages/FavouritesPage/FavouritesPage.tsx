@@ -23,19 +23,32 @@ import SpaOutlinedIcon from '@mui/icons-material/SpaOutlined';
 import VolunteerActivismOutlinedIcon from '@mui/icons-material/VolunteerActivismOutlined';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
-import { Box, Button, IconButton, Stack, TextField, Typography } from '@mui/material';
+import { Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, MenuItem, Stack, Switch, TextField, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useState, type ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
+import type { CustomerAddress, CustomerAddressPayload } from '@entities/address/types/address.types';
+import { useAddresses } from '@features/addresses/hooks/useAddresses';
+import { authApi } from '@features/auth/api/authApi';
+import { useSignOut } from '@features/auth/hooks/useSignOut';
+import type { UpdateProfilePayload } from '@features/auth/types/auth.types';
 import { useCart } from '@features/cart/hooks/useCart';
 import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
 import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
+import { myanmarLocationFallback } from '@features/locations/data/myanmarLocations';
+import { useMyanmarLocations } from '@features/locations/hooks/useMyanmarLocations';
+import { walletApi } from '@features/wallet/api/walletApi';
 import { useWallet } from '@features/wallet/hooks/useWallet';
 import { routePaths } from '@routes/routePaths';
+import { toApiError } from '@shared/api/apiError';
+import { useAppDispatch } from '@store/hooks';
 import type { RootState } from '@store/index';
+import { updateUser } from '@store/slices/auth.slice';
 import { formatCurrency } from '@utils/formatCurrency';
 
 type AccountPageKind = 'commerce' | 'info' | 'profile';
@@ -294,11 +307,7 @@ const pageConfigs = Object.values(accountPageConfigs);
 const getActivePage = (pathname: string) =>
   pageConfigs.find((page) => page.path === pathname) ?? accountPageConfigs.favourites;
 
-const formatWalletAmount = (amount: number) =>
-  `Ks ${new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2,
-  }).format(amount)}`;
+const formatWalletAmount = (amount: number) => formatCurrency(amount);
 
 const AccountSidebar = ({ activePath }: { activePath: string }) => (
   <Box
@@ -378,7 +387,17 @@ const AccountSidebar = ({ activePath }: { activePath: string }) => (
 
 const ProfileSummary = () => {
   const user = useSelector((state: RootState) => state.auth.user);
-  const { availableBalance } = useWallet(user);
+  const fallbackWallet = useWallet(user);
+  const walletSummaryQuery = useQuery({
+    enabled: Boolean(user),
+    queryFn: ({ signal }) => walletApi.getSummary({ signal }),
+    queryKey: ['wallet', 'summary', user?.id],
+    staleTime: 30_000,
+  });
+  const serverWallet = walletSummaryQuery.data?.wallet;
+  const availableBalance = serverWallet
+    ? Math.max(0, serverWallet.balance - serverWallet.reservedBalance)
+    : fallbackWallet.availableBalance;
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'Min Naing Min Naing';
   const email = user?.email ?? 'minnaingjokermm@gmail.com';
 
@@ -863,7 +882,7 @@ const WalletAmountInput = ({
   disabled,
   onAction,
   onAmountChange,
-  placeholder = '00.00',
+  placeholder = '100',
 }: {
   action: string;
   amount: string;
@@ -886,10 +905,10 @@ const WalletAmountInput = ({
       onChange={(event) => onAmountChange(event.target.value)}
       placeholder={placeholder}
       slotProps={{
-        htmlInput: { min: 0, step: '0.01' },
+        htmlInput: { min: 100, step: 100 },
         input: {
           disableUnderline: true,
-          startAdornment: <Typography sx={{ color: '#55565c', fontSize: '1.15rem', fontWeight: 900, mr: 1.4 }}>Ks</Typography>,
+          endAdornment: <Typography sx={{ color: '#55565c', fontSize: '1.15rem', fontWeight: 900, ml: 1.4 }}>MMK</Typography>,
           sx: {
             color: '#55565c',
             fontSize: '1.1rem',
@@ -964,39 +983,57 @@ const WalletAccordionRow = ({ title }: { title: string }) => (
 );
 
 const WalletContent = () => {
+  const queryClient = useQueryClient();
   const user = useSelector((state: RootState) => state.auth.user);
-  const { addBonusFunds, addFunds, availableBalance, transferToFriend, wallet } = useWallet(user);
+  const { wallet } = useWallet(user);
   const [topUpAmount, setTopUpAmount] = useState('');
-  const [friendEmail, setFriendEmail] = useState('');
-  const [friendAmount, setFriendAmount] = useState('');
-  const [walletMessage, setWalletMessage] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('KBZPay');
+  const [promoCode, setPromoCode] = useState('');
+  const [receipt, setReceipt] = useState<File | null>(null);
 
-  const bonusRows = [
-    { amount: 5000, bonus: '+ Ks 200', bonusAmount: 200 },
-    { amount: 7000, bonus: '+ Ks 500', bonusAmount: 500 },
-    { amount: 10000, bonus: '+ Ks 1,000', bonusAmount: 1000 },
-    { amount: 10000, bonus: '+ Food cycler worth Ks 999', bonusAmount: 0, divider: true },
-  ];
-  const topUpValue = Number(topUpAmount);
-  const friendAmountValue = Number(friendAmount);
-
-  const handleTopUp = () => {
-    if (addFunds(topUpValue)) {
+  const walletSummaryQuery = useQuery({
+    queryFn: ({ signal }) => walletApi.getSummary({ signal }),
+    queryKey: ['wallet', 'summary'],
+  });
+  const submitTopUpMutation = useMutation({
+    mutationFn: walletApi.submitTopUp,
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      toast.success(result.message);
       setTopUpAmount('');
-      setWalletMessage('Wallet balance updated.');
-    } else {
-      setWalletMessage('Enter an amount greater than zero.');
-    }
-  };
+      setPromoCode('');
+      setReceipt(null);
+      await queryClient.invalidateQueries({ queryKey: ['wallet', 'summary'] });
+    },
+  });
 
-  const handleFriendTransfer = () => {
-    if (transferToFriend(friendEmail, friendAmountValue)) {
-      setFriendAmount('');
-      setFriendEmail('');
-      setWalletMessage('Money sent to friend wallet.');
-    } else {
-      setWalletMessage('Check the friend email, amount, and available balance.');
+  const serverWallet = walletSummaryQuery.data?.wallet;
+  const transferDetails = walletSummaryQuery.data?.paymentTransferDetails;
+  const walletBalance = serverWallet?.balance ?? wallet.balance;
+  const reservedBalance = serverWallet?.reservedBalance ?? wallet.reservedBalance;
+  const availableBalance = Math.max(0, walletBalance - reservedBalance);
+  const topUpValue = Number(topUpAmount);
+  const recentTopUps = walletSummaryQuery.data?.recentTopUps ?? [];
+  const pendingTopUps = recentTopUps.filter((request) => request.status === 'pending');
+  const transactions = serverWallet?.transactions ?? wallet.transactions;
+
+  const submitTopUpRequest = () => {
+    if (!receipt) {
+      toast.error('Upload your payment receipt image.');
+      return;
     }
+
+    if (!Number.isFinite(topUpValue) || topUpValue < 100) {
+      toast.error('Top-up amount must be at least 100 MMK.');
+      return;
+    }
+
+    void submitTopUpMutation.mutateAsync({
+      amount: topUpValue,
+      paymentMethod,
+      promoCode: promoCode.trim() || undefined,
+      receipt,
+    });
   };
 
   return (
@@ -1024,7 +1061,7 @@ const WalletContent = () => {
             minHeight: 108,
           }}
         >
-          <Typography sx={{ fontSize: '1.35rem', fontWeight: 900 }}>{formatWalletAmount(wallet.balance)}</Typography>
+          <Typography sx={{ fontSize: '1.35rem', fontWeight: 900 }}>{formatWalletAmount(walletBalance)}</Typography>
           <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center' }}>
             <AccountBalanceWalletOutlinedIcon />
             <Typography sx={{ fontSize: '1.05rem', fontWeight: 900 }}>My Wallet</Typography>
@@ -1033,7 +1070,7 @@ const WalletContent = () => {
         <Box sx={{ display: 'grid', gridTemplateColumns: { sm: '1fr 1fr', xs: '1fr' } }}>
           <Stack spacing={0.6} sx={{ alignItems: 'center', borderRight: { sm: `1px solid ${storefrontColors.navy}`, xs: 0 }, py: 2.2 }}>
             <Typography sx={{ color: '#55565c', fontSize: '1.05rem', fontWeight: 700 }}>Reserved For Regular:</Typography>
-            <Typography sx={{ color: '#55565c', fontWeight: 800 }}>{formatWalletAmount(wallet.reservedBalance)}</Typography>
+            <Typography sx={{ color: '#55565c', fontWeight: 800 }}>{formatWalletAmount(reservedBalance)}</Typography>
           </Stack>
           <Stack spacing={0.6} sx={{ alignItems: 'center', py: 2.2 }}>
             <Typography sx={{ color: storefrontColors.navy, fontSize: '1.05rem', fontWeight: 900 }}>Available Balance:</Typography>
@@ -1042,170 +1079,82 @@ const WalletContent = () => {
         </Box>
       </Box>
 
-      {walletMessage ? (
+      {pendingTopUps.length ? (
         <Box sx={{ backgroundColor: '#fff8e1', border: `1px solid ${storefrontColors.border}`, borderRadius: 1, px: 2, py: 1.3 }}>
-          <Typography sx={{ color: storefrontColors.navy, fontWeight: 800 }}>{walletMessage}</Typography>
+          <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>Wallet top-up under review</Typography>
+          <Typography sx={{ color: '#55565c', fontWeight: 700, mt: 0.4 }}>
+            {pendingTopUps.length} request{pendingTopUps.length > 1 ? 's are' : ' is'} waiting for admin review. Your wallet will be topped up manually within 24 hours after receipt confirmation.
+          </Typography>
         </Box>
       ) : null}
 
-      <WalletPanel title="Add Money To Wallet">
-        <Stack spacing={1.5}>
-          <WalletAmountInput
-            action="Load Wallet"
-            amount={topUpAmount}
-            disabled={topUpValue <= 0}
-            onAction={handleTopUp}
-            onAmountChange={setTopUpAmount}
-          />
-          <Typography sx={{ color: '#55565c', fontSize: '1rem', fontWeight: 700, lineHeight: 1.45, maxWidth: 610 }}>
-            Please verify your amount before making a payment as the wallet amount is not refundable via cash or bank transfers
-          </Typography>
+      <WalletPanel title="Request Wallet Top-up">
+        <Stack spacing={2.2}>
+          <Box sx={{ backgroundColor: '#f6f8fc', border: `1px solid ${storefrontColors.border}`, borderRadius: 1, p: 2 }}>
+            <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>Transfer payment first</Typography>
+            <Box sx={{ display: 'grid', gap: 1.2, gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' }, mt: 1.4 }}>
+              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>Account name: {transferDetails?.accountName ?? "AV's Store"}</Typography>
+              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>Account number: {transferDetails?.accountNumber ?? '+95 8877594332'}</Typography>
+              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>Payment methods: {transferDetails?.provider ?? 'Myanmar mobile wallet / bank transfer'}</Typography>
+              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>Review time: within 24 hours</Typography>
+            </Box>
+            <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 1.4 }}>
+              {transferDetails?.instructions ?? 'Transfer by KBZPay, WavePay, AYA Pay, CB Pay, bank transfer, or any Myanmar payment method. Upload the payment receipt after transfer.'}
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' } }}>
+            <TextField label="Transferred amount" onChange={(event) => setTopUpAmount(event.target.value)} required type="number" value={topUpAmount} />
+            <TextField label="Payment method" onChange={(event) => setPaymentMethod(event.target.value)} select value={paymentMethod}>
+              <MenuItem value="KBZPay">KBZPay</MenuItem>
+              <MenuItem value="WavePay">WavePay</MenuItem>
+              <MenuItem value="AYA Pay">AYA Pay</MenuItem>
+              <MenuItem value="CB Pay">CB Pay</MenuItem>
+              <MenuItem value="Bank transfer">Bank transfer</MenuItem>
+              <MenuItem value="Other Myanmar payment">Other Myanmar payment</MenuItem>
+            </TextField>
+            <TextField label="Promo code" onChange={(event) => setPromoCode(event.target.value)} value={promoCode} />
+            <Button component="label" sx={{ alignItems: 'center', border: `1px dashed ${storefrontColors.border}`, color: storefrontColors.navy, display: 'flex', fontWeight: 900, minHeight: 56, textTransform: 'none' }}>
+              {receipt ? receipt.name : 'Upload receipt image'}
+              <input accept="image/*" hidden onChange={(event) => setReceipt(event.target.files?.[0] ?? null)} type="file" />
+            </Button>
+          </Box>
+
+          <Button disabled={submitTopUpMutation.isPending || !receipt || topUpValue < 100} onClick={submitTopUpRequest} sx={{ alignSelf: 'flex-start', backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#ffffff', fontWeight: 900, px: 4, py: 1.15, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark }, '&.Mui-disabled': { backgroundColor: '#c9cdd6', color: '#ffffff' } }}>
+            {submitTopUpMutation.isPending ? 'Submitting...' : 'Submit top-up request'}
+          </Button>
         </Stack>
       </WalletPanel>
 
-      <Box
-        sx={{
-          border: `1px solid ${storefrontColors.border}`,
-          borderRadius: 1,
-          display: 'grid',
-          gridTemplateColumns: { md: '0.8fr 1fr 1fr', xs: '1fr' },
-          overflow: 'hidden',
-        }}
-      >
-        <Box sx={{ backgroundColor: '#f3f4f9', p: 2.2 }}>
-          <Typography sx={{ color: storefrontColors.navy, fontWeight: 900, mb: 3, textAlign: 'center' }}>Bulk Buy Bonus</Typography>
-          <Typography sx={{ color: '#55565c', fontWeight: 700, lineHeight: 1.6 }}>
-            Earn FREE BONUS CREDIT as E-VOUCHERS when you buy our below packages to top up your wallet:
-          </Typography>
-        </Box>
-        <Box sx={{ borderLeft: { md: `1px solid ${storefrontColors.border}`, xs: 0 } }}>
-          <Box sx={{ backgroundColor: storefrontColors.navy, color: '#ffffff', p: 2, textAlign: 'center' }}>
-            <Typography sx={{ fontWeight: 900 }}>Add To Wallet</Typography>
-          </Box>
-          {bonusRows.map((row) => (
-            <Stack
-              direction="row"
-              key={`${row.amount}-${row.bonus}`}
-              sx={{
-                alignItems: 'center',
-                borderTop: `1px solid ${storefrontColors.border}`,
-                minHeight: 74,
-                px: 2,
-                position: 'relative',
-              }}
-            >
-              <Typography sx={{ color: storefrontColors.navy, flex: 1, fontSize: '1.05rem', fontWeight: 900 }}>
-                {formatWalletAmount(row.amount)}
-              </Typography>
-              <Button
-                onClick={() => {
-                  addBonusFunds(row.amount, row.bonusAmount);
-                  setWalletMessage('Wallet package added.');
-                }}
-                sx={{
-                  backgroundColor: '#e43224',
-                  borderRadius: 999,
-                  color: '#ffffff',
-                  fontWeight: 900,
-                  px: 2.8,
-                  textTransform: 'none',
-                  '&:hover': { backgroundColor: '#b71916' },
-                }}
-              >
-                Add funds
-              </Button>
-              {row.divider ? (
-                <Box
-                  sx={{
-                    backgroundColor: '#ffffff',
-                    border: `1px solid ${storefrontColors.border}`,
-                    borderRadius: 999,
-                    color: '#55565c',
-                    display: { md: 'block', xs: 'none' },
-                    fontWeight: 900,
-                    left: '100%',
-                    px: 1.4,
-                    position: 'absolute',
-                    top: -14,
-                    transform: 'translateX(-50%)',
-                  }}
-                >
-                  OR
+      <WalletPanel title="Top-up Requests">
+        {recentTopUps.length ? (
+          <Stack spacing={1.2}>
+            {recentTopUps.map((request) => (
+              <Stack direction={{ sm: 'row', xs: 'column' }} key={request.id} spacing={1} sx={{ border: `1px solid ${storefrontColors.border}`, borderRadius: 1, justifyContent: 'space-between', px: 1.5, py: 1.2 }}>
+                <Box>
+                  <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>{formatWalletAmount(request.amount)} via {request.paymentMethod ?? 'payment transfer'}</Typography>
+                  <Typography sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 700 }}>{new Date(request.createdAt).toLocaleString()}</Typography>
+                  {request.adminNote ? <Typography sx={{ color: storefrontColors.muted, mt: 0.4 }}>{request.adminNote}</Typography> : null}
                 </Box>
-              ) : null}
-            </Stack>
-          ))}
-        </Box>
-        <Box sx={{ borderLeft: { md: `1px solid ${storefrontColors.border}`, xs: 0 } }}>
-          <Box sx={{ backgroundColor: storefrontColors.navy, color: '#ffffff', p: 2, textAlign: 'center' }}>
-            <Typography sx={{ fontWeight: 900 }}>Free Bonus Credit as E-Vouchers*</Typography>
-          </Box>
-          {bonusRows.map((row) => (
-            <Box
-              key={row.bonus}
-              sx={{ alignItems: 'center', borderTop: `1px solid ${storefrontColors.border}`, display: 'flex', minHeight: 74, px: 2.2 }}
-            >
-              <Typography sx={{ color: '#e43224', fontSize: '1.05rem', fontWeight: 900 }}>{row.bonus}</Typography>
-            </Box>
-          ))}
-        </Box>
-      </Box>
-
-      <WalletPanel title="Add Money To Friends Wallet">
-        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { md: '0.9fr 1.8fr', xs: '1fr' } }}>
-          <TextField
-            fullWidth
-            onChange={(event) => setFriendEmail(event.target.value)}
-            placeholder="Enter friend's email"
-            type="email"
-            value={friendEmail}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 1,
-                fontWeight: 800,
-                minHeight: 64,
-              },
-            }}
-          />
-          <WalletAmountInput
-            action="Add Money"
-            amount={friendAmount}
-            disabled={!friendEmail || friendAmountValue <= 0 || friendAmountValue > availableBalance}
-            onAction={handleFriendTransfer}
-            onAmountChange={setFriendAmount}
-          />
-        </Box>
+                <Chip color={request.status === 'approved' ? 'success' : request.status === 'rejected' ? 'error' : 'warning'} label={request.status} />
+              </Stack>
+            ))}
+          </Stack>
+        ) : (
+          <Typography sx={{ color: storefrontColors.muted, fontWeight: 700 }}>No top-up requests yet.</Typography>
+        )}
       </WalletPanel>
 
       <WalletPanel title="Mini Statement">
-        {wallet.transactions.length ? (
+        {transactions.length ? (
           <Stack spacing={1.2}>
-            {wallet.transactions.slice(0, 6).map((transaction) => (
-              <Stack
-                direction={{ sm: 'row', xs: 'column' }}
-                key={transaction.id}
-                spacing={0.8}
-                sx={{
-                  border: `1px solid ${storefrontColors.border}`,
-                  borderRadius: 1,
-                  justifyContent: 'space-between',
-                  px: 1.5,
-                  py: 1.2,
-                }}
-              >
+            {transactions.slice(0, 6).map((transaction, index) => (
+              <Stack direction={{ sm: 'row', xs: 'column' }} key={`${transaction.createdAt}-${index}`} spacing={0.8} sx={{ border: `1px solid ${storefrontColors.border}`, borderRadius: 1, justifyContent: 'space-between', px: 1.5, py: 1.2 }}>
                 <Box sx={{ minWidth: 0 }}>
                   <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>{transaction.description}</Typography>
-                  <Typography sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 700 }}>
-                    {new Date(transaction.createdAt).toLocaleString()}
-                  </Typography>
+                  <Typography sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 700 }}>{new Date(transaction.createdAt).toLocaleString()}</Typography>
                 </Box>
-                <Typography
-                  sx={{
-                    color: transaction.direction === 'credit' ? storefrontColors.success : storefrontColors.navy,
-                    flexShrink: 0,
-                    fontWeight: 900,
-                  }}
-                >
+                <Typography sx={{ color: transaction.direction === 'credit' ? storefrontColors.success : storefrontColors.navy, flexShrink: 0, fontWeight: 900 }}>
                   {transaction.direction === 'credit' ? '+' : '-'} {formatWalletAmount(transaction.amount)}
                 </Typography>
               </Stack>
@@ -1595,55 +1544,540 @@ const CollectionServiceContent = () => (
   </Box>
 );
 
-const ProfileContent = ({ activePage }: { activePage: AccountPageConfig }) => (
-  <Box sx={{ maxWidth: 980, mt: 4.8 }}>
-    <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>{activePage.title}</Typography>
-    <Box
-      sx={{
-        backgroundColor: '#ffffff',
-        border: `1px solid ${storefrontColors.border}`,
-        borderRadius: 2,
-        display: 'grid',
-        gap: 2,
-        gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' },
-        mt: 3,
-        p: { md: 3, xs: 2 },
-      }}
-    >
-      {['Full name', 'Email address', 'Mobile number', 'Default preference'].map((label) => (
-        <Box
-          key={label}
-          sx={{
-            backgroundColor: '#f6f8fc',
-            border: `1px solid ${storefrontColors.border}`,
-            borderRadius: 1.5,
-            px: 2,
-            py: 1.6,
-          }}
-        >
-          <Typography sx={{ color: '#9aa4b8', fontSize: '0.82rem', fontWeight: 800 }}>{label}</Typography>
-          <Typography sx={{ color: '#4b5563', fontSize: '1rem', fontWeight: 800, mt: 0.7 }}>Not set</Typography>
+const emptyAddressForm: CustomerAddressPayload = {
+  addressLine1: '',
+  addressLine2: '',
+  city: '',
+  deliveryInstructions: '',
+  isDefault: false,
+  label: 'home',
+  landmark: '',
+  phone: '',
+  recipientName: '',
+  region: '',
+  township: '',
+};
+
+const getUserFullName = (user: RootState['auth']['user']) =>
+  user ? `${user.firstName} ${user.lastName}`.trim() : '';
+
+const getAddressFormDefaults = (user: RootState['auth']['user']): CustomerAddressPayload => ({
+  ...emptyAddressForm,
+  phone: user?.phone ?? '',
+  recipientName: getUserFullName(user),
+});
+
+const AddressContent = () => {
+  const { addresses, createAddress, deleteAddress, isLoading, isSaving, updateAddress } = useAddresses();
+  const locationsQuery = useMyanmarLocations();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const [editingAddress, setEditingAddress] = useState<CustomerAddress | null>(null);
+  const [form, setForm] = useState<CustomerAddressPayload>(() => getAddressFormDefaults(user));
+  const hasAddresses = addresses.length > 0;
+  const myanmarLocations = locationsQuery.data?.length ? locationsQuery.data : myanmarLocationFallback;
+  const selectedLocation = myanmarLocations.find((locationOption) => locationOption.region === form.region);
+  const cityOptions = selectedLocation?.cities ?? [];
+  const townshipOptions = selectedLocation?.townships ?? [];
+
+  useEffect(() => {
+    if (!editingAddress) {
+      const defaults = getAddressFormDefaults(user);
+
+      setForm((current) => ({
+        ...current,
+        phone: current.phone || defaults.phone,
+        recipientName: current.recipientName || defaults.recipientName,
+      }));
+    }
+  }, [editingAddress, user]);
+
+  const resetForm = () => {
+    setEditingAddress(null);
+    setForm(getAddressFormDefaults(user));
+  };
+  const startEdit = (address: CustomerAddress) => {
+    setEditingAddress(address);
+    setForm({
+      addressLine1: address.addressLine1,
+      addressLine2: address.addressLine2 ?? '',
+      city: address.city,
+      deliveryInstructions: address.deliveryInstructions ?? '',
+      isDefault: address.isDefault,
+      label: address.label,
+      landmark: address.landmark ?? '',
+      phone: address.phone,
+      recipientName: address.recipientName,
+      region: address.region ?? '',
+      township: address.township ?? '',
+    });
+  };
+  const setField = <TKey extends keyof CustomerAddressPayload>(
+    key: TKey,
+    value: CustomerAddressPayload[TKey],
+  ) => setForm((current) => ({ ...current, [key]: value }));
+  const setRegion = (region: string) => {
+    const nextLocation = myanmarLocations.find((locationOption) => locationOption.region === region);
+    const cityNames = nextLocation?.cities.map((cityOption) => cityOption.name) ?? [];
+
+    setForm((current) => ({
+      ...current,
+      city: cityNames.includes(current.city) ? current.city : '',
+      region,
+      township: '',
+    }));
+  };
+  const setCity = (city: string) => {
+    setForm((current) => ({
+      ...current,
+      city,
+      township: townshipOptions.includes(current.township ?? '') ? current.township : '',
+    }));
+  };
+  const handleSubmit = async () => {
+    if (editingAddress) {
+      await updateAddress({ id: editingAddress.id, payload: form });
+    } else {
+      await createAddress(form);
+    }
+    resetForm();
+  };
+
+  return (
+    <Box sx={{ maxWidth: 1120, mt: 4.8 }}>
+      <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.5} sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}>
+        <Box>
+          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>My Addresses</Typography>
+          <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 0.7 }}>
+            Save delivery locations and choose the default address used at checkout.
+          </Typography>
         </Box>
-      ))}
+        <Chip color={hasAddresses ? 'success' : 'default'} label={`${addresses.length} saved`} />
+      </Stack>
+
+      <Box sx={{ backgroundColor: '#ffffff', border: `1px solid ${storefrontColors.border}`, borderRadius: 2, display: 'grid', gap: 2, gridTemplateColumns: { lg: '0.95fr 1.05fr', xs: '1fr' }, mt: 3, p: { md: 3, xs: 2 } }}>
+        <Stack spacing={2}>
+          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.08rem', fontWeight: 900 }}>{editingAddress ? 'Edit delivery address' : 'Add delivery address'}</Typography>
+          <TextField label="Recipient name" onChange={(event) => setField('recipientName', event.target.value)} required value={form.recipientName} />
+          <TextField label="Mobile number" onChange={(event) => setField('phone', event.target.value)} required value={form.phone} />
+          <TextField label="Address label" onChange={(event) => setField('label', event.target.value as CustomerAddressPayload['label'])} select value={form.label}>
+            <MenuItem value="home">Home</MenuItem>
+            <MenuItem value="work">Work</MenuItem>
+            <MenuItem value="other">Other</MenuItem>
+          </TextField>
+          <TextField label="Address line 1" onChange={(event) => setField('addressLine1', event.target.value)} required value={form.addressLine1} />
+          <TextField label="Address line 2" onChange={(event) => setField('addressLine2', event.target.value)} value={form.addressLine2} />
+          <Box
+            sx={{
+              alignItems: 'stretch',
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' },
+              '& .MuiTextField-root': {
+                width: '100%',
+              },
+            }}
+          >
+            <TextField fullWidth label="Region / State" onChange={(event) => setRegion(event.target.value)} required select value={form.region}>
+              {myanmarLocations.map((locationOption) => (
+                <MenuItem key={locationOption.region} value={locationOption.region}>
+                  {locationOption.region}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField disabled={!form.region} fullWidth label="City" onChange={(event) => setCity(event.target.value)} required select value={form.city}>
+              {cityOptions.map((city) => (
+                <MenuItem key={city.name} value={city.name}>
+                  {city.name}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField disabled={!form.region} fullWidth label="Township" onChange={(event) => setField('township', event.target.value)} required select value={form.township}>
+              {townshipOptions.map((township) => (
+                <MenuItem key={township} value={township}>
+                  {township}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField fullWidth label="Nearby landmark" onChange={(event) => setField('landmark', event.target.value)} value={form.landmark} />
+          </Box>
+          <TextField label="Delivery instructions" minRows={3} multiline onChange={(event) => setField('deliveryInstructions', event.target.value)} value={form.deliveryInstructions} />
+          <FormControlLabel control={<Switch checked={form.isDefault} onChange={(event) => setField('isDefault', event.target.checked)} />} label="Use as default delivery address" />
+          <Stack direction="row" spacing={1.5}>
+            <Button disabled={isSaving || !form.recipientName || !form.phone || !form.addressLine1 || !form.region || !form.city || !form.township} onClick={() => void handleSubmit()} sx={{ backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#ffffff', fontWeight: 900, px: 3.5, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+              {editingAddress ? 'Save address' : 'Add address'}
+            </Button>
+            {editingAddress ? <Button onClick={resetForm} sx={{ borderRadius: 999, fontWeight: 800, textTransform: 'none' }}>Cancel</Button> : null}
+          </Stack>
+        </Stack>
+
+        <Stack spacing={1.5}>
+          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.08rem', fontWeight: 900 }}>Saved addresses</Typography>
+          {isLoading ? (
+            <Typography sx={{ color: storefrontColors.muted, fontWeight: 700 }}>Loading addresses...</Typography>
+          ) : hasAddresses ? (
+            addresses.map((address) => (
+              <Box key={address.id} sx={{ border: `1px solid ${storefrontColors.border}`, borderRadius: 1.5, p: 2 }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                    <Chip label={address.label} size="small" />
+                    {address.isDefault ? <Chip color="success" label="Default" size="small" /> : null}
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    {!address.isDefault ? <Button onClick={() => void updateAddress({ id: address.id, payload: { isDefault: true } })} size="small" sx={{ textTransform: 'none' }}>Set default</Button> : null}
+                    <Button onClick={() => startEdit(address)} size="small" sx={{ textTransform: 'none' }}>Edit</Button>
+                    <Button color="error" onClick={() => void deleteAddress(address.id)} size="small" sx={{ textTransform: 'none' }}>Delete</Button>
+                  </Stack>
+                </Stack>
+                <Typography sx={{ color: storefrontColors.navy, fontWeight: 900, mt: 1.3 }}>{address.recipientName}</Typography>
+                <Typography sx={{ color: '#4b5563', fontWeight: 700 }}>{address.phone}</Typography>
+                <Typography sx={{ color: '#4b5563', mt: 0.8 }}>{[address.addressLine1, address.addressLine2, address.township, address.city, address.region].filter(Boolean).join(', ')}</Typography>
+                {address.landmark ? <Typography sx={{ color: storefrontColors.muted, mt: 0.5 }}>Landmark: {address.landmark}</Typography> : null}
+                {address.deliveryInstructions ? <Typography sx={{ color: storefrontColors.muted, mt: 0.5 }}>Instructions: {address.deliveryInstructions}</Typography> : null}
+              </Box>
+            ))
+          ) : (
+            <Box sx={{ backgroundColor: '#f6f8fc', border: `1px dashed ${storefrontColors.border}`, borderRadius: 1.5, p: 3 }}>
+              <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>No addresses saved</Typography>
+              <Typography sx={{ color: storefrontColors.muted, mt: 0.7 }}>Add your first delivery address to speed up checkout.</Typography>
+            </Box>
+          )}
+        </Stack>
+      </Box>
     </Box>
-    <Button
-      sx={{
-        backgroundColor: storefrontColors.navy,
-        borderRadius: 999,
-        color: '#ffffff',
-        fontSize: '1rem',
-        fontWeight: 800,
-        mt: 3,
-        px: 4.5,
-        py: 1.2,
-        textTransform: 'none',
-        '&:hover': { backgroundColor: storefrontColors.navyDark },
-      }}
-    >
-      {activePage.emptyAction}
-    </Button>
-  </Box>
-);
+  );
+};
+
+const getProfileForm = (user: RootState['auth']['user']): UpdateProfilePayload => ({
+  email: user?.email ?? '',
+  name: user ? `${user.firstName} ${user.lastName}`.trim() : '',
+  phone: user?.phone ?? '',
+});
+
+const formatRoleLabel = (role?: string) =>
+  role ? role.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()) : '';
+
+const ProfileContent = ({ activePage }: { activePage: AccountPageConfig }) => {
+  const dispatch = useAppDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState<UpdateProfilePayload>(() => getProfileForm(user));
+
+  useEffect(() => {
+    if (!isEditing) {
+      setForm(getProfileForm(user));
+    }
+  }, [isEditing, user]);
+
+  const mutation = useMutation({
+    mutationFn: authApi.updateProfile,
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: (result) => {
+      dispatch(updateUser(result.data));
+      setConfirmOpen(false);
+      setIsEditing(false);
+      toast.success(result.message);
+    },
+  });
+
+  const setProfileField = <TKey extends keyof UpdateProfilePayload>(key: TKey, value: UpdateProfilePayload[TKey]) => {
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const validateProfile = () => {
+    const name = form.name.trim();
+    const email = form.email.trim();
+    const phone = form.phone.trim();
+
+    if (name.length < 2) {
+      toast.error('Full name is required.');
+      return false;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('A valid email address is required.');
+      return false;
+    }
+
+    if (!/^\+\d{7,15}$/.test(phone)) {
+      toast.error('Mobile number must include a valid country code.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const openConfirmation = () => {
+    if (validateProfile()) {
+      setConfirmOpen(true);
+    }
+  };
+
+  const cancelEdit = () => {
+    setForm(getProfileForm(user));
+    setIsEditing(false);
+    setConfirmOpen(false);
+  };
+
+  const submitProfile = () => {
+    void mutation.mutateAsync({
+      email: form.email.trim(),
+      name: form.name.trim(),
+      phone: form.phone.trim(),
+    });
+  };
+
+  return (
+    <Box sx={{ maxWidth: 980, mt: 4.8 }}>
+      <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.5} sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}>
+        <Box>
+          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>{activePage.title}</Typography>
+          <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 0.7 }}>
+            Review your logged-in account details before making profile changes.
+          </Typography>
+        </Box>
+        <Chip color={isEditing ? 'warning' : 'default'} label={isEditing ? 'Editing' : 'Locked'} />
+      </Stack>
+
+      <Box
+        sx={{
+          backgroundColor: '#ffffff',
+          border: `1px solid ${storefrontColors.border}`,
+          borderRadius: 2,
+          display: 'grid',
+          gap: 2,
+          gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' },
+          mt: 3,
+          p: { md: 3, xs: 2 },
+        }}
+      >
+        <TextField disabled={!isEditing || mutation.isPending} label="Full name" onChange={(event) => setProfileField('name', event.target.value)} required value={form.name} />
+        <TextField disabled={!isEditing || mutation.isPending} label="Email address" onChange={(event) => setProfileField('email', event.target.value)} required type="email" value={form.email} />
+        <TextField disabled={!isEditing || mutation.isPending} label="Mobile number" helperText={isEditing ? 'Use country code, for example +959123456789.' : undefined} onChange={(event) => setProfileField('phone', event.target.value)} required value={form.phone} />
+        <TextField disabled label="Account type" required value={formatRoleLabel(user?.role)} />
+      </Box>
+
+      <Stack direction="row" spacing={1.5} sx={{ mt: 3 }}>
+        {isEditing ? (
+          <>
+            <Button disabled={mutation.isPending} onClick={openConfirmation} sx={{ backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#ffffff', fontSize: '1rem', fontWeight: 800, px: 4.5, py: 1.2, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+              Save profile
+            </Button>
+            <Button disabled={mutation.isPending} onClick={cancelEdit} sx={{ borderRadius: 999, fontSize: '1rem', fontWeight: 800, px: 3.5, py: 1.2, textTransform: 'none' }}>
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <Button onClick={() => setIsEditing(true)} sx={{ backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#ffffff', fontSize: '1rem', fontWeight: 800, px: 4.5, py: 1.2, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+            Edit profile
+          </Button>
+        )}
+      </Stack>
+
+      <Dialog fullWidth maxWidth="xs" onClose={() => setConfirmOpen(false)} open={confirmOpen}>
+        <DialogTitle>Update profile?</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: '#4b5563', fontWeight: 700 }}>
+            Confirm that you want to update your profile information with the entered details.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button disabled={mutation.isPending} onClick={() => setConfirmOpen(false)} sx={{ textTransform: 'none' }}>
+            Cancel
+          </Button>
+          <Button disabled={mutation.isPending} onClick={submitProfile} sx={{ backgroundColor: storefrontColors.navy, color: '#ffffff', fontWeight: 800, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+            {mutation.isPending ? 'Updating...' : 'Confirm update'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+const passwordFieldSx = {
+  '& .MuiInputBase-input': {
+    fontWeight: 700,
+  },
+};
+
+const ChangePasswordContent = ({ activePage }: { activePage: AccountPageConfig }) => {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [form, setForm] = useState({
+    confirmPassword: '',
+    currentPassword: '',
+    newPassword: '',
+  });
+
+  const mutation = useMutation({
+    mutationFn: authApi.changePassword,
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: (result) => {
+      setConfirmOpen(false);
+      setForm({ confirmPassword: '', currentPassword: '', newPassword: '' });
+      toast.success(result.message);
+    },
+  });
+
+  const setPasswordField = (key: keyof typeof form, value: string) => {
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const validatePasswordForm = () => {
+    if (form.currentPassword.length < 8) {
+      toast.error('Current password is required.');
+      return false;
+    }
+
+    if (form.newPassword.length < 8) {
+      toast.error('New password must be at least 8 characters.');
+      return false;
+    }
+
+    if (form.newPassword === form.currentPassword) {
+      toast.error('New password must be different from the current password.');
+      return false;
+    }
+
+    if (form.newPassword !== form.confirmPassword) {
+      toast.error('New password and confirmation do not match.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const openConfirmation = () => {
+    if (validatePasswordForm()) {
+      setConfirmOpen(true);
+    }
+  };
+
+  const submitPasswordChange = () => {
+    void mutation.mutateAsync({
+      currentPassword: form.currentPassword,
+      newPassword: form.newPassword,
+    });
+  };
+
+  return (
+    <Box sx={{ maxWidth: 980, mt: 4.8 }}>
+      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>{activePage.title}</Typography>
+      <Box sx={{ backgroundColor: '#ffffff', border: `1px solid ${storefrontColors.border}`, borderRadius: 2, mt: 3, p: { md: 3.5, xs: 2.2 } }}>
+        <Stack spacing={2.2} sx={{ maxWidth: 620 }}>
+          <Box>
+            <Typography sx={{ color: storefrontColors.navy, fontSize: '1.08rem', fontWeight: 900 }}>Secure password update</Typography>
+            <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 0.7 }}>
+              Enter your current password before setting a new account password.
+            </Typography>
+          </Box>
+          <TextField autoComplete="current-password" label="Current password" onChange={(event) => setPasswordField('currentPassword', event.target.value)} required sx={passwordFieldSx} type="password" value={form.currentPassword} />
+          <TextField autoComplete="new-password" helperText="Use at least 8 characters." label="New password" onChange={(event) => setPasswordField('newPassword', event.target.value)} required sx={passwordFieldSx} type="password" value={form.newPassword} />
+          <TextField autoComplete="new-password" label="Confirm new password" onChange={(event) => setPasswordField('confirmPassword', event.target.value)} required sx={passwordFieldSx} type="password" value={form.confirmPassword} />
+          <Button disabled={mutation.isPending} onClick={openConfirmation} sx={{ alignSelf: 'flex-start', backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#ffffff', fontWeight: 900, px: 4, py: 1.15, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+            Update password
+          </Button>
+        </Stack>
+      </Box>
+
+      <Dialog fullWidth maxWidth="xs" onClose={() => setConfirmOpen(false)} open={confirmOpen}>
+        <DialogTitle>Update password?</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: '#4b5563', fontWeight: 700 }}>
+            Confirm this password change. Use the new password the next time you sign in.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button disabled={mutation.isPending} onClick={() => setConfirmOpen(false)} sx={{ textTransform: 'none' }}>
+            Cancel
+          </Button>
+          <Button disabled={mutation.isPending} onClick={submitPasswordChange} sx={{ backgroundColor: storefrontColors.navy, color: '#ffffff', fontWeight: 800, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+            {mutation.isPending ? 'Updating...' : 'Confirm update'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+const DeleteAccountContent = ({ activePage }: { activePage: AccountPageConfig }) => {
+  const signOut = useSignOut();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [form, setForm] = useState({
+    confirmation: '',
+    password: '',
+  });
+  const canRequestDeletion = form.confirmation === 'DELETE' && form.password.length >= 8;
+
+  const mutation = useMutation({
+    mutationFn: authApi.deleteAccount,
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await signOut();
+    },
+  });
+
+  const openConfirmation = () => {
+    if (!canRequestDeletion) {
+      toast.error('Enter your password and type DELETE to continue.');
+      return;
+    }
+
+    setConfirmOpen(true);
+  };
+
+  const submitDeletion = () => {
+    void mutation.mutateAsync({
+      confirmation: 'DELETE',
+      password: form.password,
+    });
+  };
+
+  return (
+    <Box sx={{ maxWidth: 980, mt: 4.8 }}>
+      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>{activePage.title}</Typography>
+      <Box sx={{ backgroundColor: '#ffffff', border: `1px solid ${storefrontColors.border}`, borderRadius: 2, mt: 3, p: { md: 3.5, xs: 2.2 } }}>
+        <Stack spacing={2.2} sx={{ maxWidth: 680 }}>
+          <Box>
+            <Typography sx={{ color: storefrontColors.navy, fontSize: '1.08rem', fontWeight: 900 }}>Close this customer account</Typography>
+            <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 0.7 }}>
+              This disables your login and signs you out immediately. Saved customer access will no longer be available.
+            </Typography>
+          </Box>
+          <Box sx={{ backgroundColor: '#fff4f2', border: '1px solid #f6c7c1', borderRadius: 1.5, p: 2 }}>
+            <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>Account selected for deletion</Typography>
+            <Typography sx={{ color: '#4b5563', fontWeight: 700, mt: 0.5 }}>
+              {user ? `${getUserFullName(user)} (${user.email})` : 'Current logged-in account'}
+            </Typography>
+          </Box>
+          <TextField autoComplete="current-password" label="Password" onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} required sx={passwordFieldSx} type="password" value={form.password} />
+          <TextField helperText="Type DELETE exactly to enable account deletion." label="Confirmation" onChange={(event) => setForm((current) => ({ ...current, confirmation: event.target.value }))} required value={form.confirmation} />
+          <Button disabled={mutation.isPending || !canRequestDeletion} onClick={openConfirmation} sx={{ alignSelf: 'flex-start', backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#ffffff', fontWeight: 900, px: 4, py: 1.15, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark }, '&.Mui-disabled': { backgroundColor: '#c9cdd6', color: '#ffffff' } }}>
+            Request deletion
+          </Button>
+        </Stack>
+      </Box>
+
+      <Dialog fullWidth maxWidth="xs" onClose={() => setConfirmOpen(false)} open={confirmOpen}>
+        <DialogTitle>Delete account?</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: '#4b5563', fontWeight: 700 }}>
+            This action will disable your account and sign you out. Confirm only if you want to continue.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button disabled={mutation.isPending} onClick={() => setConfirmOpen(false)} sx={{ textTransform: 'none' }}>
+            Cancel
+          </Button>
+          <Button disabled={mutation.isPending} onClick={submitDeletion} sx={{ backgroundColor: storefrontColors.navy, color: '#ffffff', fontWeight: 800, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+            {mutation.isPending ? 'Deleting...' : 'Delete account'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
 
 const InfoContent = ({ activePage }: { activePage: AccountPageConfig }) => (
   <Box sx={{ maxWidth: 980, mt: 4.8 }}>
@@ -1738,8 +2172,24 @@ const AccountPageContent = ({ activePage }: { activePage: AccountPageConfig }) =
     return <VouchersContent />;
   }
 
-  if (activePage.kind === 'profile') {
+  if (activePage.path === routePaths.accountAddresses) {
+    return <AddressContent />;
+  }
+
+  if (activePage.path === routePaths.accountChangePassword) {
+    return <ChangePasswordContent activePage={activePage} />;
+  }
+
+  if (activePage.path === routePaths.accountDeleteAccount) {
+    return <DeleteAccountContent activePage={activePage} />;
+  }
+
+  if (activePage.path === routePaths.account) {
     return <ProfileContent activePage={activePage} />;
+  }
+
+  if (activePage.kind === 'profile') {
+    return <InfoContent activePage={activePage} />;
   }
 
   if (activePage.kind === 'info') {

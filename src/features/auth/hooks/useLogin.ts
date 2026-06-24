@@ -7,6 +7,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { authApi } from '@features/auth/api/authApi';
 import type { AuthApiResult, AuthSession } from '@features/auth/types/auth.types';
 import { getAuthenticatedRedirect, isKnownRole } from '@features/auth/utils/auth.utils';
+import { routePaths } from '@routes/routePaths';
 import { toApiError } from '@shared/api/apiError';
 import { loginSchema, type LoginFormValues } from '@shared/validators/auth.schema';
 import { authService } from '@services/auth/auth.service';
@@ -51,7 +52,14 @@ export const useLogin = (options?: UseLoginOptions) => {
 
       const intendedPath = (location.state as { from?: { pathname?: string } } | null)?.from
         ?.pathname;
-      void navigate(intendedPath ?? getAuthenticatedRedirect(session.user.role));
+      const shouldStayShopping =
+        session.user.role === 'customer' && intendedPath?.startsWith(routePaths.account);
+
+      void navigate(
+        intendedPath && !shouldStayShopping
+          ? intendedPath
+          : getAuthenticatedRedirect(session.user.role),
+      );
     },
     onError: (error) => {
       const apiError = toApiError(error);

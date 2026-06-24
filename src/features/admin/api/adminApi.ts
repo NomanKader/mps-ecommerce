@@ -25,6 +25,7 @@ import type {
   AdminSecondaryCategoryPayload,
   AdminTownship,
   AdminTownshipPayload,
+  AdminWalletTopUpRequest,
 } from '@features/admin/types/admin.types';
 
 type MongoEntity = { _id: string };
@@ -88,7 +89,7 @@ const productFormData = (payload: AdminProductPayload) => {
 
   formData.append('tags', JSON.stringify(payload.tags ?? []));
   formData.append('price', String(payload.price));
-  formData.append('currency', payload.currency || 'USD');
+  formData.append('currency', payload.currency || 'MMK');
   formData.append('stock', String(payload.stock || 0));
   formData.append('rating', String(payload.rating || 0));
   formData.append('status', payload.status || 'active');
@@ -137,6 +138,20 @@ export const adminApi = {
   async createPromotion(payload: AdminPromotionPayload) {
     const response = await apiClient.post<ApiResponse<BackendEntity<AdminPromotion>>>(
       endpoints.admin.promotions,
+      payload,
+    );
+    return { ...response.data, data: mapId(response.data.data) };
+  },
+  async approveWalletTopUp(id: string, payload: { adminNote?: string; approvedAmount: number }) {
+    const response = await apiClient.put<ApiResponse<BackendEntity<AdminWalletTopUpRequest>>>(
+      endpoints.admin.walletTopUpApprove(id),
+      payload,
+    );
+    return { ...response.data, data: mapId(response.data.data) };
+  },
+  async rejectWalletTopUp(id: string, payload: { adminNote?: string }) {
+    const response = await apiClient.put<ApiResponse<BackendEntity<AdminWalletTopUpRequest>>>(
+      endpoints.admin.walletTopUpReject(id),
       payload,
     );
     return { ...response.data, data: mapId(response.data.data) };
@@ -283,6 +298,13 @@ export const adminApi = {
       { params: params(query), signal: options.signal },
     );
     return response.data.data.map(mapTownship);
+  },
+  async listWalletTopUps(query: Query, options: ListOptions = {}) {
+    const response = await apiClient.get<ApiResponse<Array<BackendEntity<AdminWalletTopUpRequest>>>>(
+      endpoints.admin.walletTopUps,
+      { params: params(query), signal: options.signal },
+    );
+    return response.data.data.map(mapId);
   },
   async listUsers(options: ListOptions = {}) {
     const response = await apiClient.get<ApiResponse<Array<BackendEntity<AdminDashboardUser>>>>(

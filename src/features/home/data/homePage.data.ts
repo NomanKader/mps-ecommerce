@@ -429,7 +429,7 @@ export const topOffers: StoreProduct[] = [
       { color: '#8cc84a', label: 'Organic' },
     ],
     categoryId: 'vegetables',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Sweet baby carrots selected for snacking and cooking.',
     id: 'home-offer-1',
     imageUrl:
@@ -437,7 +437,7 @@ export const topOffers: StoreProduct[] = [
     inventory: 40,
     name: 'Baby Carrots',
     origin: 'United States',
-    price: 7,
+    price: 7000,
     rating: 4.8,
     sku: 'CRT-BBY-001',
     slug: 'baby-carrots',
@@ -451,7 +451,7 @@ export const topOffers: StoreProduct[] = [
       { color: '#8cc84a', label: 'Farm Pick' },
     ],
     categoryId: 'vegetables',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Earthy parsnips with a rich, sweet roast profile.',
     id: 'home-offer-2',
     imageUrl:
@@ -459,7 +459,7 @@ export const topOffers: StoreProduct[] = [
     inventory: 55,
     name: 'Parsnips',
     origin: 'United Kingdom',
-    price: 20.25,
+    price: 20300,
     rating: 4.4,
     sku: 'PRS-FRM-002',
     slug: 'parsnips',
@@ -473,7 +473,7 @@ export const topOffers: StoreProduct[] = [
       { color: '#b9263d', label: 'Local' },
     ],
     categoryId: 'meat',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Trimmed chicken breasts prepared for quick weeknight meals.',
     id: 'home-offer-3',
     imageUrl:
@@ -481,7 +481,7 @@ export const topOffers: StoreProduct[] = [
     inventory: 28,
     name: 'Chicken Breasts',
     origin: 'UAE',
-    price: 74,
+    price: 74000,
     rating: 4.7,
     sku: 'CHK-BRS-003',
     slug: 'chicken-breasts',
@@ -492,7 +492,7 @@ export const topOffers: StoreProduct[] = [
   {
     badges: [{ color: '#dfe8ff', label: 'Fresh Crunch' }],
     categoryId: 'vegetables',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Snack-ready carrots with crisp texture and full flavour.',
     id: 'home-offer-4',
     imageUrl:
@@ -500,7 +500,7 @@ export const topOffers: StoreProduct[] = [
     inventory: 46,
     name: 'Baby Carrots Mini',
     origin: 'South Africa',
-    price: 11.75,
+    price: 11800,
     rating: 4.5,
     sku: 'CRT-MIN-004',
     slug: 'baby-carrots-mini',
@@ -511,7 +511,7 @@ export const topOffers: StoreProduct[] = [
   {
     badges: [{ color: '#8cc84a', label: 'Organic' }],
     categoryId: 'vegetables',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Cooked sweet corn, vacuum packed for convenience.',
     id: 'home-offer-5',
     imageUrl:
@@ -519,7 +519,7 @@ export const topOffers: StoreProduct[] = [
     inventory: 61,
     name: 'Cooked Sweet Corn',
     origin: 'Spain',
-    price: 7.75,
+    price: 7800,
     rating: 4.6,
     sku: 'CRN-SWT-005',
     slug: 'cooked-sweet-corn',
@@ -533,7 +533,7 @@ export const seasonalProducts: StoreProduct[] = [
   {
     badges: [{ color: '#dfe8ff', label: 'By Air' }],
     categoryId: 'fruits',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Honey-sweet Alphonso mangoes with rich aroma.',
     id: 'season-1',
     imageUrl:
@@ -541,7 +541,7 @@ export const seasonalProducts: StoreProduct[] = [
     inventory: 20,
     name: 'Alphonso Mangoes',
     origin: 'India',
-    price: 59.5,
+    price: 59500,
     rating: 4.9,
     sku: 'MNG-ALP-001',
     slug: 'alphonso-mangoes',
@@ -552,7 +552,7 @@ export const seasonalProducts: StoreProduct[] = [
   {
     badges: [{ color: '#dfe8ff', label: 'Seasonal' }],
     categoryId: 'fruits',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Bright strawberries for desserts and breakfast bowls.',
     id: 'season-2',
     imageUrl:
@@ -560,7 +560,7 @@ export const seasonalProducts: StoreProduct[] = [
     inventory: 33,
     name: 'Strawberries',
     origin: 'Spain',
-    price: 16.95,
+    price: 17000,
     rating: 4.7,
     sku: 'STR-SPN-002',
     slug: 'strawberries',
@@ -571,7 +571,7 @@ export const seasonalProducts: StoreProduct[] = [
   {
     badges: [{ color: '#dfe8ff', label: 'New' }],
     categoryId: 'vegetables',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Tender okra with a clean, vibrant finish.',
     id: 'season-3',
     imageUrl:
@@ -579,7 +579,7 @@ export const seasonalProducts: StoreProduct[] = [
     inventory: 44,
     name: 'Okra',
     origin: 'UAE',
-    price: 6.5,
+    price: 6500,
     rating: 4.5,
     sku: 'OKR-UAE-003',
     slug: 'okra',
@@ -590,7 +590,7 @@ export const seasonalProducts: StoreProduct[] = [
   {
     badges: [{ color: '#dfe8ff', label: 'Local' }],
     categoryId: 'vegetables',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Leafy mulukhiyah bundles with strong green freshness.',
     id: 'season-4',
     imageUrl:
@@ -598,7 +598,7 @@ export const seasonalProducts: StoreProduct[] = [
     inventory: 38,
     name: 'Mulukhiyah',
     origin: 'UAE',
-    price: 1.5,
+    price: 1500,
     rating: 4.3,
     sku: 'MLK-UAE-004',
     slug: 'mulukhiyah',
@@ -612,7 +612,7 @@ export const seasonalProducts: StoreProduct[] = [
       { color: '#dfe8ff', label: 'Ripen at Home' },
     ],
     categoryId: 'fruits',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'R2E2 mangoes with smooth flesh and tropical sweetness.',
     id: 'season-5',
     imageUrl:
@@ -620,7 +620,7 @@ export const seasonalProducts: StoreProduct[] = [
     inventory: 18,
     name: 'R2E2 Mangoes',
     origin: 'Thailand',
-    price: 49.95,
+    price: 50000,
     rating: 4.8,
     sku: 'MNG-R2E-005',
     slug: 'r2e2-mangoes',
@@ -631,7 +631,7 @@ export const seasonalProducts: StoreProduct[] = [
   {
     badges: [{ color: '#dfe8ff', label: 'Crisp' }],
     categoryId: 'vegetables',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Romaine lettuce with crunchy leaves and clean finish.',
     id: 'season-6',
     imageUrl:
@@ -639,7 +639,7 @@ export const seasonalProducts: StoreProduct[] = [
     inventory: 26,
     name: 'Romaine Lettuce',
     origin: 'Jordan',
-    price: 9.5,
+    price: 9500,
     rating: 4.6,
     sku: 'LTC-ROM-006',
     slug: 'romaine-lettuce',
@@ -653,7 +653,7 @@ export const pantryProducts: StoreProduct[] = [
   {
     badges: [{ color: '#8cc84a', label: 'Fresh' }],
     categoryId: 'drinks',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Naturally nutritious camel milk in a chilled bottle.',
     id: 'pantry-1',
     imageUrl:
@@ -661,7 +661,7 @@ export const pantryProducts: StoreProduct[] = [
     inventory: 14,
     name: 'Camel Milk',
     origin: 'Camelicious',
-    price: 12.25,
+    price: 12300,
     rating: 4.3,
     sku: 'DRK-CML-001',
     slug: 'camel-milk',
@@ -675,7 +675,7 @@ export const pantryProducts: StoreProduct[] = [
       { color: '#b9263d', label: 'Local' },
     ],
     categoryId: 'quick-meals',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Ready-to-go Caesar chicken wrap for lunch breaks.',
     id: 'pantry-2',
     imageUrl:
@@ -683,7 +683,7 @@ export const pantryProducts: StoreProduct[] = [
     inventory: 17,
     name: 'Caesar Chicken Wrap',
     origin: 'Deli-Licious',
-    price: 13.5,
+    price: 13500,
     rating: 4.4,
     sku: 'MLS-WRP-002',
     slug: 'caesar-chicken-wrap',
@@ -697,7 +697,7 @@ export const pantryProducts: StoreProduct[] = [
       { color: '#b9263d', label: 'Local' },
     ],
     categoryId: 'quick-meals',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Creamy coleslaw salad made fresh in-store.',
     id: 'pantry-3',
     imageUrl:
@@ -705,7 +705,7 @@ export const pantryProducts: StoreProduct[] = [
     inventory: 24,
     name: 'Coleslaw Salad',
     origin: 'Deli-Licious',
-    price: 9.75,
+    price: 9800,
     rating: 4.2,
     sku: 'SLD-COL-003',
     slug: 'coleslaw-salad',
@@ -719,7 +719,7 @@ export const pantryProducts: StoreProduct[] = [
       { color: '#b9263d', label: 'Local' },
     ],
     categoryId: 'quick-meals',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Falafel wrap with crisp vegetables and tahini.',
     id: 'pantry-4',
     imageUrl:
@@ -727,7 +727,7 @@ export const pantryProducts: StoreProduct[] = [
     inventory: 31,
     name: 'Falafel Wrap',
     origin: 'Deli-Licious',
-    price: 10.5,
+    price: 10500,
     rating: 4.5,
     sku: 'WRP-FLF-004',
     slug: 'falafel-wrap',
@@ -741,7 +741,7 @@ export const topBlooms: StoreProduct[] = [
   {
     badges: [{ color: '#8cc84a', label: 'Fresh' }],
     categoryId: 'flowers',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Mix Flowers - 24 Stems',
     id: 'bloom-1',
     imageUrl:
@@ -749,7 +749,7 @@ export const topBlooms: StoreProduct[] = [
     inventory: 18,
     name: 'Pretty in Pink',
     origin: 'Netherlands',
-    price: 92,
+    price: 92000,
     rating: 4.8,
     sku: 'FLR-PNK-001',
     slug: 'pretty-in-pink',
@@ -760,7 +760,7 @@ export const topBlooms: StoreProduct[] = [
   {
     badges: [{ color: '#8cc84a', label: 'Fresh' }],
     categoryId: 'flowers',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Mix Flowers - 40 stems',
     id: 'bloom-2',
     imageUrl:
@@ -768,7 +768,7 @@ export const topBlooms: StoreProduct[] = [
     inventory: 14,
     name: 'Purest Rosebush',
     origin: 'Netherlands',
-    price: 176.5,
+    price: 176500,
     rating: 4.9,
     sku: 'FLR-ROS-002',
     slug: 'purest-rosebush',
@@ -779,7 +779,7 @@ export const topBlooms: StoreProduct[] = [
   {
     badges: [{ color: '#e43224', label: 'New' }],
     categoryId: 'flowers',
-    currency: 'USD',
+    currency: 'MMK',
     description: '32 Stems',
     id: 'bloom-3',
     imageUrl:
@@ -787,7 +787,7 @@ export const topBlooms: StoreProduct[] = [
     inventory: 22,
     name: 'Assorted Flowers',
     origin: 'Netherlands',
-    price: 97.85,
+    price: 97900,
     rating: 4.7,
     sku: 'FLR-AST-003',
     slug: 'assorted-flowers',
@@ -798,7 +798,7 @@ export const topBlooms: StoreProduct[] = [
   {
     badges: [{ color: '#8cc84a', label: 'Fresh' }],
     categoryId: 'flowers',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Mix Flowers Bouquet',
     id: 'bloom-4',
     imageUrl:
@@ -806,7 +806,7 @@ export const topBlooms: StoreProduct[] = [
     inventory: 20,
     name: 'Al Zahra Bloom',
     origin: 'Kenya',
-    price: 135,
+    price: 135000,
     rating: 4.6,
     sku: 'FLR-ZHR-004',
     slug: 'al-zahra-bloom',
@@ -817,7 +817,7 @@ export const topBlooms: StoreProduct[] = [
   {
     badges: [{ color: '#e43224', label: 'New' }],
     categoryId: 'flowers',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Mix Flowers Bouquet',
     id: 'bloom-5',
     imageUrl:
@@ -825,7 +825,7 @@ export const topBlooms: StoreProduct[] = [
     inventory: 16,
     name: 'Imperial Charm',
     origin: 'Kenya',
-    price: 95,
+    price: 95000,
     rating: 4.5,
     sku: 'FLR-IMP-005',
     slug: 'imperial-charm',
@@ -836,7 +836,7 @@ export const topBlooms: StoreProduct[] = [
   {
     badges: [{ color: '#e43224', label: 'New' }],
     categoryId: 'flowers',
-    currency: 'USD',
+    currency: 'MMK',
     description: 'Mix Flowers Bouquet',
     id: 'bloom-6',
     imageUrl:
@@ -844,7 +844,7 @@ export const topBlooms: StoreProduct[] = [
     inventory: 12,
     name: 'Moonlit Bloom',
     origin: 'Kenya',
-    price: 89,
+    price: 89000,
     rating: 4.7,
     sku: 'FLR-MON-006',
     slug: 'moonlit-bloom',
