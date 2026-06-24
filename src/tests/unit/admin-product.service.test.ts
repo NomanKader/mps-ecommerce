@@ -22,8 +22,8 @@ describe('AdminService product management', () => {
       sku: 'APL-GRN-001',
       categoryName: 'Fruits',
       subcategory: '🍎 Apples & Pears',
-      price: 8.5,
-      currency: 'USD',
+      price: 8500,
+      currency: 'MMK',
       stock: 120,
       rating: 4.8,
       status: 'active' as const
@@ -67,8 +67,8 @@ describe('AdminService product management', () => {
       sku: 'APL-GRN-001',
       categoryName: 'Fruits',
       subcategory: '🍎 Apples & Pears',
-      price: 8.5,
-      currency: 'USD',
+      price: 8500,
+      currency: 'MMK',
       stock: 120,
       rating: 4.8,
       status: 'active' as const

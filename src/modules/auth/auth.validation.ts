@@ -25,3 +25,25 @@ export const loginSchema = z.object({
     rememberMe: z.boolean().optional().default(false)
   })
 });
+
+export const updateProfileSchema = z.object({
+  body: z.object({
+    email: z.email(),
+    name: z.string().trim().min(2),
+    phone: internationalPhoneSchema
+  })
+});
+
+export const changePasswordSchema = z.object({
+  body: z.object({
+    currentPassword: z.string().min(8),
+    newPassword: z.string().min(8)
+  })
+});
+
+export const deleteAccountSchema = z.object({
+  body: z.object({
+    confirmation: z.literal('DELETE'),
+    password: z.string().min(8)
+  })
+});

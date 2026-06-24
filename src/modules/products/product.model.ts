@@ -18,8 +18,8 @@ export const productSchema = new Schema<Product>(
     imageSize: { type: Number, min: 0 },
     imageDriveFileId: { type: String },
     imageUrl: { type: String, trim: true },
-    price: { type: Number, required: true },
-    currency: { type: String, default: 'USD' },
+    price: { type: Number, required: true, min: 100 },
+    currency: { type: String, default: 'MMK' },
     stock: { type: Number, default: 0, min: 0 },
     rating: { type: Number, default: 0, min: 0, max: 5 },
     status: { type: String, enum: ['draft', 'active', 'archived'], default: 'draft', index: true }

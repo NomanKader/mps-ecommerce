@@ -22,6 +22,8 @@ import {
   Township,
   townshipSchema
 } from '@modules/admin/admin.models';
+import { addressSchema } from '@modules/addresses/address.model';
+import { Address } from '@modules/addresses/address.types';
 import { phoneOtpSchema, PhoneOtp } from '@modules/auth/phone-otp.model';
 import { cartSchema } from '@modules/carts/cart.model';
 import { Cart } from '@modules/carts/cart.types';
@@ -35,9 +37,14 @@ import { productSchema } from '@modules/products/product.model';
 import { Product } from '@modules/products/product.types';
 import { userSchema } from '@modules/users/user.model';
 import { User } from '@modules/users/user.types';
+import { customerWalletSchema, walletTopUpRequestSchema } from '@modules/wallets/wallet.model';
+import { CustomerWallet, WalletTopUpRequest } from '@modules/wallets/wallet.types';
 
 export type TenantModels = {
+  AddressModel: Model<Address>;
+  CustomerWalletModel: Model<CustomerWallet>;
   UserModel: Model<User>;
+  WalletTopUpRequestModel: Model<WalletTopUpRequest>;
   ProductModel: Model<Product>;
   CategoryModel: Model<Category>;
   OrderModel: Model<Order>;
@@ -84,7 +91,10 @@ export const getTenantModels = (tenantSlug: string): TenantModels => {
 
   const connection = getTenantConnection(tenantSlug);
   const models: TenantModels = {
+    AddressModel: connection.model<Address>('Address', addressSchema, 'addresses'),
+    CustomerWalletModel: connection.model<CustomerWallet>('CustomerWallet', customerWalletSchema, 'customer_wallets'),
     UserModel: connection.model<User>('User', userSchema, 'users'),
+    WalletTopUpRequestModel: connection.model<WalletTopUpRequest>('WalletTopUpRequest', walletTopUpRequestSchema, 'wallet_topup_requests'),
     ProductModel: connection.model<Product>('Product', productSchema, 'products'),
     CategoryModel: connection.model<Category>('Category', categorySchema, 'categories'),
     OrderModel: connection.model<Order>('Order', orderSchema, 'orders'),

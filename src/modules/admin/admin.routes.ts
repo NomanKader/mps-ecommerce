@@ -9,6 +9,7 @@ import { roleMiddleware } from '@middlewares/role.middleware';
 import { validateMiddleware } from '@middlewares/validate.middleware';
 import { AdminController } from '@modules/admin/admin.controller';
 import { UserController } from '@modules/users/user.controller';
+import { WalletController } from '@modules/wallets/wallet.controller';
 import { ApiError } from '@utils/ApiError';
 import {
   adminProfileBodySchema,
@@ -44,6 +45,7 @@ import {
 const router = Router();
 const controller = new AdminController();
 const userController = new UserController();
+const walletController = new WalletController();
 
 const useAuthenticatedTenant = (req: Request, _res: Response, next: NextFunction): void => {
   const tokenTenant = req.auth?.tenantId;
@@ -69,6 +71,10 @@ const dashboardAccess = [
 ];
 
 router.get('/dashboard', dashboardAccess, controller.dashboard);
+
+router.get('/wallet-topups', dashboardAccess, walletController.listAdminTopUps);
+router.put('/wallet-topups/:id/approve', dashboardAccess, walletController.approveTopUp);
+router.put('/wallet-topups/:id/reject', dashboardAccess, walletController.rejectTopUp);
 
 router.get('/users', tenantAdminOnly, userController.listTenantDashboardUsers);
 router.post(

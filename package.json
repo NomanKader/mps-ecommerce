@@ -12,6 +12,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "seed:admin-dashboard": "ts-node -r tsconfig-paths/register scripts/seed-admin-dashboard.ts",
+    "migrate:product-prices-to-mmk": "ts-node -r tsconfig-paths/register scripts/migrate-product-prices-to-mmk.ts",
     "migrate:tenant-data": "ts-node -r tsconfig-paths/register scripts/migrate-tenant-data.ts",
     "test": "jest --runInBand",
     "test:watch": "jest --watch"

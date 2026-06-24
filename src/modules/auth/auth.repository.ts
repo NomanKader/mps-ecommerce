@@ -59,6 +59,11 @@ export class AuthRepository {
     return new UserRepository(await this.tenantDatabaseKey(payload.tenantId)).create(payload);
   }
 
+  async updateUserById(id: string, tenantId: string | undefined, payload: Partial<User>): Promise<User | null> {
+    if (!tenantId) return this.systemUserRepository.updateById(id, payload);
+    return new UserRepository(await this.tenantDatabaseKey(tenantId)).updateById(id, payload);
+  }
+
   async findLatestOtp(tenantId: string, phone: string): Promise<PhoneOtp | null> {
     const { PhoneOtpModel } = getTenantModels(await this.tenantDatabaseKey(tenantId));
     return PhoneOtpModel.findOne({ tenantId, phone, consumedAt: { $exists: false } })

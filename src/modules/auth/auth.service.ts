@@ -4,7 +4,7 @@ import { env } from '@config/env';
 import { Role } from '@common/enums/role.enum';
 import { HTTP_STATUS } from '@core/response/http-status';
 import { AuthRepository } from '@modules/auth/auth.repository';
-import { LoginInput, RegisterInput, RequestOtpInput } from '@modules/auth/auth.types';
+import { ChangePasswordInput, DeleteAccountInput, LoginInput, RegisterInput, RequestOtpInput, UpdateProfileInput } from '@modules/auth/auth.types';
 import { UserResponse } from '@modules/users/user.types';
 import { ApiError } from '@utils/ApiError';
 import { generateAccessToken } from '@utils/jwt';
@@ -145,6 +145,107 @@ export class AuthService {
 
     const { password: _password, ...safeUser } = user;
     return safeUser;
+  }
+
+  async updateMe(userId: string | undefined, tenantId: string | undefined, payload: UpdateProfileInput): Promise<UserResponse> {
+    if (!userId) {
+      throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Authorization token is required');
+    }
+
+    const existingUser = await this.authRepository.findUserById(userId, tenantId);
+
+    if (!existingUser || existingUser.isDeleted || !existingUser.isActive) {
+      throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'User session is no longer active');
+    }
+
+    const email = payload.email.trim().toLowerCase();
+    const phone = this.normalizePhone(payload.phone);
+    const { firstName, lastName } = this.splitName(payload.name);
+
+    const duplicateEmail = await this.authRepository.findUserByEmail(email, tenantId);
+    if (duplicateEmail && String(duplicateEmail._id) !== userId) {
+      throw new ApiError(HTTP_STATUS.CONFLICT, 'Email address is already registered');
+    }
+
+    if (tenantId) {
+      const duplicatePhone = await this.authRepository.findUserByPhone(tenantId, phone);
+      if (duplicatePhone && String(duplicatePhone._id) !== userId) {
+        throw new ApiError(HTTP_STATUS.CONFLICT, 'Phone number is already registered');
+      }
+    }
+
+    const updatedUser = await this.authRepository.updateUserById(userId, tenantId, {
+      email,
+      firstName,
+      lastName,
+      phone
+    });
+
+    if (!updatedUser) {
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'User not found');
+    }
+
+    const { password: _password, ...safeUser } = updatedUser;
+    return safeUser;
+  }
+
+  async changePassword(userId: string | undefined, tenantId: string | undefined, payload: ChangePasswordInput): Promise<{ updated: boolean }> {
+    const user = await this.requireActiveUser(userId, tenantId);
+
+    if (!(await comparePassword(payload.currentPassword, user.password))) {
+      throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Current password is incorrect');
+    }
+
+    if (await comparePassword(payload.newPassword, user.password)) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'New password must be different from the current password');
+    }
+
+    const updatedUser = await this.authRepository.updateUserById(String(user._id), tenantId, {
+      password: await hashPassword(payload.newPassword)
+    });
+
+    if (!updatedUser) {
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'User not found');
+    }
+
+    return { updated: true };
+  }
+
+  async deleteMe(userId: string | undefined, tenantId: string | undefined, payload: DeleteAccountInput): Promise<{ deleted: boolean }> {
+    const user = await this.requireActiveUser(userId, tenantId);
+
+    if (payload.confirmation !== 'DELETE') {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Type DELETE to confirm account deletion');
+    }
+
+    if (!(await comparePassword(payload.password, user.password))) {
+      throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Password is incorrect');
+    }
+
+    const updatedUser = await this.authRepository.updateUserById(String(user._id), tenantId, {
+      isActive: false,
+      isDeleted: true
+    });
+
+    if (!updatedUser) {
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'User not found');
+    }
+
+    return { deleted: true };
+  }
+
+  private async requireActiveUser(userId?: string, tenantId?: string) {
+    if (!userId) {
+      throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Authorization token is required');
+    }
+
+    const user = await this.authRepository.findUserById(userId, tenantId);
+
+    if (!user || user.isDeleted || !user.isActive) {
+      throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'User session is no longer active');
+    }
+
+    return user;
   }
 
   private async verifyOtp(tenantId: string, phone: string, otp: string): Promise<void> {

@@ -375,12 +375,12 @@
                 },
                 {
                   "key": "price",
-                  "value": "8.5",
+                  "value": "8500",
                   "type": "text"
                 },
                 {
                   "key": "currency",
-                  "value": "USD",
+                  "value": "MMK",
                   "type": "text"
                 },
                 {
@@ -458,12 +458,12 @@
                 },
                 {
                   "key": "price",
-                  "value": "9",
+                  "value": "9000",
                   "type": "text"
                 },
                 {
                   "key": "currency",
-                  "value": "USD",
+                  "value": "MMK",
                   "type": "text"
                 },
                 {
@@ -1443,7 +1443,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"AV's Store\",\n  \"slug\": \"demo\",\n  \"status\": \"active\",\n  \"subscriptionPlan\": \"growth\",\n  \"settings\": {\n    \"locale\": \"en\",\n    \"currency\": \"USD\",\n    \"timezone\": \"Asia/Yangon\"\n  },\n  \"branding\": {\n    \"primaryColor\": \"#c92a2a\"\n  },\n  \"featureFlags\": []\n}"
+              "raw": "{\n  \"name\": \"AV's Store\",\n  \"slug\": \"demo\",\n  \"status\": \"active\",\n  \"subscriptionPlan\": \"growth\",\n  \"settings\": {\n    \"locale\": \"en\",\n    \"currency\": \"MMK\",\n    \"timezone\": \"Asia/Yangon\"\n  },\n  \"branding\": {\n    \"primaryColor\": \"#c92a2a\"\n  },\n  \"featureFlags\": []\n}"
             },
             "url": "{{baseUrl}}/tenants"
           }
@@ -1477,7 +1477,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"AV's Store\",\n  \"status\": \"active\",\n  \"subscriptionPlan\": \"growth\",\n  \"settings\": {\n    \"locale\": \"en\",\n    \"currency\": \"USD\",\n    \"timezone\": \"Asia/Yangon\"\n  },\n  \"branding\": {\n    \"primaryColor\": \"#c92a2a\"\n  },\n  \"featureFlags\": []\n}"
+              "raw": "{\n  \"name\": \"AV's Store\",\n  \"status\": \"active\",\n  \"subscriptionPlan\": \"growth\",\n  \"settings\": {\n    \"locale\": \"en\",\n    \"currency\": \"MMK\",\n    \"timezone\": \"Asia/Yangon\"\n  },\n  \"branding\": {\n    \"primaryColor\": \"#c92a2a\"\n  },\n  \"featureFlags\": []\n}"
             },
             "url": "{{baseUrl}}/tenants/{{tenantId}}"
           }

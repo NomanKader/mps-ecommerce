@@ -9,6 +9,6 @@ export const createOrderSchema = z.object({
     itemCount: z.coerce.number().int().positive(),
     region: z.string().trim().optional(),
     township: z.string().trim().optional(),
-    totalAmount: z.coerce.number().nonnegative()
+    totalAmount: z.coerce.number().min(100)
   })
 });

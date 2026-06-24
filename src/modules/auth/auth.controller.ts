@@ -39,6 +39,21 @@ export class AuthController extends BaseController {
     this.ok(res, user, 'Current user fetched');
   });
 
+  updateMe = asyncHandler(async (req: Request, res: Response) => {
+    const user = await this.authService.updateMe(req.auth?.userId, req.auth?.tenantId, req.body);
+    this.ok(res, user, 'Profile updated');
+  });
+
+  changePassword = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.authService.changePassword(req.auth?.userId, req.auth?.tenantId, req.body);
+    this.ok(res, result, 'Password updated');
+  });
+
+  deleteMe = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.authService.deleteMe(req.auth?.userId, req.auth?.tenantId, req.body);
+    this.ok(res, result, 'Account deleted');
+  });
+
   logout = asyncHandler(async (_req: Request, res: Response) => {
     this.ok(res, { loggedOut: true }, 'User signed out');
   });

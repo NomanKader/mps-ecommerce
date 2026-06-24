@@ -7,7 +7,7 @@ export const createProductSchema = z.object({
     sku: z.string().min(2),
     categoryId: z.string().optional(),
     subcategory: z.string().optional(),
-    price: z.coerce.number().nonnegative(),
-    currency: z.string().default('USD')
+    price: z.coerce.number().min(100),
+    currency: z.string().default('MMK')
   })
 });

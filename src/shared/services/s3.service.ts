@@ -30,6 +30,13 @@ export type StorefrontImageMetadata = {
   imageDriveFileId: string;
 };
 
+export type WalletReceiptMetadata = {
+  receiptImageName: string;
+  receiptImageMimeType: string;
+  receiptImageSize: number;
+  receiptImageKey: string;
+};
+
 const sanitizeFilename = (filename: string): string =>
   filename
     .replace(/[/\\?%*:|"<>]/g, '-')
@@ -90,6 +97,31 @@ export class S3Service {
     };
   }
 
+  async uploadWalletReceipt(
+    file: ProductImageFile,
+    tenantId: string,
+    userId: string
+  ): Promise<WalletReceiptMetadata> {
+    const receiptImageName = this.walletReceiptName(file.originalname, tenantId, userId);
+    const receiptImageKey = `wallet-receipts/${receiptImageName}`;
+
+    await this.client().send(
+      new PutObjectCommand({
+        Bucket: this.bucketName(),
+        Key: receiptImageKey,
+        Body: file.buffer,
+        ContentType: file.mimetype
+      })
+    );
+
+    return {
+      receiptImageName,
+      receiptImageMimeType: file.mimetype,
+      receiptImageSize: file.size,
+      receiptImageKey
+    };
+  }
+
   async getProductImageUrl(imageKey?: string, imageName?: string): Promise<string | null> {
     if (!imageKey || !imageName || !imageKey.endsWith(imageName)) return null;
 
@@ -106,6 +138,30 @@ export class S3Service {
         new GetObjectCommand({
           Bucket: this.bucketName(),
           Key: imageKey
+        }),
+        { expiresIn: env.S3_SIGNED_URL_EXPIRES_IN_SECONDS }
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  async getWalletReceiptUrl(receiptImageKey?: string, receiptImageName?: string): Promise<string | null> {
+    if (!receiptImageKey || !receiptImageName || !receiptImageKey.endsWith(receiptImageName)) return null;
+
+    try {
+      await this.client().send(
+        new HeadObjectCommand({
+          Bucket: this.bucketName(),
+          Key: receiptImageKey
+        })
+      );
+
+      return getSignedUrl(
+        this.client(),
+        new GetObjectCommand({
+          Bucket: this.bucketName(),
+          Key: receiptImageKey
         }),
         { expiresIn: env.S3_SIGNED_URL_EXPIRES_IN_SECONDS }
       );
@@ -173,5 +229,14 @@ export class S3Service {
     const safeReference = sanitizeFilename(reference) || 'storefront';
 
     return `${safeTenant}-${safeReference}-${Date.now()}-${safeOriginalName}`;
+  }
+
+  private walletReceiptName(originalName: string, tenantId: string, userId: string): string {
+    const fallbackName = 'wallet-receipt';
+    const safeOriginalName = sanitizeFilename(originalName) || fallbackName;
+    const safeTenant = sanitizeFilename(tenantId) || 'tenant';
+    const safeUser = sanitizeFilename(userId) || 'customer';
+
+    return `${safeTenant}-${safeUser}-${Date.now()}-${safeOriginalName}`;
   }
 }

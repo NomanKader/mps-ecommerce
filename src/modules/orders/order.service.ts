@@ -38,7 +38,7 @@ export class OrderService extends BaseService {
     const itemCount = payload.itemCount;
     return new OrderRepository(tenantId).create({
       ...payload,
-      currency: 'USD',
+      currency: 'MMK',
       itemCount,
       itemsCount: itemCount,
       orderNumber: `ORD-${Date.now()}`,

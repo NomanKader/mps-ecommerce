@@ -536,7 +536,7 @@ export class AdminService {
         ...product,
         categoryId: category ? String(category._id) : product.categoryId,
         categoryName: category?.name ?? product.categoryName,
-        currency: product.currency || 'USD',
+        currency: product.currency || 'MMK',
         description: product.description || '',
         sku,
         status: product.status || 'active',

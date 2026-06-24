@@ -49,7 +49,7 @@ const run = async (): Promise<void> => {
       databaseName: tenantDatabaseName(tenantSlug),
       status: 'active',
       subscriptionPlan: 'growth',
-      settings: { currency: 'USD', locale: 'en', timezone: 'Asia/Yangon' }
+      settings: { currency: 'MMK', locale: 'en', timezone: 'Asia/Yangon' }
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
@@ -120,7 +120,7 @@ const run = async (): Promise<void> => {
         categoryName: 'Fresh Produce',
         subcategory: 'Vegetables',
         tags: ['organic', 'leafy'],
-        price: 4.5,
+        price: 4500,
         stock: 24,
         rating: 4.7,
         status: 'active'
@@ -131,7 +131,7 @@ const run = async (): Promise<void> => {
         categoryName: 'Pantry',
         subcategory: 'Rice',
         tags: ['staple'],
-        price: 13.25,
+        price: 13300,
         stock: 68,
         rating: 4.8,
         status: 'active'
@@ -142,7 +142,7 @@ const run = async (): Promise<void> => {
         categoryName: 'Dairy',
         subcategory: 'Milk',
         tags: ['daily'],
-        price: 2.75,
+        price: 2800,
         stock: 18,
         rating: 4.5,
         status: 'active'
@@ -154,7 +154,7 @@ const run = async (): Promise<void> => {
           ...product,
           tenantId,
           categoryId: String(categories[index]?._id),
-          currency: 'USD'
+          currency: 'MMK'
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       )
@@ -173,7 +173,7 @@ const run = async (): Promise<void> => {
         region: 'Yangon',
         township: 'Bahan',
         itemCount: 3,
-        totalAmount: 42.5,
+        totalAmount: 42500,
         status: 'processing',
         placedAt: new Date()
       },
@@ -187,14 +187,14 @@ const run = async (): Promise<void> => {
         region: 'Yangon',
         township: 'Sanchaung',
         itemCount: 2,
-        totalAmount: 28,
+        totalAmount: 28000,
         status: 'fulfilled',
         placedAt: new Date(Date.now() - 86400000)
       }
     ].map((order) =>
       OrderModel.findOneAndUpdate(
         { orderNumber: order.orderNumber },
-        { ...order, tenantId, itemsCount: order.itemCount, currency: 'USD' },
+        { ...order, tenantId, itemsCount: order.itemCount, currency: 'MMK' },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       )
     )

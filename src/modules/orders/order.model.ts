@@ -17,7 +17,7 @@ export const orderSchema = new Schema<Order>(
     itemCount: { type: Number, default: 0, min: 0 },
     itemsCount: { type: Number, default: 0, min: 0 },
     totalAmount: { type: Number, required: true },
-    currency: { type: String, default: 'USD' },
+    currency: { type: String, default: 'MMK' },
     status: {
       type: String,
       enum: ['pending', 'processing', 'shipped', 'delivered', 'fulfilled', 'cancelled'],
