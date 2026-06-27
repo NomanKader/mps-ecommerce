@@ -6,6 +6,7 @@ import { RouterProvider } from '@app/providers/router/RouterProvider';
 import { StoreProvider } from '@app/providers/store/StoreProvider';
 import { ThemeProvider } from '@app/providers/theme/ThemeProvider';
 import { AppToaster } from '@shared/components/feedback/AppToaster';
+import { BackendLoadingGate } from '@shared/components/feedback/BackendLoadingGate';
 import { AuthInitializer } from '@features/auth/components/AuthInitializer';
 
 import '@app/styles/global.css';
@@ -16,7 +17,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <AuthInitializer>
         <ThemeProvider>
           <QueryProvider>
-            <RouterProvider />
+            <BackendLoadingGate>
+              <RouterProvider />
+            </BackendLoadingGate>
             <AppToaster />
           </QueryProvider>
         </ThemeProvider>

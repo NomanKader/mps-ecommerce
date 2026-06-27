@@ -4,6 +4,7 @@ import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
   Avatar,
   Box,
+  Checkbox,
   Chip,
   Dialog,
   DialogActions,
@@ -41,14 +42,14 @@ type AssignmentRow = StorefrontProductSectionAssignment & {
 };
 
 type AssignmentForm = {
-  productId: string;
+  productIds: string[];
   sectionId: StorefrontProductSectionId;
   sortOrder: number;
   status: 'active' | 'hidden';
 };
 
 const emptyForm: AssignmentForm = {
-  productId: '',
+  productIds: [],
   sectionId: 'top-offers',
   sortOrder: 1,
   status: 'active',
@@ -83,6 +84,8 @@ export const ProductSectionsPage = () => {
   const [deleteTarget, setDeleteTarget] = useState<AssignmentRow | null>(null);
   const [form, setForm] = useState<AssignmentForm>(emptyForm);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
+  const [productPickerSearch, setProductPickerSearch] = useState('');
   const [search, setSearch] = useState('');
   const [sectionFilter, setSectionFilter] = useState<'all' | StorefrontProductSectionId>('all');
 
@@ -157,18 +160,42 @@ export const ProductSectionsPage = () => {
       .map((assignment) => assignment.productId),
   );
   const availableProducts = productOptions.filter(
-    (product) => product.id === form.productId || !assignedProductIds.has(product.id),
+    (product) => form.productIds.includes(product.id) || !assignedProductIds.has(product.id),
+  );
+  const filteredAvailableProducts = availableProducts.filter((product) =>
+    [product.name, product.sku, product.categoryId, product.origin]
+      .join(' ')
+      .toLowerCase()
+      .includes(productPickerSearch.trim().toLowerCase()),
   );
 
   const assignMutation = useMutation({
-    mutationFn: merchandisingApi.assignProductToSection,
+    mutationFn: async (payload: AssignmentForm) => {
+      const startSortOrder = Number(payload.sortOrder) || 1;
+
+      return Promise.all(
+        payload.productIds.map((productId, index) =>
+          merchandisingApi.assignProductToSection({
+            productId,
+            sectionId: payload.sectionId,
+            sortOrder: startSortOrder + index,
+            status: payload.status,
+          }),
+        ),
+      );
+    },
     onError: (error) => toast.error(toApiError(error).message),
-    onSuccess: async (result) => {
+    onSuccess: async (results) => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'product-sections'] });
       await queryClient.invalidateQueries({ queryKey: ['storefront', 'product-sections'] });
       setForm(emptyForm);
+      setProductPickerSearch('');
       setIsDialogOpen(false);
-      toast.success(result.message);
+      toast.success(
+        results.length === 1
+          ? (results[0]?.message ?? 'Product assigned')
+          : `${results.length} products assigned`,
+      );
     },
   });
   const deleteMutation = useMutation({
@@ -220,7 +247,7 @@ export const ProductSectionsPage = () => {
               sx={{ display: 'block', lineHeight: 1.35 }}
               variant="caption"
             >
-              {params.row.product?.sku} / {params.row.product?.categoryId}
+              {params.row.product?.sku}
             </Typography>
           </Stack>
         </Box>
@@ -268,29 +295,26 @@ export const ProductSectionsPage = () => {
   ];
 
   const handleAssign = () => {
-    if (!form.productId) {
-      toast.error('Select an existing product.');
+    if (!form.productIds.length) {
+      toast.error('Select at least one existing product.');
       return;
     }
 
-    const duplicate = rows.some(
-      (assignment) =>
-        assignment.sectionId === form.sectionId &&
-        assignment.productId === form.productId &&
-        assignment.status === 'active',
+    const duplicate = form.productIds.find((productId) =>
+      rows.some(
+        (assignment) =>
+          assignment.sectionId === form.sectionId &&
+          assignment.productId === productId &&
+          assignment.status === 'active',
+      ),
     );
 
     if (duplicate && form.status === 'active') {
-      toast.error('This product is already active in that section.');
+      toast.error('One or more selected products are already active in that section.');
       return;
     }
 
-    assignMutation.mutate({
-      productId: form.productId,
-      sectionId: form.sectionId,
-      sortOrder: Number(form.sortOrder) || 1,
-      status: form.status,
-    });
+    assignMutation.mutate(form);
   };
 
   return (
@@ -305,6 +329,8 @@ export const ProductSectionsPage = () => {
               ...emptyForm,
               sortOrder: nextSectionAssignments.length + 1,
             });
+            setIsProductPickerOpen(false);
+            setProductPickerSearch('');
             setIsDialogOpen(true);
           }}
           startIcon={<AddRoundedIcon />}
@@ -406,7 +432,16 @@ export const ProductSectionsPage = () => {
         rows={filteredRows}
       />
 
-      <Dialog fullWidth maxWidth="sm" onClose={() => setIsDialogOpen(false)} open={isDialogOpen}>
+      <Dialog
+        fullWidth
+        maxWidth="md"
+        onClose={() => {
+          setIsProductPickerOpen(false);
+          setProductPickerSearch('');
+          setIsDialogOpen(false);
+        }}
+        open={isDialogOpen}
+      >
         <DialogTitle>Assign Existing Product</DialogTitle>
         <DialogContent>
           <Stack spacing={2.25} sx={{ pt: 1 }}>
@@ -415,7 +450,7 @@ export const ProductSectionsPage = () => {
               onChange={(event) =>
                 setForm((current) => ({
                   ...current,
-                  productId: '',
+                  productIds: [],
                   sectionId: event.target.value as StorefrontProductSectionId,
                   sortOrder:
                     rows.filter((assignment) => assignment.sectionId === event.target.value)
@@ -432,32 +467,151 @@ export const ProductSectionsPage = () => {
               ))}
             </TextField>
             <TextField
-              label="Existing product"
-              onChange={(event) =>
-                setForm((current) => ({ ...current, productId: event.target.value }))
+              label="Existing products"
+              onClick={() => setIsProductPickerOpen(true)}
+              onFocus={() => setIsProductPickerOpen(true)}
+              placeholder="Click to search and select products"
+              slotProps={{
+                input: {
+                  readOnly: true,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchRoundedIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              value={
+                form.productIds.length
+                  ? `${form.productIds.length} product${form.productIds.length === 1 ? '' : 's'} selected`
+                  : ''
               }
-              select
-              value={form.productId}
-            >
-              {availableProducts.map((product) => (
-                <MenuItem key={product.id} value={product.id}>
-                  <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
-                    <Avatar
-                      alt={product.name}
-                      src={product.imageUrl}
-                      sx={{ borderRadius: 1, height: 32, width: 32 }}
-                      variant="rounded"
+            />
+            <Box sx={{ position: 'relative' }}>
+              {isProductPickerOpen ? (
+                <Box
+                  sx={{
+                    bgcolor: 'background.paper',
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    boxShadow: '0 18px 44px rgba(0, 0, 0, 0.18)',
+                    left: 0,
+                    overflow: 'hidden',
+                    position: 'relative',
+                    right: 0,
+                    zIndex: 1,
+                  }}
+                >
+                  <Box sx={{ p: 1.5 }}>
+                    <TextField
+                      autoFocus
+                      fullWidth
+                      label="Search products"
+                      onChange={(event) => setProductPickerSearch(event.target.value)}
+                      placeholder="Product, SKU, category, or origin"
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchRoundedIcon fontSize="small" />
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                      value={productPickerSearch}
                     />
-                    <Box>
-                      <Typography>{product.name}</Typography>
-                      <Typography color="text.secondary" variant="caption">
-                        {product.sku} / {product.categoryId}
+                  </Box>
+                  <Box
+                    sx={{
+                      borderTop: 1,
+                      borderColor: 'divider',
+                      maxHeight: { md: 560, sm: 520, xs: 420 },
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {filteredAvailableProducts.length ? (
+                      filteredAvailableProducts.map((product) => {
+                        const checked = form.productIds.includes(product.id);
+
+                        return (
+                          <Box
+                            key={product.id}
+                            onClick={() =>
+                              setForm((current) => ({
+                                ...current,
+                                productIds: checked
+                                  ? current.productIds.filter((productId) => productId !== product.id)
+                                  : [...current.productIds, product.id],
+                              }))
+                            }
+                            sx={{
+                              alignItems: 'center',
+                              cursor: 'pointer',
+                              display: 'grid',
+                              gap: 1.25,
+                              gridTemplateColumns: 'auto 40px minmax(0, 1fr)',
+                              px: 1.5,
+                              py: 1.1,
+                              '&:hover': {
+                                bgcolor: 'action.hover',
+                              },
+                              '& + &': {
+                                borderTop: 1,
+                                borderColor: 'divider',
+                              },
+                            }}
+                          >
+                            <Checkbox checked={checked} size="small" />
+                            <Avatar
+                              alt={product.name}
+                              src={product.imageUrl}
+                              sx={{ borderRadius: 1, height: 34, width: 34 }}
+                              variant="rounded"
+                            />
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography noWrap sx={{ fontWeight: 800 }}>
+                                {product.name}
+                              </Typography>
+                              <Typography color="text.secondary" noWrap variant="caption">
+                                {product.sku}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        );
+                      })
+                    ) : (
+                      <Typography color="text.secondary" sx={{ px: 2, py: 3 }} variant="body2">
+                        No available products found.
                       </Typography>
-                    </Box>
+                    )}
+                  </Box>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{
+                      alignItems: 'center',
+                      borderTop: 1,
+                      borderColor: 'divider',
+                      justifyContent: 'space-between',
+                      px: 1.5,
+                      py: 1,
+                    }}
+                  >
+                    <Typography color="text.secondary" variant="body2">
+                      {form.productIds.length} selected
+                    </Typography>
+                    <AppButton
+                      onClick={() => setIsProductPickerOpen(false)}
+                      size="small"
+                      variant="outlined"
+                    >
+                      Done
+                    </AppButton>
                   </Stack>
-                </MenuItem>
-              ))}
-            </TextField>
+                </Box>
+              ) : null}
+            </Box>
             <Grid container spacing={2}>
               <Grid size={{ sm: 6, xs: 12 }}>
                 <TextField
@@ -491,11 +645,19 @@ export const ProductSectionsPage = () => {
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <AppButton color="inherit" onClick={() => setIsDialogOpen(false)} variant="outlined">
+          <AppButton
+            color="inherit"
+            onClick={() => {
+              setIsProductPickerOpen(false);
+              setProductPickerSearch('');
+              setIsDialogOpen(false);
+            }}
+            variant="outlined"
+          >
             Cancel
           </AppButton>
           <AppButton disabled={assignMutation.isPending} onClick={handleAssign}>
-            Assign product
+            Assign {form.productIds.length > 1 ? 'products' : 'product'}
           </AppButton>
         </DialogActions>
       </Dialog>

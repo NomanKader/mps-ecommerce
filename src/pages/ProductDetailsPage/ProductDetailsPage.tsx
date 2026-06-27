@@ -4,7 +4,7 @@ import KeyboardArrowUpRoundedIcon from '@mui/icons-material/KeyboardArrowUpRound
 import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
 import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded';
-import { Box, Card, Fab, Grid, IconButton, Stack, Typography } from '@mui/material';
+import { Box, Card, Fab, Grid, IconButton, Skeleton, Stack, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
@@ -144,9 +144,80 @@ type ProductDetailsContentProps = {
   productId: string;
 };
 
+const ProductDetailsSkeleton = () => (
+  <Stack spacing={{ md: 5, xs: 4 }}>
+    <Grid container spacing={{ md: 4, xs: 3 }}>
+      <Grid size={{ md: 7, xs: 12 }}>
+        <Stack spacing={2.5}>
+          <Card sx={{ ...storefrontPanelSx, borderRadius: 1, p: { md: 5, xs: 3 } }}>
+            <Skeleton
+              animation="wave"
+              sx={{ borderRadius: 1, minHeight: { md: 620, xs: 360 } }}
+              variant="rectangular"
+            />
+          </Card>
+          <Box
+            sx={{
+              columnGap: 1.5,
+              display: 'grid',
+              gridTemplateColumns: {
+                md: 'repeat(3, minmax(0, 220px))',
+                xs: 'repeat(3, minmax(0, 1fr))',
+              },
+            }}
+          >
+            {[0, 1, 2].map((item) => (
+              <Skeleton
+                animation="wave"
+                key={item}
+                sx={{ borderRadius: 1, height: { md: 204, xs: 116 } }}
+                variant="rectangular"
+              />
+            ))}
+          </Box>
+        </Stack>
+      </Grid>
+      <Grid size={{ md: 5, xs: 12 }}>
+        <Stack spacing={2}>
+          <Stack spacing={1.1}>
+            <Skeleton animation="wave" height={72} width="80%" />
+            <Skeleton animation="wave" height={28} width="32%" />
+            <Skeleton animation="wave" height={28} width="44%" />
+          </Stack>
+          <Skeleton animation="wave" height={64} width="42%" />
+          <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+            <Skeleton animation="wave" height={56} variant="rounded" width={56} />
+            <Skeleton animation="wave" height={48} width={32} />
+            <Skeleton animation="wave" height={56} variant="rounded" width={56} />
+          </Stack>
+          <Skeleton animation="wave" height={28} width="72%" />
+          <Skeleton animation="wave" height={28} width="58%" />
+          <Card sx={{ ...storefrontPanelSx, borderRadius: 1, p: 2.25 }}>
+            <Stack spacing={1.1}>
+              <Skeleton animation="wave" height={32} width="40%" />
+              <Skeleton animation="wave" height={24} width="56%" />
+              <Skeleton animation="wave" height={24} width="48%" />
+              <Skeleton animation="wave" height={24} width="38%" />
+            </Stack>
+          </Card>
+        </Stack>
+      </Grid>
+    </Grid>
+    <Card sx={{ ...storefrontPanelSx, borderRadius: 1, p: { md: 3, xs: 2 } }}>
+      <Stack spacing={2}>
+        <Skeleton animation="wave" height={42} width="28%" />
+        <Skeleton animation="wave" height={24} width="100%" />
+        <Skeleton animation="wave" height={24} width="92%" />
+        <Skeleton animation="wave" height={24} width="78%" />
+      </Stack>
+    </Card>
+  </Stack>
+);
+
 const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
   const { addToCart } = useCart();
-  const { data = [] } = useProducts();
+  const allProductsQuery = useProducts();
+  const data = allProductsQuery.data ?? [];
   const productQuery = useQuery({
     enabled: Boolean(productId),
     queryFn: ({ signal }) => productApi.getProductById(productId, { signal }),
@@ -174,6 +245,12 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(0);
+  const isLoadingProduct = productQuery.isLoading || productQuery.isFetching;
+  const isLoadingSupportingData = categoriesQuery.isLoading || allProductsQuery.isLoading;
+
+  if (isLoadingProduct || isLoadingSupportingData) {
+    return <ProductDetailsSkeleton />;
+  }
 
   if (!product || !detailContent) {
     return (

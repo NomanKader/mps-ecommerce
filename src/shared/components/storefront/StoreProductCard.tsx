@@ -27,7 +27,15 @@ type StoreProductCardProps = {
 
 const circleBadgeLabels = new Set(['fresh', 'new', 'local', 'organic']);
 
-const parseUnitDisplay = (unit: string) => {
+const parseUnitDisplay = (unit?: string) => {
+  if (!unit?.trim()) {
+    return {
+      detail: 'item',
+      oldPrice: null,
+      qualifier: '',
+    };
+  }
+
   const [amount, qualifier] = unit.split('/').map((part) => part.trim());
   const amountValue = Number(amount);
 
@@ -47,7 +55,7 @@ const parseUnitDisplay = (unit: string) => {
 };
 
 const getBadgeTone = (badge: StoreProductBadge) => {
-  const normalized = badge.label.toLowerCase();
+  const normalized = badge.label?.toLowerCase() ?? '';
 
   if (normalized === 'fresh') {
     return {
@@ -81,7 +89,7 @@ const getBadgeTone = (badge: StoreProductBadge) => {
 };
 
 const renderCircleBadgeContent = (label: string) => {
-  const normalized = label.toLowerCase();
+  const normalized = label?.toLowerCase() ?? '';
 
   if (normalized === 'fresh') {
     return (
@@ -175,8 +183,9 @@ export const StoreProductCard = ({ disableNavigation = false, onAddToCart, produ
   const navigate = useNavigate();
   const { isFavorite, isToggling, toggleFavorite } = useFavorites();
   const { detail, oldPrice, qualifier } = parseUnitDisplay(product.unit);
-  const lowerBadges = product.badges.filter((badge) => circleBadgeLabels.has(badge.label.toLowerCase()));
-  const topBadges = product.badges.filter((badge) => !circleBadgeLabels.has(badge.label.toLowerCase()));
+  const badges = Array.isArray(product.badges) ? product.badges : [];
+  const lowerBadges = badges.filter((badge) => circleBadgeLabels.has(badge.label?.toLowerCase() ?? ''));
+  const topBadges = badges.filter((badge) => !circleBadgeLabels.has(badge.label?.toLowerCase() ?? ''));
   const displayOldPrice = oldPrice && oldPrice > product.price ? oldPrice : null;
   const productPath = routePaths.productDetails.replace(':productId', product.id);
   const productIsFavorite = isFavorite(product.id);

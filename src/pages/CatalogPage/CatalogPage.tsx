@@ -1245,6 +1245,13 @@ const gridSx = {
   },
 };
 
+const categorySidebarColumnSx = {
+  alignSelf: 'flex-start',
+  position: { md: 'sticky', xs: 'static' },
+  top: { lg: 112, md: 112 },
+  zIndex: 2,
+};
+
 const sectionTitleSx = {
   color: storefrontColors.navy,
   fontSize: { md: '2rem', xs: '1.55rem' },
@@ -1911,10 +1918,9 @@ const CategoryFilterSidebar = ({
         backgroundColor: '#ffffff',
         border: `1px solid ${alpha('#dfe5ef', 0.95)}`,
         borderRadius: 1,
-        height: { lg: 'calc(100dvh - 166px)', md: 'calc(100dvh - 150px)', xs: 'auto' },
-        overflow: 'hidden',
-        position: { md: 'sticky', xs: 'static' },
-        top: { lg: 166, md: 150 },
+        maxHeight: { lg: 'calc(100dvh - 128px)', md: 'calc(100dvh - 128px)', xs: 'none' },
+        overflow: { md: 'auto', xs: 'hidden' },
+        overscrollBehavior: 'contain',
       }}
     >
       <FilterPanel
@@ -1930,13 +1936,6 @@ const CategoryFilterSidebar = ({
         onToggle={() => toggleSection('sort')}
         title="Sort By"
       />
-      <Box sx={{ borderBottom: `1px solid ${alpha('#dfe5ef', 0.95)}`, px: 1.8, py: 1.3 }}>
-        <Typography
-          sx={{ color: '#56585e', fontSize: '0.95rem', fontWeight: 600, textAlign: 'right' }}
-        >
-          Clear All
-        </Typography>
-      </Box>
       <FilterPanel
         embedded
         expanded={expandedSections.categories}
@@ -2195,7 +2194,7 @@ const MerchandisingCollectionPage = ({
         <Box sx={{ borderTop: `1px solid ${alpha('#dfe5ef', 0.9)}`, pt: 3.4 }}>
           <Typography sx={sectionTitleSx}>{title} Collection</Typography>
           <Grid container spacing={2.6} sx={{ mt: 2.6 }}>
-            <Grid size={{ lg: 2, md: 3, xs: 12 }} sx={{ alignSelf: 'flex-start' }}>
+            <Grid size={{ lg: 2, md: 3, xs: 12 }} sx={categorySidebarColumnSx}>
               <CategoryFilterSidebar
                 categoryTitle={title}
                 productFilters={config.filterProducts}
@@ -2423,7 +2422,7 @@ const CategoryShowcasePage = ({
         <Box>
           <Typography sx={sectionTitleSx}>Have You Seen</Typography>
           <Grid container spacing={2.6} sx={{ mt: 2.6 }}>
-            <Grid size={{ lg: 2, md: 3, xs: 12 }} sx={{ alignSelf: 'flex-start' }}>
+            <Grid size={{ lg: 2, md: 3, xs: 12 }} sx={categorySidebarColumnSx}>
               <CategoryFilterSidebar
                 categoryTitle={config.title}
                 productFilters={config.filterProducts}

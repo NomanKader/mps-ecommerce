@@ -56,6 +56,7 @@ export const dashboardNavigation: NavigationItem[] = [
     label: 'Sub Category',
     path: routePaths.tenantAdmin.subCategory,
   },
+
   {
     icon: SegmentOutlinedIcon,
     label: 'Secondary Category',
@@ -63,12 +64,17 @@ export const dashboardNavigation: NavigationItem[] = [
   },
   {
     icon: ViewAgendaOutlinedIcon,
-    label: 'Product Sessions',
+    label: 'Product Sections',
     path: routePaths.tenantAdmin.productSections,
   },
+
   { icon: DiscountOutlinedIcon, label: 'Promotion', path: routePaths.tenantAdmin.promotions },
   { icon: ReceiptLongOutlinedIcon, label: 'Orders', path: routePaths.tenantAdmin.orders },
-  { icon: AccountBalanceWalletOutlinedIcon, label: 'Wallet Top-ups', path: routePaths.tenantAdmin.walletTopUps },
+  {
+    icon: AccountBalanceWalletOutlinedIcon,
+    label: 'Wallet Top-ups',
+    path: routePaths.tenantAdmin.walletTopUps,
+  },
   {
     icon: PeopleAltOutlinedIcon,
     label: 'Customers',

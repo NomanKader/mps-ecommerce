@@ -54,7 +54,17 @@ export const DashboardLayout = () => {
           width: { md: 'calc(100% - 280px)', xs: '100%' },
         }}
       >
-        <AppBar color="transparent" position="sticky">
+        <AppBar
+          color="transparent"
+          elevation={0}
+          position="fixed"
+          sx={{
+            left: { md: 280, xs: 0 },
+            top: 0,
+            width: { md: 'calc(100% - 280px)', xs: '100%' },
+            zIndex: (theme) => theme.zIndex.drawer + 1,
+          }}
+        >
           <Toolbar
             sx={{
               backdropFilter: 'blur(24px) saturate(145%)',
@@ -142,8 +152,10 @@ export const DashboardLayout = () => {
             maxWidth: '100%',
             minWidth: 0,
             overflowX: 'hidden',
+            pt: { md: 13, xs: 10.5 },
             px: { lg: 4, sm: 3, xs: 2 },
-            py: { md: 4, xs: 2.5 },
+            pb: { md: 4, xs: 2.5 },
+            scrollMarginTop: { md: 88, xs: 72 },
           }}
         >
           <Outlet />
