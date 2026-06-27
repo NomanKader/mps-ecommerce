@@ -308,7 +308,7 @@ export const Header = () => {
             aria-label="Orders"
             component={Link}
             sx={{ color: '#ffffff', flexShrink: 0, height: 42, width: 42 }}
-            to={routePaths.orders}
+            to={routePaths.accountOrders}
           >
             <ArticleOutlinedIcon sx={{ fontSize: 31 }} />
           </IconButton>
@@ -656,15 +656,17 @@ export const Header = () => {
         <Box
           sx={{
             display: 'flex',
-            gap: 0.9,
+            gap: isScrolled ? 0.65 : 0.9,
             maxWidth: 1600,
             mx: 'auto',
             overflowX: 'auto',
             overflowY: 'hidden',
-            pb: 0.5,
+            pb: isScrolled ? 0.35 : 0.5,
             scrollBehavior: 'smooth',
             scrollSnapType: 'x proximity',
             WebkitOverflowScrolling: 'touch',
+            transition:
+              'padding 260ms cubic-bezier(0.22, 1, 0.36, 1), gap 260ms cubic-bezier(0.22, 1, 0.36, 1)',
             '&::-webkit-scrollbar': {
               height: 8,
             },
@@ -693,31 +695,32 @@ export const Header = () => {
                 display: 'inline-flex',
                 flexDirection: 'column',
                 flex: {
-                  xl: '1 0 168px',
-                  lg: '1 0 148px',
-                  md: '0 0 126px',
+                  xl: isScrolled ? '0 0 116px' : '1 0 168px',
+                  lg: isScrolled ? '0 0 108px' : '1 0 148px',
+                  md: isScrolled ? '0 0 104px' : '0 0 126px',
                 },
-                gap: { xl: 1, lg: 0.85, md: 0.65 },
+                gap: isScrolled ? 0 : { xl: 1, lg: 0.85, md: 0.65 },
                 height: {
-                  xl: 118,
-                  lg: 108,
-                  md: 92,
+                  xl: isScrolled ? 36 : 118,
+                  lg: isScrolled ? 34 : 108,
+                  md: isScrolled ? 34 : 92,
                 },
                 justifyContent: 'center',
                 minHeight: {
-                  xl: 118,
-                  lg: 108,
-                  md: 92,
+                  xl: isScrolled ? 36 : 118,
+                  lg: isScrolled ? 34 : 108,
+                  md: isScrolled ? 34 : 92,
                 },
                 minWidth: 0,
-                px: { xl: 1.1, lg: 0.9, md: 0.75 },
-                py: 1,
+                px: isScrolled ? 0.6 : { xl: 1.1, lg: 0.9, md: 0.75 },
+                py: isScrolled ? 0.45 : 1,
                 scrollSnapAlign: 'start',
                 textAlign: 'center',
                 textDecoration: 'none',
                 transform: 'translateZ(0)',
                 transition:
-                  'box-shadow 180ms ease, filter 180ms ease, transform 180ms ease',
+                  'flex-basis 260ms cubic-bezier(0.22, 1, 0.36, 1), height 260ms cubic-bezier(0.22, 1, 0.36, 1), min-height 260ms cubic-bezier(0.22, 1, 0.36, 1), padding 260ms cubic-bezier(0.22, 1, 0.36, 1), gap 260ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, filter 180ms ease, transform 180ms ease',
+                willChange: 'flex-basis, height, padding, gap',
                 '&:hover': {
                   boxShadow: `0 10px 22px ${alpha(category.color, 0.28)}`,
                   filter: 'brightness(1.06)',
@@ -733,11 +736,16 @@ export const Header = () => {
               <Typography
                 sx={{
                   fontSize: { xl: '2.55rem', lg: '2.25rem', md: '1.9rem' },
-                  height: { xl: 42, lg: 38, md: 32 },
+                  height: isScrolled ? 0 : { xl: 42, lg: 38, md: 32 },
                   lineHeight: 1,
-                  opacity: 1,
+                  opacity: isScrolled ? 0 : 1,
                   overflow: 'hidden',
-                  transform: 'scale(1) translateY(0)',
+                  transform: isScrolled
+                    ? 'scale(0.72) translateY(-8px)'
+                    : 'scale(1) translateY(0)',
+                  transition:
+                    'opacity 220ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1), height 260ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  willChange: 'opacity, transform, height',
                 }}
                 variant="body1"
               >
@@ -746,9 +754,9 @@ export const Header = () => {
               <Typography
                 sx={{
                   fontSize: {
-                    xl: '0.86rem',
-                    lg: '0.78rem',
-                    md: '0.72rem',
+                    xl: isScrolled ? '0.72rem' : '0.86rem',
+                    lg: isScrolled ? '0.68rem' : '0.78rem',
+                    md: isScrolled ? '0.64rem' : '0.72rem',
                   },
                   fontWeight: 800,
                   lineHeight: 1.1,

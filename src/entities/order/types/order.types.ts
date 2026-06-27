@@ -1,16 +1,20 @@
 export type Order = {
+  city?: string;
   customerEmail?: string;
   customerPhone?: string;
   createdAt: string;
   currency: string;
   customerName: string;
   deliveryAddress?: string;
+  deliveryFee?: number;
   paymentMethod?: string;
+  paymentStatus?: 'paid' | 'pending';
   id: string;
   itemCount: number;
   orderNumber: string;
   region?: string;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'fulfilled' | 'cancelled';
+  subtotalAmount?: number;
   township?: string;
   totalAmount: number;
 };

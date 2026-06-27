@@ -1,4 +1,10 @@
-export type WalletTransactionKind = 'bonus' | 'friend-credit' | 'top-up' | 'transfer';
+export type WalletTransactionKind =
+  | 'bonus'
+  | 'friend-credit'
+  | 'top-up'
+  | 'transfer'
+  | 'admin-adjustment'
+  | 'wallet-payment';
 
 export type WalletTransactionDirection = 'credit' | 'debit';
 

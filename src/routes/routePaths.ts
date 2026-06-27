@@ -34,7 +34,7 @@ export const routePaths = {
   checkout: '/checkout',
   home: '/',
   notFound: '*',
-  orders: '/orders',
+  payment: '/payment',
   productDetails: '/products/:productId',
   sustainability: {
     awards: '/sustainable-grocery-shopping/awards',

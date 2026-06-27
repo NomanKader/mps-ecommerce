@@ -58,6 +58,7 @@ export const endpoints = {
     myanmar: '/locations/myanmar',
   },
   orders: {
+    deliveryQuote: '/orders/delivery-quote',
     list: '/orders',
   },
   products: {
@@ -71,6 +72,12 @@ export const endpoints = {
     icons: '/storefront/icons',
     productSections: '/storefront/product-sections',
     secondaryCategories: '/storefront/secondary-categories',
+  },
+  shoppingLists: {
+    item: (id: string) => `/shopping-lists/${id}`,
+    list: '/shopping-lists',
+    toggleProduct: (id: string, productId: string) =>
+      `/shopping-lists/${id}/products/${productId}/toggle`,
   },
   tenants: {
     create: '/tenants',

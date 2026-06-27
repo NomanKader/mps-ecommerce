@@ -23,7 +23,7 @@ import SpaOutlinedIcon from '@mui/icons-material/SpaOutlined';
 import VolunteerActivismOutlinedIcon from '@mui/icons-material/VolunteerActivismOutlined';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
-import { Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, MenuItem, Stack, Switch, TextField, Typography } from '@mui/material';
+import { Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Grid, IconButton, MenuItem, Stack, Switch, TextField, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useEffect, useState, type ReactElement } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -33,15 +33,20 @@ import toast from 'react-hot-toast';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
 import type { CustomerAddress, CustomerAddressPayload } from '@entities/address/types/address.types';
+import type { Order } from '@entities/order/types/order.types';
+import { OrderStatusChip } from '@entities/order/ui/OrderStatusChip';
 import { useAddresses } from '@features/addresses/hooks/useAddresses';
 import { authApi } from '@features/auth/api/authApi';
+import { useFavorites } from '@features/favorites/hooks/useFavorites';
 import { useSignOut } from '@features/auth/hooks/useSignOut';
 import type { UpdateProfilePayload } from '@features/auth/types/auth.types';
 import { useCart } from '@features/cart/hooks/useCart';
 import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
-import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
 import { myanmarLocationFallback } from '@features/locations/data/myanmarLocations';
 import { useMyanmarLocations } from '@features/locations/hooks/useMyanmarLocations';
+import { orderApi } from '@features/order/api/orderApi';
+import { productApi } from '@features/product/api/productApi';
+import { shoppingListsApi } from '@features/shopping-lists/api/shoppingListsApi';
 import { walletApi } from '@features/wallet/api/walletApi';
 import { useWallet } from '@features/wallet/hooks/useWallet';
 import { routePaths } from '@routes/routePaths';
@@ -50,6 +55,7 @@ import { useAppDispatch } from '@store/hooks';
 import type { RootState } from '@store/index';
 import { updateUser } from '@store/slices/auth.slice';
 import { formatCurrency } from '@utils/formatCurrency';
+import { formatDate } from '@utils/formatDate';
 
 type AccountPageKind = 'commerce' | 'info' | 'profile';
 
@@ -71,12 +77,12 @@ type SidebarSection = {
 
 const accountPageConfigs = {
   accountStatus: {
-    description: 'Track your current membership tier, benefits, and the progress needed for your next reward level.',
-    emptyAction: 'View rewards',
+    description: 'Review your account profile, contact details, saved addresses, and security settings.',
+    emptyAction: 'View profile',
     icon: <AutoAwesomeOutlinedIcon />,
     kind: 'info',
     path: routePaths.accountStatus,
-    title: 'Account Status',
+    title: 'Account Overview',
   },
   addresses: {
     description: 'Manage delivery addresses, saved locations, labels, and default address preferences.',
@@ -134,14 +140,6 @@ const accountPageConfigs = {
     kind: 'profile',
     path: routePaths.accountDeleteAccount,
     title: 'Delete Account',
-  },
-  deliveryMembership: {
-    description: 'Manage delivery membership benefits, renewal dates, and eligible delivery savings.',
-    emptyAction: 'Manage membership',
-    icon: <AccountBalanceWalletOutlinedIcon />,
-    kind: 'info',
-    path: routePaths.accountDeliveryMembership,
-    title: 'Delivery Membership',
   },
   favourites: {
     description: 'Save products you buy often and add them to your cart faster next time.',
@@ -442,7 +440,9 @@ const ProfileSummary = () => {
             width: { sm: 72, xs: 56 },
           }}
         >
-          <EmojiEventsOutlinedIcon sx={{ color: '#dbe5fa', fontSize: { sm: 46, xs: 34 } }} />
+          <PersonOutlineRoundedIcon
+            sx={{ color: '#ffffff', fontSize: { sm: 46, xs: 34 } }}
+          />
         </Box>
         <Box sx={{ minWidth: 0 }}>
           <Typography sx={{ fontSize: { md: '1.15rem', xs: '1rem' }, fontWeight: 900, lineHeight: 1.15 }}>
@@ -460,8 +460,8 @@ const ProfileSummary = () => {
           >
             {email}
           </Typography>
-          <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, mt: 0.7 }}>
-            Spend 5000 more to become Silver member
+          <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, mt: 0.7, opacity: 0.86 }}>
+            Manage your profile, addresses, orders, and wallet
           </Typography>
         </Box>
       </Box>
@@ -606,10 +606,56 @@ const SearchBar = ({ placeholder }: { placeholder: string }) => (
   </Stack>
 );
 
-const favouriteProducts = allStorefrontProducts.slice(0, 3);
-
-const FavouriteProducts = () => {
+const FavouriteProducts = ({ search }: { search: string }) => {
   const { addToCart } = useCart();
+  const queryClient = useQueryClient();
+  const { favoriteIds, isLoading, toggleFavorite } = useFavorites();
+  const [listProductId, setListProductId] = useState<string | null>(null);
+  const [selectedListId, setSelectedListId] = useState('');
+  const productsQuery = useQuery({
+    queryFn: ({ signal }) => productApi.getProducts({ signal }),
+    queryKey: ['products'],
+  });
+  const listsQuery = useQuery({
+    queryFn: ({ signal }) => shoppingListsApi.list({ signal }),
+    queryKey: ['account', 'shopping-lists'],
+  });
+  const addToListMutation = useMutation({
+    mutationFn: ({ listId, productId }: { listId: string; productId: string }) =>
+      shoppingListsApi.toggleProduct(listId, productId),
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['account', 'shopping-lists'] });
+      setListProductId(null);
+      setSelectedListId('');
+      toast.success('Shopping list updated.');
+    },
+  });
+  const normalizedSearch = search.trim().toLowerCase();
+  const favouriteProducts = (productsQuery.data ?? []).filter(
+    (product) =>
+      favoriteIds.includes(product.id) &&
+      (!normalizedSearch ||
+        [product.name, product.description, product.sku].some((value) =>
+          value.toLowerCase().includes(normalizedSearch),
+        )),
+  );
+
+  if (isLoading || productsQuery.isLoading) {
+    return <Typography sx={{ mt: 3 }}>Loading favourites…</Typography>;
+  }
+
+  if (!favouriteProducts.length) {
+    return (
+      <Stack spacing={2} sx={{ alignItems: 'center', minHeight: 320, pt: 6, textAlign: 'center' }}>
+        <EmptyListIllustration />
+        <Typography sx={{ color: storefrontColors.navy, fontSize: '1.3rem', fontWeight: 900 }}>
+          {normalizedSearch ? 'No matching favourites' : 'No favourites yet'}
+        </Typography>
+        <Button component={Link} to={routePaths.catalog}>Browse products</Button>
+      </Stack>
+    );
+  }
 
   return (
     <Box sx={{ mt: 3 }}>
@@ -642,6 +688,7 @@ const FavouriteProducts = () => {
               />
               <IconButton
                 aria-label={`${product.name} is in favourites`}
+                onClick={() => toggleFavorite(product.id)}
                 sx={{
                   backgroundColor: '#ffffff',
                   boxShadow: `0 8px 20px ${alpha(storefrontColors.navyDark, 0.16)}`,
@@ -669,7 +716,7 @@ const FavouriteProducts = () => {
                   {formatCurrency(product.price, product.currency)}
                 </Typography>
                 <Button
-                  onClick={() => addToCart(mapHomeProductToProduct(product))}
+                  onClick={() => addToCart(product)}
                   startIcon={<AddShoppingCartOutlinedIcon />}
                   sx={{
                     backgroundColor: storefrontColors.navy,
@@ -684,10 +731,124 @@ const FavouriteProducts = () => {
                   Add to Cart
                 </Button>
               </Stack>
+              <Button
+                disabled={!listsQuery.data?.length}
+                onClick={() => setListProductId(product.id)}
+                sx={{ fontWeight: 800, textTransform: 'none' }}
+              >
+                {listsQuery.data?.length ? 'Add to shopping list' : 'Create a shopping list first'}
+              </Button>
             </Stack>
           </Box>
         ))}
       </Box>
+      <Dialog fullWidth maxWidth="xs" onClose={() => setListProductId(null)} open={Boolean(listProductId)}>
+        <DialogTitle>Add to shopping list</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="Shopping list"
+            onChange={(event) => setSelectedListId(event.target.value)}
+            select
+            sx={{ mt: 1 }}
+            value={selectedListId}
+          >
+            {(listsQuery.data ?? []).map((list) => (
+              <MenuItem key={list.id} value={list.id}>
+                {list.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setListProductId(null)}>Cancel</Button>
+          <Button
+            disabled={!selectedListId || !listProductId || addToListMutation.isPending}
+            onClick={() =>
+              listProductId &&
+              addToListMutation.mutate({ listId: selectedListId, productId: listProductId })
+            }
+          >
+            Add
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+const ShoppingListsContent = ({ search }: { search: string }) => {
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [name, setName] = useState('');
+  const listsQuery = useQuery({
+    queryFn: ({ signal }) => shoppingListsApi.list({ signal }),
+    queryKey: ['account', 'shopping-lists'],
+  });
+  const createMutation = useMutation({
+    mutationFn: shoppingListsApi.create,
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['account', 'shopping-lists'] });
+      setDialogOpen(false);
+      setName('');
+      toast.success('Shopping list created.');
+    },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: shoppingListsApi.remove,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['account', 'shopping-lists'] });
+      toast.success('Shopping list deleted.');
+    },
+  });
+  const normalizedSearch = search.trim().toLowerCase();
+  const lists = (listsQuery.data ?? []).filter((list) =>
+    list.name.toLowerCase().includes(normalizedSearch),
+  );
+
+  return (
+    <Box sx={{ mt: 3 }}>
+      <Button
+        onClick={() => setDialogOpen(true)}
+        sx={{ backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#fff', fontWeight: 900, px: 3, textTransform: 'none' }}
+      >
+        Create new list
+      </Button>
+      {lists.length ? (
+        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { md: 'repeat(2, 1fr)', xs: '1fr' }, mt: 3 }}>
+          {lists.map((list) => (
+            <Box key={list.id} sx={{ border: `1px solid ${storefrontColors.border}`, borderRadius: 2, p: 2.5 }}>
+              <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography sx={{ color: storefrontColors.navy, fontSize: '1.1rem', fontWeight: 900 }}>{list.name}</Typography>
+                  <Typography color="text.secondary">{list.productIds.length} items</Typography>
+                </Box>
+                <IconButton aria-label={`Delete ${list.name}`} onClick={() => deleteMutation.mutate(list.id)}>
+                  <DeleteOutlineRoundedIcon />
+                </IconButton>
+              </Stack>
+            </Box>
+          ))}
+        </Box>
+      ) : (
+        <Stack spacing={2} sx={{ alignItems: 'center', minHeight: 320, pt: 6 }}>
+          <EmptyListIllustration type="lists" />
+          <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
+            {normalizedSearch ? 'No matching shopping lists' : 'No shopping lists yet'}
+          </Typography>
+        </Stack>
+      )}
+      <Dialog fullWidth maxWidth="xs" onClose={() => setDialogOpen(false)} open={dialogOpen}>
+        <DialogTitle>Create shopping list</DialogTitle>
+        <DialogContent>
+          <TextField autoFocus fullWidth label="List name" onChange={(event) => setName(event.target.value)} sx={{ mt: 1 }} value={name} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button disabled={!name.trim() || createMutation.isPending} onClick={() => createMutation.mutate(name.trim())}>Create</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
@@ -696,6 +857,7 @@ const CommerceContent = ({ activePage }: { activePage: AccountPageConfig }) => {
   const showTabs = activePage.path === routePaths.accountFavourites || activePage.path === routePaths.accountShoppingList;
   const isShoppingList = activePage.path === routePaths.accountShoppingList;
   const isFavourites = activePage.path === routePaths.accountFavourites;
+  const [search, setSearch] = useState('');
 
   return (
     <Box sx={{ maxWidth: 1180, mt: 4.8 }}>
@@ -726,28 +888,19 @@ const CommerceContent = ({ activePage }: { activePage: AccountPageConfig }) => {
         <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>{activePage.title}</Typography>
       )}
 
-      {isShoppingList ? (
-        <Button
-          sx={{
-            backgroundColor: storefrontColors.navy,
-            borderRadius: 999,
-            color: '#ffffff',
-            fontWeight: 900,
-            mt: 3,
-            px: 3,
-            py: 1,
-            textTransform: 'none',
-            '&:hover': { backgroundColor: storefrontColors.navyDark },
-          }}
-        >
-          Create new list
-        </Button>
-      ) : null}
-
-      <SearchBar placeholder={activePage.searchPlaceholder ?? `Search ${activePage.title.toLowerCase()}`} />
+      <TextField
+        fullWidth
+        onChange={(event) => setSearch(event.target.value)}
+        placeholder={activePage.searchPlaceholder ?? `Search ${activePage.title.toLowerCase()}`}
+        slotProps={{ input: { endAdornment: <SearchRoundedIcon /> } }}
+        sx={{ mt: 3 }}
+        value={search}
+      />
 
       {isFavourites ? (
-        <FavouriteProducts />
+        <FavouriteProducts search={search} />
+      ) : isShoppingList ? (
+        <ShoppingListsContent search={search} />
       ) : (
         <Stack spacing={2.6} sx={{ alignItems: 'center', minHeight: 430, pt: { md: 5, xs: 4 }, textAlign: 'center' }}>
           <EmptyListIllustration type={isShoppingList ? 'lists' : 'favourites'} />
@@ -1224,7 +1377,39 @@ const StatementContent = () => (
   </Box>
 );
 
-const OrdersContent = () => (
+const completedOrderStatuses = new Set(['delivered', 'fulfilled', 'cancelled']);
+
+const OrdersContent = () => {
+  const user = useSelector((state: RootState) => state.auth.user);
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
+  const [search, setSearch] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const ordersQuery = useQuery({
+    enabled: Boolean(user?.id),
+    queryFn: ({ signal }) => orderApi.getOrders({ signal }),
+    queryKey: ['orders', user?.id],
+  });
+  const loggedInEmail = user?.email.trim().toLowerCase() ?? '';
+  const orders = (ordersQuery.data ?? []).filter(
+    (order) => order.customerEmail?.trim().toLowerCase() === loggedInEmail,
+  );
+  const upcomingOrders = orders.filter((order) => !completedOrderStatuses.has(order.status));
+  const pastOrders = orders.filter((order) => completedOrderStatuses.has(order.status));
+  const tabOrders = activeTab === 'upcoming' ? upcomingOrders : pastOrders;
+  const normalizedSearch = search.trim().toLowerCase();
+  const visibleOrders = normalizedSearch
+    ? tabOrders.filter((order) =>
+        [
+          order.orderNumber,
+          order.customerName,
+          order.deliveryAddress,
+          order.paymentMethod,
+          order.status,
+        ].some((value) => value?.toLowerCase().includes(normalizedSearch)),
+      )
+    : tabOrders;
+
+  return (
   <Box sx={{ mt: 4.5 }}>
     <Box sx={{ maxWidth: 1080 }}>
       <Box
@@ -1256,8 +1441,8 @@ const OrdersContent = () => (
           }}
         >
           {[
-            { label: 'Upcoming', value: '0', helper: 'No active deliveries' },
-            { label: 'Past orders', value: '0', helper: 'Completed orders will appear here' },
+            { label: 'Upcoming', value: String(upcomingOrders.length), helper: 'Active orders and deliveries' },
+            { label: 'Past orders', value: String(pastOrders.length), helper: 'Completed and cancelled orders' },
             { label: 'Support tickets', value: '0', helper: 'No order issues reported' },
           ].map((item) => (
             <Box
@@ -1293,42 +1478,124 @@ const OrdersContent = () => (
             width: 'fit-content',
           }}
         >
-          {['Upcoming Orders', 'Past Orders'].map((label, index) => (
+          {[
+            { label: 'Upcoming Orders', value: 'upcoming' as const },
+            { label: 'Past Orders', value: 'past' as const },
+          ].map((tab) => (
             <Box
-              key={label}
+              component="button"
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
               sx={{
-                backgroundColor: index === 0 ? '#ffffff' : 'transparent',
+                backgroundColor: activeTab === tab.value ? '#ffffff' : 'transparent',
+                border: 0,
                 borderRadius: 999,
-                boxShadow: index === 0 ? `0 8px 18px ${alpha(storefrontColors.navyDark, 0.1)}` : 'none',
+                boxShadow: activeTab === tab.value ? `0 8px 18px ${alpha(storefrontColors.navyDark, 0.1)}` : 'none',
+                cursor: 'pointer',
                 px: 2.4,
                 py: 1,
               }}
             >
               <Typography sx={{ color: storefrontColors.navy, fontSize: '0.98rem', fontWeight: 900 }}>
-                {label}
+                {tab.label}
               </Typography>
             </Box>
           ))}
         </Stack>
 
-        <SearchBar placeholder="Search for your orders" />
-
-        <Box
-          sx={{
-            alignItems: 'center',
-            backgroundColor: '#ffffff',
-            border: `1px solid ${storefrontColors.border}`,
-            borderRadius: 1,
-            boxShadow: `0 12px 30px ${alpha(storefrontColors.navyDark, 0.06)}`,
-            display: 'flex',
-            flexDirection: 'column',
-            mt: 3,
-            minHeight: 360,
-            px: { md: 4, xs: 2 },
-            py: { md: 5, xs: 3 },
-            textAlign: 'center',
+        <TextField
+          fullWidth
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search by order number, status, payment, or address"
+          slotProps={{
+            input: {
+              endAdornment: <SearchRoundedIcon sx={{ color: storefrontColors.navy }} />,
+            },
           }}
-        >
+          sx={{ mt: 3 }}
+          value={search}
+        />
+
+        {ordersQuery.isLoading ? (
+          <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 3 }}>
+            Loading your orders…
+          </Typography>
+        ) : visibleOrders.length ? (
+          <Stack spacing={1.5} sx={{ mt: 3 }}>
+            {visibleOrders.map((order) => (
+              <Box
+                aria-label={`View details for order ${order.orderNumber}`}
+                component="button"
+                key={order.id}
+                onClick={() => setSelectedOrder(order)}
+                sx={{
+                  backgroundColor: '#ffffff',
+                  border: `1px solid ${storefrontColors.border}`,
+                  borderRadius: 1.5,
+                  boxShadow: `0 10px 24px ${alpha(storefrontColors.navyDark, 0.05)}`,
+                  color: 'inherit',
+                  cursor: 'pointer',
+                  p: { md: 2.2, xs: 1.5 },
+                  textAlign: 'left',
+                  transition: 'border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease',
+                  width: '100%',
+                  '&:hover': {
+                    borderColor: alpha(storefrontColors.navy, 0.45),
+                    boxShadow: `0 14px 30px ${alpha(storefrontColors.navyDark, 0.1)}`,
+                    transform: 'translateY(-1px)',
+                  },
+                  '&:focus-visible': {
+                    outline: `3px solid ${alpha(storefrontColors.navy, 0.25)}`,
+                    outlineOffset: 2,
+                  },
+                }}
+              >
+                <Stack direction={{ md: 'row', xs: 'column' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
+                  <Stack spacing={0.7}>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.05rem', fontWeight: 900 }}>
+                        {order.orderNumber}
+                      </Typography>
+                      <OrderStatusChip status={order.status} />
+                    </Stack>
+                    <Typography sx={{ color: storefrontColors.muted, fontSize: '0.88rem', fontWeight: 700 }}>
+                      Placed {formatDate(order.createdAt)} · {order.itemCount} item{order.itemCount === 1 ? '' : 's'}
+                    </Typography>
+                    {order.deliveryAddress ? (
+                      <Typography sx={{ color: '#55565c', fontSize: '0.9rem' }}>
+                        {order.deliveryAddress}
+                      </Typography>
+                    ) : null}
+                  </Stack>
+                  <Stack spacing={0.5} sx={{ alignItems: { md: 'flex-end', xs: 'flex-start' } }}>
+                    <Typography sx={{ color: storefrontColors.navy, fontSize: '1.1rem', fontWeight: 900 }}>
+                      {formatCurrency(order.totalAmount, order.currency)}
+                    </Typography>
+                    <Typography sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 700 }}>
+                      {order.paymentMethod === 'wallet' ? 'Wallet' : 'Cash on delivery'}
+                      {order.paymentStatus ? ` · ${order.paymentStatus}` : ''}
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </Box>
+            ))}
+          </Stack>
+        ) : (
+          <Box
+            sx={{
+              alignItems: 'center',
+              backgroundColor: '#ffffff',
+              border: `1px solid ${storefrontColors.border}`,
+              borderRadius: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              mt: 3,
+              minHeight: 300,
+              px: 2,
+              py: 5,
+              textAlign: 'center',
+            }}
+          >
           <Box
             sx={{
               alignItems: 'center',
@@ -1346,13 +1613,13 @@ const OrdersContent = () => (
           </Box>
 
           <Typography sx={{ color: storefrontColors.navy, fontSize: { md: '1.45rem', xs: '1.2rem' }, fontWeight: 900 }}>
-            No orders yet
+            {normalizedSearch ? 'No matching orders' : `No ${activeTab} orders`}
           </Typography>
           <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, lineHeight: 1.55, maxWidth: 480, mt: 1 }}>
             When you place an order, delivery updates, payment details, and support options will appear here.
           </Typography>
 
-          <Stack
+          {!normalizedSearch && orders.length === 0 ? <Stack
             direction={{ sm: 'row', xs: 'column' }}
             spacing={1.4}
             sx={{ alignItems: 'center', justifyContent: 'center', mt: 3, width: '100%' }}
@@ -1391,9 +1658,9 @@ const OrdersContent = () => (
             >
               View favourites
             </Button>
-          </Stack>
+          </Stack> : null}
 
-          <Box
+          {!normalizedSearch && orders.length === 0 ? <Box
             sx={{
               display: 'grid',
               gap: 1.2,
@@ -1439,12 +1706,100 @@ const OrdersContent = () => (
                 </Typography>
               </Stack>
             ))}
-          </Box>
+          </Box> : null}
         </Box>
+        )}
       </Box>
     </Box>
+    <Dialog
+      fullWidth
+      maxWidth="sm"
+      onClose={() => setSelectedOrder(null)}
+      open={Boolean(selectedOrder)}
+    >
+      <DialogTitle sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
+        Order details
+      </DialogTitle>
+      <DialogContent>
+        {selectedOrder ? (
+          <Stack spacing={2.5} sx={{ pt: 1 }}>
+            <Stack
+              direction={{ sm: 'row', xs: 'column' }}
+              spacing={1}
+              sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}
+            >
+              <Box>
+                <Typography sx={{ fontSize: '1.15rem', fontWeight: 900 }}>
+                  {selectedOrder.orderNumber}
+                </Typography>
+                <Typography color="text.secondary" variant="body2">
+                  Placed {formatDate(selectedOrder.createdAt)}
+                </Typography>
+              </Box>
+              <OrderStatusChip status={selectedOrder.status} />
+            </Stack>
+            <Grid container spacing={2}>
+              {[
+                { label: 'Customer', value: selectedOrder.customerName },
+                { label: 'Email', value: selectedOrder.customerEmail ?? 'N/A' },
+                { label: 'Phone', value: selectedOrder.customerPhone ?? 'N/A' },
+                {
+                  label: 'Payment method',
+                  value:
+                    selectedOrder.paymentMethod === 'wallet'
+                      ? 'Wallet'
+                      : 'Cash on delivery',
+                },
+                {
+                  label: 'Payment status',
+                  value: selectedOrder.paymentStatus ?? 'Pending',
+                },
+                {
+                  label: 'Items',
+                  value: `${selectedOrder.itemCount} item${selectedOrder.itemCount === 1 ? '' : 's'}`,
+                },
+                {
+                  label: 'Region / Township',
+                  value: [selectedOrder.region, selectedOrder.township].filter(Boolean).join(' / ') || 'N/A',
+                },
+                {
+                  label: 'Order total',
+                  value: formatCurrency(selectedOrder.totalAmount, selectedOrder.currency),
+                },
+              ].map((detail) => (
+                <Grid key={detail.label} size={{ sm: 6, xs: 12 }}>
+                  <Typography color="text.secondary" variant="caption">
+                    {detail.label}
+                  </Typography>
+                  <Typography sx={{ fontWeight: 700, overflowWrap: 'anywhere' }}>
+                    {detail.value}
+                  </Typography>
+                </Grid>
+              ))}
+              <Grid size={{ xs: 12 }}>
+                <Typography color="text.secondary" variant="caption">
+                  Delivery address
+                </Typography>
+                <Typography sx={{ fontWeight: 700 }}>
+                  {selectedOrder.deliveryAddress ?? 'N/A'}
+                </Typography>
+              </Grid>
+            </Grid>
+          </Stack>
+        ) : null}
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        <Button
+          onClick={() => setSelectedOrder(null)}
+          sx={{ color: storefrontColors.navy, fontWeight: 800, textTransform: 'none' }}
+        >
+          Close
+        </Button>
+      </DialogActions>
+    </Dialog>
   </Box>
-);
+  );
+};
 
 const RegularsContent = () => (
   <Box sx={{ mt: 4.5 }}>

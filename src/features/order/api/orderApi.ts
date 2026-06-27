@@ -14,14 +14,33 @@ type BackendOrder = Omit<Order, 'id' | 'createdAt' | 'itemCount'> & {
 type ListOptions = { signal?: globalThis.AbortSignal };
 
 export type CreateOrderPayload = {
+  city: string;
   customerEmail?: string;
   customerName: string;
   customerPhone?: string;
   deliveryAddress: string;
   itemCount: number;
+  paymentMethod: 'wallet' | 'cash_on_delivery';
   region?: string;
   township?: string;
+  subtotalAmount: number;
+};
+
+export type DeliveryQuotePayload = Pick<
+  CreateOrderPayload,
+  'city' | 'region' | 'subtotalAmount' | 'township'
+>;
+
+export type DeliveryQuote = {
+  city: string;
+  deliveryFee: number;
+  eta: string;
+  freeDeliveryApplied: boolean;
+  freeOver: number;
+  region: string;
+  subtotalAmount: number;
   totalAmount: number;
+  township: string;
 };
 
 const mapOrder = ({
@@ -39,6 +58,13 @@ const mapOrder = ({
 });
 
 export const orderApi = {
+  async getDeliveryQuote(payload: DeliveryQuotePayload): Promise<DeliveryQuote> {
+    const response = await apiClient.post<ApiResponse<DeliveryQuote>>(
+      endpoints.orders.deliveryQuote,
+      payload,
+    );
+    return response.data.data;
+  },
   async getOrders(options: ListOptions = {}): Promise<Order[]> {
     const response = await apiClient.get<ApiResponse<BackendOrder[]>>(endpoints.orders.list, {
       signal: options.signal,

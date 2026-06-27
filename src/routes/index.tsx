@@ -13,7 +13,7 @@ import { CheckoutPage } from '@pages/CheckoutPage/CheckoutPage';
 import { AccountMenuPage } from '@pages/FavouritesPage/FavouritesPage';
 import { HomePage } from '@pages/HomePage/HomePage';
 import { NotFoundPage } from '@pages/NotFoundPage/NotFoundPage';
-import { OrdersPage } from '@pages/OrdersPage/OrdersPage';
+import { PaymentPage } from '@pages/PaymentPage/PaymentPage';
 import { ProductDetailsPage } from '@pages/ProductDetailsPage/ProductDetailsPage';
 import { SustainabilityPage } from '@pages/SustainabilityPage/SustainabilityPage';
 import { AdminUserPage } from '@pages/TenantAdmin/AdminUserPage/AdminUserPage';
@@ -114,7 +114,7 @@ export const router = createBrowserRouter([
             element: <MainLayout />,
             children: [
               { element: <CheckoutPage />, path: routePaths.checkout },
-              { element: <OrdersPage />, path: routePaths.orders },
+              { element: <PaymentPage />, path: routePaths.payment },
             ],
           },
         ],

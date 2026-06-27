@@ -41,8 +41,8 @@ type DeliveryFeeForm = {
 
 const emptyForm: DeliveryFeeForm = {
   estimatedDays: 'Same day',
-  fee: '45000',
-  freeDeliveryMinimum: '150000',
+  fee: '4500',
+  freeDeliveryMinimum: '15000',
   region: '',
   status: 'active',
   township: '',
@@ -120,8 +120,14 @@ export const DeliveryFeesPage = () => {
 
       const fee = Number(form.fee);
       const freeOver = Number(form.freeDeliveryMinimum);
-      if (!Number.isFinite(fee) || fee < 45000 || !Number.isFinite(freeOver) || freeOver < 0) {
-        throw new Error('Delivery fee must be at least 45,000 KS.');
+      if (
+        !Number.isFinite(fee) ||
+        fee < 4500 ||
+        fee > 20000 ||
+        !Number.isFinite(freeOver) ||
+        freeOver < 0
+      ) {
+        throw new Error('Delivery fee must be between 4,500 and 20,000 MMK.');
       }
       const payload = {
         eta: form.estimatedDays.trim() || 'Same day',
@@ -265,7 +271,12 @@ export const DeliveryFeesPage = () => {
       {deliveryFeesQuery.isError ? (
         <Alert severity="error">{toApiError(deliveryFeesQuery.error).message}</Alert>
       ) : null}
-      <AppDataTable columns={columns} loading={deliveryFeesQuery.isLoading} rows={deliveryFees} />
+      <AppDataTable
+        columns={columns}
+        initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
+        loading={deliveryFeesQuery.isLoading}
+        rows={deliveryFees}
+      />
 
       <Dialog fullWidth maxWidth="sm" onClose={() => setIsDialogOpen(false)} open={isDialogOpen}>
         <DialogTitle>{editingId ? 'Edit Delivery Fee' : 'Create Delivery Fee'}</DialogTitle>
@@ -339,7 +350,8 @@ export const DeliveryFeesPage = () => {
                 <TextField
                   fullWidth
                   label="Delivery fee"
-                  slotProps={{ htmlInput: { min: 45000, step: 1000 } }}
+                  helperText="Allowed range: 4,500–20,000 MMK"
+                  slotProps={{ htmlInput: { max: 20000, min: 4500, step: 500 } }}
                   onChange={(event) =>
                     setForm((current) => ({ ...current, fee: event.target.value }))
                   }
