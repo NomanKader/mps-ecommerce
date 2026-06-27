@@ -2,12 +2,14 @@ import mongoose from 'mongoose';
 
 import { app } from './app';
 
+import { preloadApplicationData } from '@config/bootstrap';
 import { connectDatabase } from '@config/database';
 import { env } from '@config/env';
 import { logger } from '@config/logger';
 
 const startServer = async (): Promise<void> => {
   await connectDatabase();
+  await preloadApplicationData();
 
   const server = app.listen(env.PORT, () => {
     logger.info(`${env.APP_NAME} listening on port ${env.PORT}`);

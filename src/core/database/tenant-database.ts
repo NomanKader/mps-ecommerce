@@ -160,8 +160,24 @@ const dropConflictingTenantAdminSettingsIndex = async (tenantSlug: string): Prom
   }
 };
 
+const dropConflictingTownshipIndex = async (tenantSlug: string): Promise<void> => {
+  const connection = getTenantConnection(tenantSlug);
+  const collection = connection.collection('townships');
+  const indexes = await collection.indexes().catch(() => []);
+  const townshipNameIndex = indexes.find(
+    (index) => index.name === 'tenantId_1_country_1_regionId_1_name_1'
+  );
+
+  if (townshipNameIndex && !townshipNameIndex.partialFilterExpression) {
+    await collection.dropIndex('tenantId_1_country_1_regionId_1_name_1');
+  }
+};
+
 export const initializeTenantDatabase = async (tenantSlug: string): Promise<void> => {
-  await dropConflictingTenantAdminSettingsIndex(tenantSlug);
+  await Promise.all([
+    dropConflictingTenantAdminSettingsIndex(tenantSlug),
+    dropConflictingTownshipIndex(tenantSlug)
+  ]);
   const models = getTenantModels(tenantSlug);
   await Promise.all(Object.values(models).map((model) => model.init()));
 };
