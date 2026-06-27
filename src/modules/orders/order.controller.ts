@@ -14,6 +14,15 @@ export class OrderController extends BaseController {
     this.ok(res, orders, 'Orders fetched');
   });
 
+  deliveryQuote = asyncHandler(async (req: Request, res: Response) => {
+    const quote = await this.orderService.getDeliveryQuote(
+      req.tenant?.tenantId,
+      req.auth?.userId,
+      req.body
+    );
+    this.ok(res, quote, 'Delivery fee calculated');
+  });
+
   create = asyncHandler(async (req: Request, res: Response) => {
     const order = await this.orderService.createOrder(
       req.tenant?.tenantId,

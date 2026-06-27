@@ -221,8 +221,8 @@ const run = async (): Promise<void> => {
       tenantId,
       region: 'Yangon',
       township: 'Bahan',
-      fee: 2,
-      freeOver: 50,
+      fee: 4500,
+      freeOver: 15000,
       eta: '45-60 min',
       status: 'active'
     },

@@ -194,7 +194,7 @@ export const deliveryFeeSchema = new Schema<DeliveryFee>(
     tenantId: { type: String, required: true, index: true },
     region: { type: String, required: true, trim: true, index: true },
     township: { type: String, required: true, trim: true },
-    fee: { type: Number, required: true, min: 0 },
+    fee: { type: Number, required: true, min: 4500, max: 20000 },
     freeOver: { type: Number, default: 0, min: 0 },
     eta: { type: String, required: true, trim: true },
     status: { type: String, enum: ['active', 'paused'], default: 'active', index: true }

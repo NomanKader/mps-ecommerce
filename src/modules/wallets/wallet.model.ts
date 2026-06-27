@@ -9,7 +9,11 @@ const walletTransactionSchema = new Schema(
     createdAt: { type: Date, default: Date.now, required: true },
     description: { type: String, required: true, trim: true },
     direction: { type: String, enum: ['credit', 'debit'], required: true },
-    kind: { type: String, enum: ['top-up', 'admin-adjustment'], required: true },
+    kind: {
+      type: String,
+      enum: ['top-up', 'admin-adjustment', 'wallet-payment'],
+      required: true
+    },
     referenceId: { type: String, trim: true }
   },
   { _id: false, versionKey: false }

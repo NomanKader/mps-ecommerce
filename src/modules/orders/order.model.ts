@@ -11,11 +11,26 @@ export const orderSchema = new Schema<Order>(
     customerName: { type: String, required: true, trim: true },
     customerEmail: { type: String, trim: true, lowercase: true },
     customerPhone: { type: String, trim: true },
+    city: { type: String, trim: true },
     deliveryAddress: { type: String, trim: true },
+    paymentMethod: {
+      type: String,
+      enum: ['wallet', 'cash_on_delivery'],
+      default: 'cash_on_delivery',
+      required: true
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['paid', 'pending'],
+      default: 'pending',
+      required: true
+    },
     region: { type: String, trim: true, index: true },
     township: { type: String, trim: true },
     itemCount: { type: Number, default: 0, min: 0 },
     itemsCount: { type: Number, default: 0, min: 0 },
+    subtotalAmount: { type: Number, required: true, min: 0 },
+    deliveryFee: { type: Number, required: true, min: 0, default: 0 },
     totalAmount: { type: Number, required: true },
     currency: { type: String, default: 'MMK' },
     status: {

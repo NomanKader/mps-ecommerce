@@ -123,7 +123,7 @@ export const deliveryFeeBodySchema = z.object({
   body: z.object({
     region: z.string().min(2),
     township: z.string().min(2),
-    fee: z.coerce.number().min(45000),
+    fee: z.coerce.number().min(4500).max(20000),
     freeOver: z.coerce.number().nonnegative().default(0),
     eta: z.string().min(2),
     status: z.enum(['active', 'paused']).default('active')

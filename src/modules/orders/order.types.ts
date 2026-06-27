@@ -1,3 +1,6 @@
+export type OrderPaymentMethod = 'wallet' | 'cash_on_delivery';
+export type OrderPaymentStatus = 'paid' | 'pending';
+
 export interface Order {
   _id: string;
   tenantId: string;
@@ -6,7 +9,12 @@ export interface Order {
   customerName: string;
   customerEmail?: string;
   customerPhone?: string;
+  city?: string;
   deliveryAddress?: string;
+  paymentMethod: OrderPaymentMethod;
+  paymentStatus: OrderPaymentStatus;
+  subtotalAmount: number;
+  deliveryFee: number;
   region?: string;
   township?: string;
   itemCount?: number;

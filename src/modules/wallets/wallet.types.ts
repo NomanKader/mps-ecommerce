@@ -1,4 +1,4 @@
-export type WalletTransactionKind = 'top-up' | 'admin-adjustment';
+export type WalletTransactionKind = 'top-up' | 'admin-adjustment' | 'wallet-payment';
 
 export interface WalletTransaction {
   amount: number;

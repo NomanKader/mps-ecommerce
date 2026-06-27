@@ -23,6 +23,11 @@ export const authMiddleware = (req: Request, _res: Response, next: NextFunction)
     return;
   }
 
+  if (typeof payload.sub !== 'string' || !payload.sub.trim()) {
+    next(new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Authorization token does not contain a valid user identity'));
+    return;
+  }
+
   req.auth = {
     userId: payload.sub,
     tenantId: payload.tenantId,

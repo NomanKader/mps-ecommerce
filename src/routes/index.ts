@@ -9,6 +9,7 @@ import favoriteRoutes from '@modules/favorites/favorite.routes';
 import locationRoutes from '@modules/locations/location.routes';
 import orderRoutes from '@modules/orders/order.routes';
 import productRoutes from '@modules/products/product.routes';
+import shoppingListRoutes from '@modules/shopping-lists/shopping-list.routes';
 import storefrontRoutes from '@modules/storefront/storefront.routes';
 import tenantRoutes from '@modules/tenants/tenant.routes';
 import userRoutes from '@modules/users/user.routes';
@@ -37,6 +38,7 @@ router.use('/carts', cartRoutes);
 router.use('/favorites', favoriteRoutes);
 router.use('/locations', locationRoutes);
 router.use('/orders', orderRoutes);
+router.use('/shopping-lists', shoppingListRoutes);
 router.use('/wallet', walletRoutes);
 router.use('/storefront', storefrontRoutes);
 

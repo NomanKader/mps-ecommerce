@@ -35,6 +35,8 @@ import { orderSchema } from '@modules/orders/order.model';
 import { Order } from '@modules/orders/order.types';
 import { productSchema } from '@modules/products/product.model';
 import { Product } from '@modules/products/product.types';
+import { shoppingListSchema } from '@modules/shopping-lists/shopping-list.model';
+import { ShoppingList } from '@modules/shopping-lists/shopping-list.types';
 import { userSchema } from '@modules/users/user.model';
 import { User } from '@modules/users/user.types';
 import { customerWalletSchema, walletTopUpRequestSchema } from '@modules/wallets/wallet.model';
@@ -50,6 +52,7 @@ export type TenantModels = {
   OrderModel: Model<Order>;
   CartModel: Model<Cart>;
   FavoriteModel: Model<Favorite>;
+  ShoppingListModel: Model<ShoppingList>;
   PhoneOtpModel: Model<PhoneOtp>;
   AdminCustomerModel: Model<AdminCustomer>;
   PromotionModel: Model<Promotion>;
@@ -100,6 +103,7 @@ export const getTenantModels = (tenantSlug: string): TenantModels => {
     OrderModel: connection.model<Order>('Order', orderSchema, 'orders'),
     CartModel: connection.model<Cart>('Cart', cartSchema, 'carts'),
     FavoriteModel: connection.model<Favorite>('Favorite', favoriteSchema, 'favorites'),
+    ShoppingListModel: connection.model<ShoppingList>('ShoppingList', shoppingListSchema, 'shopping_lists'),
     PhoneOtpModel: connection.model<PhoneOtp>('PhoneOtp', phoneOtpSchema, 'phone_otps'),
     AdminCustomerModel: connection.model<AdminCustomer>(
       'AdminCustomer',
