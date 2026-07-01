@@ -41,6 +41,7 @@ import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
+import { validateImageFileSelection } from '@shared/utils/imageFileValidation';
 import { formatCurrency } from '@utils/formatCurrency';
 
 type ProductForm = {
@@ -99,7 +100,6 @@ const ratingFilterOptions = [
 
 type StockFilter = (typeof stockFilterOptions)[number]['value'];
 type RatingFilter = (typeof ratingFilterOptions)[number]['value'];
-const maxProductImageBytes = 5 * 1024 * 1024;
 const requiredBulkColumns = ['SKU', 'Product name', 'Price', 'Stock'];
 const optionalBulkColumns = [
   'Category',
@@ -655,13 +655,7 @@ export const ProductsPage = () => {
       return;
     }
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Only image files are allowed.');
-      return;
-    }
-
-    if (file.size > maxProductImageBytes) {
-      toast.error('Image is too large. Please upload an image under 5MB.');
+    if (!validateImageFileSelection(file, 'product image')) {
       return;
     }
 

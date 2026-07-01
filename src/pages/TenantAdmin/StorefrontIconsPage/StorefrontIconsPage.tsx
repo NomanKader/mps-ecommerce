@@ -26,7 +26,10 @@ import toast from 'react-hot-toast';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
 import { merchandisingApi } from '@features/home/api/merchandisingApi';
-import type { StorefrontHighlightItem } from '@features/home/types/home.types';
+import type {
+  StorefrontHighlightItem,
+  StorefrontHighlightSection,
+} from '@features/home/types/home.types';
 import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
@@ -36,6 +39,7 @@ type HighlightForm = Omit<StorefrontHighlightItem, 'id'>;
 type StorefrontIconsPageProps = {
   description?: string;
   itemLabel?: string;
+  sectionFilter?: StorefrontHighlightSection;
   title?: string;
 };
 
@@ -385,12 +389,20 @@ const IconPreview = ({ item }: { item: StorefrontHighlightItem }) => (
 export const StorefrontIconsPage = ({
   description = 'Customize reusable storefront icons for categories and other admin workflows.',
   itemLabel = 'icon',
+  sectionFilter,
   title = 'Storefront Icons',
 }: StorefrontIconsPageProps) => {
   const queryClient = useQueryClient();
+  const emptySectionForm = useMemo(
+    () => ({
+      ...emptyForm,
+      section: sectionFilter ?? emptyForm.section,
+    }),
+    [sectionFilter],
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<StorefrontHighlightItem | null>(null);
-  const [form, setForm] = useState<HighlightForm>(emptyForm);
+  const [form, setForm] = useState<HighlightForm>(emptySectionForm);
   const [iconSearch, setIconSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -398,7 +410,13 @@ export const StorefrontIconsPage = ({
     queryFn: ({ signal }) => merchandisingApi.listAdminStorefrontIcons({}, { signal }),
     queryKey: ['admin', 'storefront-icons'],
   });
-  const items = useMemo(() => iconsQuery.data ?? [], [iconsQuery.data]);
+  const items = useMemo(
+    () =>
+      (iconsQuery.data ?? []).filter((item) =>
+        sectionFilter ? (item.section ?? 'featured') === sectionFilter : true,
+      ),
+    [iconsQuery.data, sectionFilter],
+  );
   const iconUsageByValue = useMemo(
     () =>
       items.reduce<Record<string, number>>((usage, item) => {
@@ -521,7 +539,7 @@ export const StorefrontIconsPage = ({
               color: row.color,
               icon: row.icon,
               label: row.label,
-              section: row.section ?? 'featured',
+              section: sectionFilter ?? row.section ?? 'featured',
               status: row.status,
               surfaceColor: row.surfaceColor ?? '',
               textColor: row.textColor ?? '',
@@ -548,7 +566,7 @@ export const StorefrontIconsPage = ({
       await queryClient.invalidateQueries({ queryKey: ['admin', 'storefront-icons'] });
       await queryClient.invalidateQueries({ queryKey: ['storefront', 'icons'] });
       setEditingId(null);
-      setForm(emptyForm);
+      setForm(emptySectionForm);
       setIsDialogOpen(false);
       toast.success(result.message);
     },
@@ -561,7 +579,7 @@ export const StorefrontIconsPage = ({
       await queryClient.invalidateQueries({ queryKey: ['admin', 'storefront-icons'] });
       await queryClient.invalidateQueries({ queryKey: ['storefront', 'icons'] });
       setEditingId(null);
-      setForm(emptyForm);
+      setForm(emptySectionForm);
       setIsDialogOpen(false);
       toast.success(result.message);
     },
@@ -578,7 +596,10 @@ export const StorefrontIconsPage = ({
   });
 
   const handleSave = () => {
-    const item = toPayload(form);
+    const item = toPayload({
+      ...form,
+      section: sectionFilter ?? form.section,
+    });
 
     if (!item.label || !item.icon) {
       toast.error(`Complete the ${itemLabel} name and icon fields.`);
@@ -593,7 +614,13 @@ export const StorefrontIconsPage = ({
     createMutation.mutate(item);
   };
 
-  const previewItem = { ...toPayload(form), id: editingId ?? 'preview' };
+  const previewItem = {
+    ...toPayload({
+      ...form,
+      section: sectionFilter ?? form.section,
+    }),
+    id: editingId ?? 'preview',
+  };
 
   return (
     <PageSection
@@ -605,7 +632,7 @@ export const StorefrontIconsPage = ({
         >
           <AppButton
             onClick={() => {
-              setForm(emptyForm);
+              setForm(emptySectionForm);
               setIconSearch('');
               setEditingId(null);
               setIsDialogOpen(true);

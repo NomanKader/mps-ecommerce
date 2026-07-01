@@ -1,14 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import KeyboardArrowRightRoundedIcon from '@mui/icons-material/KeyboardArrowRightRounded';
-import { Box, Button, Checkbox, Grid, Stack, TextField, Typography } from '@mui/material';
+import { Box, Checkbox, Grid, Stack, TextField, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
 import { categoryApi } from '@features/category/api/categoryApi';
 import { useCart } from '@features/cart/hooks/useCart';
+import { merchandisingApi } from '@features/home/api/merchandisingApi';
 import {
   featuredCategoryHighlights,
   shopBrands,
@@ -19,7 +20,10 @@ import type { FeatureHighlight, StoreProduct } from '@features/home/types/home.t
 import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
 import { useProducts } from '@features/product/hooks/useProducts';
 import { routePaths } from '@routes/routePaths';
-import { StoreProductCard } from '@shared/components/storefront/StoreProductCard';
+import {
+  StoreProductCard,
+  StoreProductCardSkeleton,
+} from '@shared/components/storefront/StoreProductCard';
 import { EmptyState } from '@shared/components/ui/EmptyState/EmptyState';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
 import { ProductFilters } from '@widgets/ProductFilters/ProductFilters';
@@ -1248,8 +1252,14 @@ const gridSx = {
 const categorySidebarColumnSx = {
   alignSelf: 'flex-start',
   position: { md: 'sticky', xs: 'static' },
-  top: { lg: 112, md: 112 },
+  top: { lg: 260, md: 260 },
   zIndex: 2,
+};
+
+const categorySidebarMaxHeight = {
+  lg: 'calc(100dvh - 284px)',
+  md: 'calc(100dvh - 284px)',
+  xs: 'none',
 };
 
 const sectionTitleSx = {
@@ -1654,9 +1664,12 @@ const PromoPoster = ({ imageUrl, title }: { imageUrl: string; title: string }) =
       backgroundPosition: 'center',
       backgroundSize: 'cover',
       borderRadius: 1,
-      height: 510,
+      height: '100%',
+      minHeight: 0,
+      minWidth: 0,
       overflow: 'hidden',
       position: 'relative',
+      width: '100%',
     }}
   >
     <Box
@@ -1666,11 +1679,13 @@ const PromoPoster = ({ imageUrl, title }: { imageUrl: string; title: string }) =
         color: '#ffffff',
         fontSize: '1.3rem',
         fontWeight: 900,
-        left: 54,
+        left: '50%',
         px: 3.2,
         py: 1.25,
         position: 'absolute',
         textTransform: 'uppercase',
+        transform: 'translateX(-50%)',
+        whiteSpace: 'nowrap',
       }}
     >
       Shop Now
@@ -1877,13 +1892,25 @@ const HighlightIcon = ({ item }: { item: FeatureHighlight }) => (
 );
 
 const CategoryFilterSidebar = ({
+  categoryCount,
   categoryTitle,
+  organicCount,
   productFilters,
+  promotionCount,
   sections,
+  subcategoryCounts,
+  newArrivalCount,
+  bestValueCount,
 }: {
+  bestValueCount?: number;
+  categoryCount?: number;
   categoryTitle: string;
+  newArrivalCount?: number;
+  organicCount?: number;
   productFilters: string[];
+  promotionCount?: number;
   sections: { icon: string; label: string }[];
+  subcategoryCounts?: Record<string, number>;
 }) => {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     brand: false,
@@ -1902,14 +1929,15 @@ const CategoryFilterSidebar = ({
     }));
   };
 
-  const sectionFilters = sections.map((section, index) => `${section.label} (${125 - index * 7})`);
+  const sectionFilters = sections.map((section) => `${section.label} (${subcategoryCounts?.[section.label] ?? 0})`);
+  const totalCategoryCount = categoryCount ?? 907;
   const categorySpecificFilters = [
-    `${categoryTitle} (907)`,
-    'Promotion (48)',
-    'New Arrivals (32)',
-    'Local (26)',
-    'Organic (18)',
-    'Best Value (41)',
+    `${categoryTitle} (${totalCategoryCount})`,
+    `Promotion (${promotionCount ?? 48})`,
+    `New Arrivals (${newArrivalCount ?? 32})`,
+    `Local (${categoryCount ?? 26})`,
+    `Organic (${organicCount ?? 18})`,
+    `Best Value (${bestValueCount ?? 41})`,
   ];
 
   return (
@@ -1918,7 +1946,7 @@ const CategoryFilterSidebar = ({
         backgroundColor: '#ffffff',
         border: `1px solid ${alpha('#dfe5ef', 0.95)}`,
         borderRadius: 1,
-        maxHeight: { lg: 'calc(100dvh - 128px)', md: 'calc(100dvh - 128px)', xs: 'none' },
+        maxHeight: categorySidebarMaxHeight,
         overflow: { md: 'auto', xs: 'hidden' },
         overscrollBehavior: 'contain',
       }}
@@ -2332,7 +2360,7 @@ const CategoryShowcasePage = ({
         <Box sx={{ borderTop: `1px solid ${alpha('#dfe5ef', 0.75)}`, pt: 3.4 }}>
           <Typography sx={sectionTitleSx}>Top Offers</Typography>
           <Box sx={{ ...gridSx, mt: 2.6 }}>
-            {products.topOffers.map((product) => (
+            {products.topOffers.slice(0, 5).map((product) => (
               <StoreProductCard key={product.id} onAddToCart={onAddToCart} product={product} />
             ))}
           </Box>
@@ -2340,20 +2368,8 @@ const CategoryShowcasePage = ({
 
         <Box>
           <Typography sx={sectionTitleSx}>New Products</Typography>
-          <Box
-            sx={{
-              display: 'grid',
-              gap: 2,
-              gridTemplateColumns: {
-                lg: 'repeat(6, minmax(0, 1fr))',
-                md: 'repeat(3, minmax(0, 1fr))',
-                sm: 'repeat(2, minmax(0, 1fr))',
-                xs: '1fr',
-              },
-              mt: 2.6,
-            }}
-          >
-            {products.newProducts.map((product) => (
+          <Box sx={{ ...gridSx, mt: 2.6 }}>
+            {products.newProducts.slice(0, 5).map((product) => (
               <StoreProductCard key={product.id} onAddToCart={onAddToCart} product={product} />
             ))}
           </Box>
@@ -2390,24 +2406,6 @@ const CategoryShowcasePage = ({
           >
             {config.promoTitle}
           </Box>
-          <Button
-            sx={{
-              backgroundColor: storefrontColors.navy,
-              borderRadius: 0,
-              bottom: 34,
-              color: '#ffffff',
-              fontSize: '1.4rem',
-              fontWeight: 900,
-              px: 3.4,
-              py: 1,
-              position: 'absolute',
-              right: 34,
-              textTransform: 'uppercase',
-              '&:hover': { backgroundColor: storefrontColors.navyDark },
-            }}
-          >
-            Shop Now
-          </Button>
         </Box>
 
         <Box>
@@ -2422,23 +2420,26 @@ const CategoryShowcasePage = ({
         <Box>
           <Typography sx={sectionTitleSx}>Have You Seen</Typography>
           <Grid container spacing={2.6} sx={{ mt: 2.6 }}>
-            <Grid size={{ lg: 2, md: 3, xs: 12 }} sx={categorySidebarColumnSx}>
+            <Grid size={{ lg: 2.4, md: 3.4, xs: 12 }} sx={categorySidebarColumnSx}>
               <CategoryFilterSidebar
                 categoryTitle={config.title}
                 productFilters={config.filterProducts}
                 sections={config.sections}
               />
             </Grid>
-            <Grid size={{ lg: 10, md: 9, xs: 12 }}>
+            <Grid size={{ lg: 9.6, md: 8.6, xs: 12 }}>
               <Box
                 sx={{
                   display: 'grid',
                   gap: 2,
                   gridTemplateColumns: {
-                    lg: 'repeat(5, minmax(0, 1fr))',
+                    lg: 'repeat(4, minmax(0, 1fr))',
                     md: 'repeat(3, minmax(0, 1fr))',
                     sm: 'repeat(2, minmax(0, 1fr))',
                     xs: '1fr',
+                  },
+                  '& > *': {
+                    minWidth: 0,
                   },
                 }}
               >
@@ -2450,7 +2451,332 @@ const CategoryShowcasePage = ({
                   imageUrl={config.posters[1] ?? config.promoImage}
                   title={config.posterTitles[1] ?? `${config.title} Essentials`}
                 />
-                {products.browsing.map((product) => (
+                {products.browsing.slice(0, 3).map((product) => (
+                  <StoreProductCard key={product.id} onAddToCart={onAddToCart} product={product} />
+                ))}
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+      </Stack>
+    </Box>
+  );
+};
+
+const PageSegmentCatalogPage = ({
+  onAddToCart,
+  segmentId,
+}: {
+  onAddToCart: (product: StoreProduct) => void;
+  segmentId: string;
+}) => {
+  const segmentQuery = useQuery({
+    queryFn: ({ signal }) => merchandisingApi.getStorefrontPageSegment(segmentId, { signal }),
+    queryKey: ['storefront', 'page-segment', segmentId],
+  });
+  const detail = segmentQuery.data;
+  const segment = detail?.segment;
+  const category = detail?.category;
+  const [activeHeroSlideIndex, setActiveHeroSlideIndex] = useState(0);
+  const heroSlides = segment?.topCarousel.length ? segment.topCarousel : [];
+  const heroSlide = heroSlides[activeHeroSlideIndex] ?? heroSlides[0];
+  const secondCarousel = segment?.afterNewProductsCarousel[0];
+  const posterCards = segment?.haveYouSeenCards.slice(0, 2) ?? [];
+  const categoryTitle = category?.name ?? segment?.title ?? 'Collection';
+  const categoryIcon = category?.icon ?? segment?.icon ?? '✦';
+  const subcategorySections = (category?.subcategories ?? []).map((subcategory) => ({
+    icon: subcategory.icon || categoryIcon,
+    label: subcategory.name,
+  }));
+  const sidebarSections = subcategorySections.length
+    ? subcategorySections
+    : [{ icon: categoryIcon, label: categoryTitle }];
+  const featureHighlights: FeatureHighlight[] = sidebarSections.map((section, index) => ({
+    color: category?.color ?? storefrontColors.success,
+    icon: section.icon,
+    id: `${segmentId}-${index}`,
+    label: section.label,
+    status: 'active',
+  }));
+  const filterProducts = (detail?.allProducts ?? []).slice(0, 10).map((product) => product.name);
+  const allProducts = detail?.allProducts ?? [];
+  const subcategoryCounts = sidebarSections.reduce<Record<string, number>>((counts, section) => {
+    counts[section.label] = allProducts.filter(
+      (product) => product.unit === section.label || product.origin === section.label,
+    ).length;
+    return counts;
+  }, {});
+  const promotionCount = detail?.topOffers.length ?? 0;
+  const newArrivalCount = detail?.newProducts.length ?? 0;
+  const organicCount = allProducts.filter((product) =>
+    [product.name, product.description, ...product.tags]
+      .join(' ')
+      .toLowerCase()
+      .includes('organic'),
+  ).length;
+  const bestValueCount = allProducts.filter(
+    (product) => product.rating >= 4 || product.tags.some((tag) => tag.toLowerCase().includes('value')),
+  ).length;
+  const heroImage = heroSlide?.imageUrl ?? segment?.imageUrl ?? '';
+  const heroTitle = heroSlide?.text || segment?.title || categoryTitle;
+  const secondCarouselImage = secondCarousel?.imageUrl ?? segment?.imageUrl ?? heroImage;
+  const secondCarouselTitle = secondCarousel?.text || segment?.title || categoryTitle;
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setActiveHeroSlideIndex(0), 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [segmentId]);
+
+  useEffect(() => {
+    if (heroSlides.length <= 1) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      setActiveHeroSlideIndex((current) => (current + 1) % heroSlides.length);
+    }, 4500);
+
+    return () => window.clearInterval(intervalId);
+  }, [heroSlides.length]);
+
+  if (segmentQuery.isLoading) {
+    return (
+      <Box sx={{ backgroundColor: '#ffffff', px: { lg: 5, xs: 2 }, py: { md: 2, xs: 2 } }}>
+        <Stack spacing={4.4} sx={{ maxWidth: 1600, mx: 'auto' }}>
+          <StoreProductCardSkeleton />
+        </Stack>
+      </Box>
+    );
+  }
+
+  if (!detail || !segment) {
+    return (
+      <PageSection
+        description="This page segment is no longer available."
+        title="Collection unavailable"
+      >
+        <EmptyState description="Choose another storefront collection." title="No segment found" />
+      </PageSection>
+    );
+  }
+
+  return (
+    <Box sx={{ backgroundColor: '#ffffff', px: { lg: 5, xs: 2 }, py: { md: 2, xs: 2 } }}>
+      <Stack spacing={4.4} sx={{ maxWidth: 1600, mx: 'auto' }}>
+        <Grid container spacing={2}>
+          <Grid size={{ lg: 10, md: 9, xs: 12 }}>
+            <Box
+              sx={{
+                borderRadius: 1,
+                height: categoryHeroHeight,
+                overflow: 'hidden',
+                position: 'relative',
+              }}
+            >
+              <Box
+                key={heroImage}
+                sx={{
+                  backgroundImage: `linear-gradient(90deg, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.1) 56%, rgba(0,0,0,0.18) 100%), url(${heroImage})`,
+                  backgroundPosition: 'center',
+                  backgroundSize: 'cover',
+                  inset: 0,
+                  position: 'absolute',
+                  animation: 'pageSegmentHeroFade 650ms ease both',
+                  '@keyframes pageSegmentHeroFade': {
+                    from: { opacity: 0.35, transform: 'scale(1.015)' },
+                    to: { opacity: 1, transform: 'scale(1)' },
+                  },
+                }}
+              />
+              <Box
+                key={heroTitle}
+                sx={{
+                  backgroundColor: storefrontColors.navy,
+                  color: '#ffffff',
+                  left: { md: 340, xs: 24 },
+                  maxWidth: 360,
+                  p: { md: 3, xs: 2 },
+                  position: 'absolute',
+                  top: { md: 58, xs: 48 },
+                  transition: 'opacity 280ms ease, transform 280ms ease',
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: { md: '2.1rem', xs: '1.6rem' },
+                    fontWeight: 900,
+                    lineHeight: 1.05,
+                  }}
+                >
+                  {heroTitle}
+                </Typography>
+                <Box
+                  sx={{
+                    backgroundColor: category?.color ?? storefrontColors.accent,
+                    height: 4,
+                    mt: 2.3,
+                    width: '100%',
+                  }}
+                />
+              </Box>
+              {heroSlides.length > 1 ? (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{
+                    bottom: 18,
+                    left: '50%',
+                    position: 'absolute',
+                    transform: 'translateX(-50%)',
+                  }}
+                >
+                  {heroSlides.map((slide, index) => (
+                    <Box
+                      aria-label={`Show slide ${index + 1}`}
+                      component="button"
+                      key={`${slide.imageUrl ?? 'slide'}-${index}`}
+                      onClick={() => setActiveHeroSlideIndex(index)}
+                      sx={{
+                        backgroundColor:
+                          index === activeHeroSlideIndex
+                            ? storefrontColors.surface
+                            : alpha('#ffffff', 0.45),
+                        border: 0,
+                        borderRadius: 999,
+                        cursor: 'pointer',
+                        height: 9,
+                        p: 0,
+                        transition: 'width 180ms ease, background-color 180ms ease',
+                        width: index === activeHeroSlideIndex ? 30 : 9,
+                      }}
+                      type="button"
+                    />
+                  ))}
+                </Stack>
+              ) : null}
+            </Box>
+          </Grid>
+          <Grid size={{ lg: 2, md: 3, xs: 12 }}>
+            <ShopBrandsPanel height={categoryHeroHeight} />
+          </Grid>
+        </Grid>
+
+        <Box>
+          <Typography sx={sectionTitleSx}>Shop {categoryTitle}</Typography>
+          <Stack direction="row" spacing={3.4} sx={{ mt: 2.2, overflowX: 'auto', pb: 1 }}>
+            {sidebarSections.map((section) => (
+              <Stack
+                key={section.label}
+                spacing={0.7}
+                sx={{ alignItems: 'center', flex: '0 0 auto', minWidth: 104 }}
+              >
+                <Box sx={{ fontSize: '2.6rem', height: 68 }}>{section.icon}</Box>
+                <Typography sx={{ color: '#4d4f56', fontSize: '0.92rem', fontWeight: 600 }}>
+                  {section.label}
+                </Typography>
+              </Stack>
+            ))}
+          </Stack>
+        </Box>
+
+        <Box sx={{ borderTop: `1px solid ${alpha('#dfe5ef', 0.75)}`, pt: 3.4 }}>
+          <Typography sx={sectionTitleSx}>Top Offers</Typography>
+          <Box sx={{ ...gridSx, mt: 2.6 }}>
+            {detail.topOffers.slice(0, 5).map((product) => (
+              <StoreProductCard key={product.id} onAddToCart={onAddToCart} product={product} />
+            ))}
+          </Box>
+        </Box>
+
+        <Box>
+          <Typography sx={sectionTitleSx}>New Products</Typography>
+          <Box sx={{ ...gridSx, mt: 2.6 }}>
+            {detail.newProducts.slice(0, 5).map((product) => (
+              <StoreProductCard key={product.id} onAddToCart={onAddToCart} product={product} />
+            ))}
+          </Box>
+        </Box>
+
+        {secondCarouselImage ? (
+          <Box
+            sx={{
+              backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.1)), url(${secondCarouselImage})`,
+              backgroundPosition: 'center',
+              backgroundSize: 'cover',
+              borderRadius: 1,
+              height: { md: 318, xs: 220 },
+              overflow: 'hidden',
+              position: 'relative',
+            }}
+          >
+            <Box
+              sx={{
+                backgroundColor: '#ffffff',
+                boxShadow: `0 12px 26px ${alpha('#000000', 0.18)}`,
+                color: storefrontColors.navy,
+                fontSize: { md: '3rem', xs: '1.85rem' },
+                fontWeight: 900,
+                left: '50%',
+                px: { md: 4, xs: 2 },
+                py: { md: 2.2, xs: 1.5 },
+                position: 'absolute',
+                textAlign: 'center',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: { md: 560, xs: '78%' },
+              }}
+            >
+              {secondCarouselTitle}
+            </Box>
+          </Box>
+        ) : null}
+
+        <Box>
+          <Typography sx={sectionTitleSx}>Featured Categories</Typography>
+          <Stack direction="row" spacing={2.8} sx={{ mt: 2.2, overflowX: 'auto', pb: 1.4 }}>
+            {featureHighlights.map((item) => (
+              <HighlightIcon item={item} key={item.id} />
+            ))}
+          </Stack>
+        </Box>
+
+        <Box>
+          <Typography sx={sectionTitleSx}>Have You Seen</Typography>
+          <Grid container spacing={2.6} sx={{ mt: 2.6 }}>
+            <Grid size={{ lg: 2.4, md: 3.4, xs: 12 }} sx={categorySidebarColumnSx}>
+              <CategoryFilterSidebar
+                bestValueCount={bestValueCount}
+                categoryCount={allProducts.length}
+                categoryTitle={categoryTitle}
+                newArrivalCount={newArrivalCount}
+                organicCount={organicCount}
+                productFilters={filterProducts}
+                promotionCount={promotionCount}
+                sections={sidebarSections}
+                subcategoryCounts={subcategoryCounts}
+              />
+            </Grid>
+            <Grid size={{ lg: 9.6, md: 8.6, xs: 12 }}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gap: 2,
+                  gridTemplateColumns: {
+                    lg: 'repeat(4, minmax(0, 1fr))',
+                    md: 'repeat(3, minmax(0, 1fr))',
+                    sm: 'repeat(2, minmax(0, 1fr))',
+                    xs: '1fr',
+                  },
+                  '& > *': { minWidth: 0 },
+                }}
+              >
+                {posterCards.map((poster, index) => (
+                  <PromoPoster
+                    imageUrl={poster.imageUrl ?? heroImage}
+                    key={index}
+                    title={poster.text || `${categoryTitle} Picks`}
+                  />
+                ))}
+                {detail.allProducts.map((product) => (
                   <StoreProductCard key={product.id} onAddToCart={onAddToCart} product={product} />
                 ))}
               </Box>
@@ -2464,6 +2790,7 @@ const CategoryShowcasePage = ({
 
 export const CatalogPage = () => {
   const { addToCart } = useCart();
+  const { segmentId } = useParams();
   const { data = [] } = useProducts();
   const { data: categories = [] } = useQuery({
     queryFn: ({ signal }) => categoryApi.getCategories({ signal }),
@@ -2513,6 +2840,9 @@ export const CatalogPage = () => {
       }),
     [catalogProducts, category, search, selectedProductIds],
   );
+  const visibleCatalogProducts = selectedProductIds.length
+    ? filteredProducts.slice(0, 5)
+    : filteredProducts;
 
   const updateSearchParams = (updates: { category?: string; search?: string }) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -2537,6 +2867,10 @@ export const CatalogPage = () => {
 
     setSearchParams(nextParams, { replace: true });
   };
+
+  if (segmentId) {
+    return <PageSegmentCatalogPage onAddToCart={addToCart} segmentId={segmentId} />;
+  }
 
   if (search && merchandisingPageTitles.has(pageTitle)) {
     return (
@@ -2572,8 +2906,8 @@ export const CatalogPage = () => {
           onSearchChange={(value) => updateSearchParams({ search: value })}
           search={search}
         />
-        {filteredProducts.length ? (
-          <ProductGrid onAddToCart={addToCart} products={filteredProducts} />
+        {visibleCatalogProducts.length ? (
+          <ProductGrid onAddToCart={addToCart} products={visibleCatalogProducts} />
         ) : (
           <EmptyState
             description="This catalog area is connected to the live API. Products for this selection will be available soon."

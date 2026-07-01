@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { GridActionsCellItem, type GridColDef } from '@mui/x-data-grid';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 
 import { adminApi } from '@features/admin/api/adminApi';
@@ -55,6 +55,12 @@ const emptyForm: AssignmentForm = {
   status: 'active',
 };
 
+type ProductSectionsPageProps = {
+  description?: string;
+  sectionFilter?: 'all' | StorefrontProductSectionId;
+  title?: string;
+};
+
 const toStoreProductOption = (product: AdminProduct): StoreProduct => ({
   badges: [],
   categoryId: product.categoryId ?? product.categoryName ?? 'all',
@@ -79,15 +85,28 @@ const getAssignmentId = (
   product: StoreProduct & Record<string, unknown>,
 ) => String(product.assignmentId ?? product.sectionAssignmentId ?? `${sectionId}-${product.id}`);
 
-export const ProductSectionsPage = () => {
+export const ProductSectionsPage = ({
+  description = 'Choose existing products for each homepage product section. This page only assigns catalog items; product creation stays in Products.',
+  sectionFilter: initialSectionFilter = 'all',
+  title = 'Product Sections',
+}: ProductSectionsPageProps) => {
   const queryClient = useQueryClient();
+  const emptySectionForm = useMemo(
+    () => ({
+      ...emptyForm,
+      sectionId: initialSectionFilter === 'all' ? emptyForm.sectionId : initialSectionFilter,
+    }),
+    [initialSectionFilter],
+  );
   const [deleteTarget, setDeleteTarget] = useState<AssignmentRow | null>(null);
-  const [form, setForm] = useState<AssignmentForm>(emptyForm);
+  const [form, setForm] = useState<AssignmentForm>(emptySectionForm);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
   const [productPickerSearch, setProductPickerSearch] = useState('');
   const [search, setSearch] = useState('');
-  const [sectionFilter, setSectionFilter] = useState<'all' | StorefrontProductSectionId>('all');
+  const [sectionFilter, setSectionFilter] = useState<'all' | StorefrontProductSectionId>(
+    initialSectionFilter,
+  );
 
   const sectionsQuery = useQuery({
     queryFn: ({ signal }) => merchandisingApi.listAdminProductSections({ signal }),
@@ -109,8 +128,11 @@ export const ProductSectionsPage = () => {
     () => (productsQuery.data ?? []).map(toStoreProductOption),
     [productsQuery.data],
   );
-  const sectionLabel = (sectionId: StorefrontProductSectionId) =>
-    sectionDefinitions.find((section) => section.id === sectionId)?.title ?? sectionId;
+  const sectionLabel = useCallback(
+    (sectionId: StorefrontProductSectionId) =>
+      sectionDefinitions.find((section) => section.id === sectionId)?.title ?? sectionId,
+    [sectionDefinitions],
+  );
 
   const rows = useMemo<AssignmentRow[]>(
     () =>
@@ -152,7 +174,7 @@ export const ProductSectionsPage = () => {
         (first, second) =>
           first.sectionId.localeCompare(second.sectionId) || first.sortOrder - second.sortOrder,
       );
-  }, [rows, search, sectionFilter, sectionDefinitions]);
+  }, [rows, search, sectionFilter, sectionLabel]);
 
   const assignedProductIds = new Set(
     rows
@@ -188,7 +210,7 @@ export const ProductSectionsPage = () => {
     onSuccess: async (results) => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'product-sections'] });
       await queryClient.invalidateQueries({ queryKey: ['storefront', 'product-sections'] });
-      setForm(emptyForm);
+      setForm(emptySectionForm);
       setProductPickerSearch('');
       setIsDialogOpen(false);
       toast.success(
@@ -326,7 +348,7 @@ export const ProductSectionsPage = () => {
               (assignment) => assignment.sectionId === form.sectionId,
             );
             setForm({
-              ...emptyForm,
+              ...emptySectionForm,
               sortOrder: nextSectionAssignments.length + 1,
             });
             setIsProductPickerOpen(false);
@@ -339,8 +361,8 @@ export const ProductSectionsPage = () => {
           Assign product
         </AppButton>
       }
-      description="Choose existing products for each homepage product section. This page only assigns catalog items; product creation stays in Products."
-      title="Product Sections"
+      description={description}
+      title={title}
     >
       <Grid container spacing={2} sx={{ mb: 2 }}>
         {sectionDefinitions.map((section) => {

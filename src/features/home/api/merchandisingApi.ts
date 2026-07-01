@@ -9,6 +9,8 @@ import type {
   StorefrontCarouselSlide,
   StorefrontHighlightItem,
   StorefrontHighlightSection,
+  StorefrontPageSegment,
+  StorefrontPageSegmentSlide,
   StorefrontProductSection,
   StorefrontProductSectionAssignment,
   StorefrontSecondaryCategory,
@@ -19,6 +21,14 @@ type BackendEntity<T extends { id: string }> = Omit<T, 'id'> & MongoEntity;
 type BackendCategory = Omit<Category, 'id' | 'subcategories'> &
   MongoEntity & {
     subcategories?: string[];
+  };
+type BackendStoreProduct = Omit<Partial<StoreProduct>, 'id' | 'inventory'> &
+  MongoEntity & {
+    categoryName?: string;
+    description?: string;
+    imageUrl?: string | null;
+    stock?: number;
+    subcategory?: string;
   };
 type ListOptions = { signal?: globalThis.AbortSignal };
 type Query = Record<string, string | undefined>;
@@ -71,6 +81,31 @@ export type AdminProductSectionResponse = {
 };
 
 export type ProductSectionAssignmentPayload = Omit<StorefrontProductSectionAssignment, 'id'>;
+
+export type PageSegmentDetailResponse = {
+  allProducts: StoreProduct[];
+  category: Category | null;
+  newProducts: StoreProduct[];
+  segment: StorefrontPageSegment;
+  subcategories: string[];
+  topOffers: StoreProduct[];
+};
+
+type PageSegmentSlidePayload = Omit<StorefrontPageSegmentSlide, 'imageUrl'> & {
+  image?: File | null;
+  removeImage?: boolean;
+};
+
+export type PageSegmentPayload = Omit<
+  StorefrontPageSegment,
+  'id' | 'imageUrl' | 'topCarousel' | 'afterNewProductsCarousel' | 'haveYouSeenCards'
+> & {
+  afterNewProductsCarousel: PageSegmentSlidePayload[];
+  haveYouSeenCards: PageSegmentSlidePayload[];
+  image?: File | null;
+  removeImage?: boolean;
+  topCarousel: PageSegmentSlidePayload[];
+};
 
 const mapId = <T extends MongoEntity>({ _id, ...entity }: T) => ({ ...entity, id: _id });
 const params = (query: Query) =>
@@ -133,6 +168,25 @@ const normalizeSecondaryCategory = (
   };
 };
 
+const normalizeStoreProduct = ({ _id, stock, subcategory, categoryName, ...product }: BackendStoreProduct): StoreProduct => ({
+  badges: product.badges ?? [],
+  categoryId: product.categoryId ?? 'all',
+  currency: product.currency ?? 'MMK',
+  description: product.description ?? '',
+  id: _id,
+  imageUrl: product.imageUrl ?? '',
+  inventory: stock ?? 0,
+  name: product.name ?? '',
+  origin: product.origin ?? categoryName ?? subcategory ?? '',
+  price: product.price ?? 0,
+  rating: product.rating ?? 0,
+  sku: product.sku ?? '',
+  slug: product.slug ?? slugify(product.name ?? _id),
+  tags: product.tags ?? [],
+  tenantId: product.tenantId ?? '',
+  unit: product.unit ?? subcategory ?? 'item',
+});
+
 const carouselFormData = (payload: CarouselPayload) => {
   const formData = new FormData();
 
@@ -164,6 +218,49 @@ const carouselFormData = (payload: CarouselPayload) => {
   return formData;
 };
 
+const pageSegmentFormData = (payload: PageSegmentPayload) => {
+  const formData = new FormData();
+
+  formData.append('title', payload.title);
+  formData.append('primaryCategoryId', payload.primaryCategoryId);
+  formData.append('displaySlot', payload.displaySlot);
+  formData.append('icon', payload.icon ?? '');
+  formData.append('sortOrder', String(payload.sortOrder));
+  formData.append('status', payload.status);
+  formData.append(
+    'topCarousel',
+    JSON.stringify(payload.topCarousel.map(({ image: _image, ...slide }) => slide)),
+  );
+  formData.append(
+    'afterNewProductsCarousel',
+    JSON.stringify(payload.afterNewProductsCarousel.map(({ image: _image, ...slide }) => slide)),
+  );
+  formData.append(
+    'haveYouSeenCards',
+    JSON.stringify(payload.haveYouSeenCards.map(({ image: _image, ...slide }) => slide)),
+  );
+
+  if (payload.image) {
+    formData.append('image', payload.image);
+  }
+
+  if (payload.removeImage) {
+    formData.append('removeImage', 'true');
+  }
+
+  payload.topCarousel.forEach((slide, index) => {
+    if (slide.image) formData.append(`topCarousel.${index}.image`, slide.image);
+  });
+  payload.afterNewProductsCarousel.forEach((slide, index) => {
+    if (slide.image) formData.append(`afterNewProductsCarousel.${index}.image`, slide.image);
+  });
+  payload.haveYouSeenCards.forEach((slide, index) => {
+    if (slide.image) formData.append(`haveYouSeenCards.${index}.image`, slide.image);
+  });
+
+  return formData;
+};
+
 export const merchandisingApi = {
   async assignProductToSection(payload: ProductSectionAssignmentPayload) {
     const response = await apiClient.post<
@@ -178,6 +275,13 @@ export const merchandisingApi = {
     );
     return { ...response.data, data: normalizeEntity(response.data.data) };
   },
+  async createPageSegment(payload: PageSegmentPayload) {
+    const response = await apiClient.post<ApiResponse<BackendEntity<StorefrontPageSegment>>>(
+      endpoints.admin.pageSegments,
+      pageSegmentFormData(payload),
+    );
+    return { ...response.data, data: normalizeEntity(response.data.data) };
+  },
   async createStorefrontIcon(payload: Omit<StorefrontHighlightItem, 'id'>) {
     const response = await apiClient.post<ApiResponse<BackendEntity<StorefrontHighlightItem>>>(
       endpoints.admin.storefrontIcons,
@@ -187,6 +291,10 @@ export const merchandisingApi = {
   },
   async deleteCarouselSlide(id: string) {
     return (await apiClient.delete<ApiResponse<{ id: string }>>(endpoints.admin.carouselSlide(id)))
+      .data;
+  },
+  async deletePageSegment(id: string) {
+    return (await apiClient.delete<ApiResponse<{ id: string }>>(endpoints.admin.pageSegment(id)))
       .data;
   },
   async deleteProductSectionAssignment(id: string) {
@@ -235,6 +343,20 @@ export const merchandisingApi = {
 
     return normalizeProductSections(response);
   },
+  async listAdminPageSegments(
+    query: {
+      displaySlot?: StorefrontPageSegment['displaySlot'] | 'all';
+      primaryCategoryId?: string;
+      status?: StorefrontPageSegment['status'] | 'all';
+    } = {},
+    options: ListOptions = {},
+  ) {
+    const response = await apiClient.get<ApiResponse<Array<BackendEntity<StorefrontPageSegment>>>>(
+      endpoints.admin.pageSegments,
+      { params: params(query), signal: options.signal },
+    );
+    return response.data.data.map(normalizeEntity);
+  },
   async listAdminStorefrontIcons(
     query: { section?: StorefrontHighlightSection | 'all' } = {},
     options: ListOptions = {},
@@ -266,6 +388,36 @@ export const merchandisingApi = {
     >(endpoints.storefront.icons, { params: { section }, signal: options.signal });
     return response.data.data.map(normalizeEntity);
   },
+  async listStorefrontPageSegments(options: ListOptions = {}) {
+    const response = await apiClient.get<ApiResponse<Array<BackendEntity<StorefrontPageSegment>>>>(
+      endpoints.storefront.pageSegments,
+      { signal: options.signal },
+    );
+    return response.data.data.map(normalizeEntity);
+  },
+  async getStorefrontPageSegment(id: string, options: ListOptions = {}) {
+    const response = await apiClient.get<
+      ApiResponse<
+        Omit<PageSegmentDetailResponse, 'category' | 'segment'> & {
+          allProducts: BackendStoreProduct[];
+          category: BackendCategory | null;
+          newProducts: BackendStoreProduct[];
+          segment: BackendEntity<StorefrontPageSegment>;
+          topOffers: BackendStoreProduct[];
+        }
+      >
+    >(endpoints.storefront.pageSegment(id), { signal: options.signal });
+    const detail = response.data.data;
+
+    return {
+      ...detail,
+      allProducts: detail.allProducts.map(normalizeStoreProduct),
+      category: detail.category ? mapCategory(detail.category) : null,
+      newProducts: detail.newProducts.map(normalizeStoreProduct),
+      segment: normalizeEntity(detail.segment),
+      topOffers: detail.topOffers.map(normalizeStoreProduct),
+    };
+  },
   async listStorefrontProductSections(options: ListOptions = {}) {
     const response = (
       await apiClient.get<ApiResponse<StorefrontProductSectionResponse>>(
@@ -291,6 +443,13 @@ export const merchandisingApi = {
     const response = await apiClient.put<ApiResponse<BackendEntity<StorefrontCarouselSlide>>>(
       endpoints.admin.carouselSlide(id),
       carouselFormData(payload),
+    );
+    return { ...response.data, data: normalizeEntity(response.data.data) };
+  },
+  async updatePageSegment(id: string, payload: PageSegmentPayload) {
+    const response = await apiClient.put<ApiResponse<BackendEntity<StorefrontPageSegment>>>(
+      endpoints.admin.pageSegment(id),
+      pageSegmentFormData(payload),
     );
     return { ...response.data, data: normalizeEntity(response.data.data) };
   },

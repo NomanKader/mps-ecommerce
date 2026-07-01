@@ -28,6 +28,7 @@ import logoImage from '@assets/images/logo.png';
 import { merchandisingApi } from '@features/home/api/merchandisingApi';
 import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
+import { validateImageFileSelection } from '@shared/utils/imageFileValidation';
 import { useAppDispatch } from '@store/hooks';
 import type { RootState } from '@store/index';
 import { setSession } from '@store/slices/auth.slice';
@@ -231,8 +232,7 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
       return;
     }
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Choose an image file for the app logo.');
+    if (!validateImageFileSelection(file, 'app logo')) {
       event.target.value = '';
       return;
     }

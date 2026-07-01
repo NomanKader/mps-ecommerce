@@ -2,10 +2,12 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
 import {
   Box,
   Checkbox,
   Chip,
+  Divider,
   Dialog,
   DialogActions,
   DialogContent,
@@ -92,6 +94,7 @@ const selectedValueToProductIds = (value: unknown) => [
 export const SecondaryCategoriesPage = () => {
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<AdminSecondaryCategory | null>(null);
+  const [detailTarget, setDetailTarget] = useState<AdminSecondaryCategory | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<SecondaryCategoryForm>(emptyForm);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -119,6 +122,10 @@ export const SecondaryCategoriesPage = () => {
   );
   const targetSectionLabel = (sectionId: AdminSecondaryCategory['targetSectionId']) =>
     targetSectionOptions.find((option) => option.value === sectionId)?.label ?? sectionId;
+  const getCategoryProductIds = (row: AdminSecondaryCategory) =>
+    row.productIds?.length ? row.productIds : row.productId ? [row.productId] : [];
+  const getCategoryProductNames = (row: AdminSecondaryCategory) =>
+    getCategoryProductIds(row).map((productId) => productById.get(productId)?.name ?? productId);
 
   const columns: GridColDef<AdminSecondaryCategory>[] = [
     {
@@ -148,9 +155,6 @@ export const SecondaryCategoriesPage = () => {
             <Typography noWrap sx={{ fontWeight: 800 }} variant="body2">
               {params.row.name}
             </Typography>
-            <Typography noWrap color="text.secondary" variant="caption">
-              /{params.row.slug}
-            </Typography>
           </Stack>
         </Stack>
       ),
@@ -167,17 +171,7 @@ export const SecondaryCategoriesPage = () => {
       flex: 1,
       headerName: 'Products',
       minWidth: 220,
-      valueGetter: (_value, row) => {
-        const productIds = row.productIds?.length
-          ? row.productIds
-          : row.productId
-            ? [row.productId]
-            : [];
-
-        return productIds
-          .map((productId) => productById.get(productId)?.name ?? productId)
-          .join(', ');
-      },
+      valueGetter: (_value, row) => getCategoryProductNames(row).join(', '),
     },
     {
       field: 'status',
@@ -194,6 +188,13 @@ export const SecondaryCategoriesPage = () => {
     {
       field: 'actions',
       getActions: ({ row }) => [
+        <GridActionsCellItem
+          icon={<VisibilityRoundedIcon />}
+          key="detail"
+          label="Details"
+          onClick={() => setDetailTarget(row)}
+          showInMenu={false}
+        />,
         <GridActionsCellItem
           icon={<EditRoundedIcon />}
           key="edit"
@@ -223,7 +224,7 @@ export const SecondaryCategoriesPage = () => {
         />,
       ],
       type: 'actions',
-      width: 90,
+      width: 130,
     },
   ];
 
@@ -322,6 +323,7 @@ export const SecondaryCategoriesPage = () => {
           },
         }}
         loading={secondaryCategoriesQuery.isLoading}
+        rowHeight={60}
         rows={secondaryCategories}
       />
 
@@ -501,6 +503,153 @@ export const SecondaryCategoriesPage = () => {
           >
             Delete
           </AppButton>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        fullWidth
+        maxWidth="md"
+        onClose={() => setDetailTarget(null)}
+        open={Boolean(detailTarget)}
+      >
+        <DialogTitle>Secondary category details</DialogTitle>
+        <DialogContent>
+          {detailTarget ? (
+            <Stack spacing={2.5} sx={{ pt: 0.5 }}>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                <Box
+                  sx={{
+                    alignItems: 'center',
+                    bgcolor: detailTarget.color ?? '#2db34b',
+                    borderRadius: '50%',
+                    color: '#ffffff',
+                    display: 'flex',
+                    flex: '0 0 auto',
+                    fontSize: 24,
+                    height: 50,
+                    justifyContent: 'center',
+                    width: 50,
+                  }}
+                >
+                  {detailTarget.icon ?? '🌿'}
+                </Box>
+                <Stack sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontWeight: 900 }} variant="h5">
+                    {detailTarget.name}
+                  </Typography>
+                  <Typography color="text.secondary" variant="body2">
+                    /{detailTarget.slug}
+                  </Typography>
+                </Stack>
+                <Chip
+                  color={detailTarget.status === 'active' ? 'success' : 'default'}
+                  label={detailTarget.status}
+                  size="small"
+                  sx={{ ml: 'auto' }}
+                />
+              </Stack>
+
+              <Divider />
+
+              <Grid container spacing={2}>
+                <Grid size={{ md: 4, xs: 12 }}>
+                  <Typography color="text.secondary" variant="caption">
+                    Target section
+                  </Typography>
+                  <Typography sx={{ fontWeight: 800 }}>
+                    {targetSectionLabel(detailTarget.targetSectionId)}
+                  </Typography>
+                </Grid>
+                <Grid size={{ md: 4, xs: 12 }}>
+                  <Typography color="text.secondary" variant="caption">
+                    Theme color
+                  </Typography>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                    <Box
+                      sx={{
+                        bgcolor: detailTarget.color ?? '#2db34b',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 0.75,
+                        height: 22,
+                        width: 38,
+                      }}
+                    />
+                    <Typography sx={{ fontWeight: 800 }}>
+                      {detailTarget.color ?? '#2db34b'}
+                    </Typography>
+                  </Stack>
+                </Grid>
+                <Grid size={{ md: 4, xs: 12 }}>
+                  <Typography color="text.secondary" variant="caption">
+                    Products
+                  </Typography>
+                  <Typography sx={{ fontWeight: 800 }}>
+                    {getCategoryProductIds(detailTarget).length}
+                  </Typography>
+                </Grid>
+              </Grid>
+
+              <Stack spacing={1.25}>
+                <Typography sx={{ fontWeight: 900 }}>Linked products</Typography>
+                <Box
+                  sx={{
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    maxHeight: 320,
+                    overflow: 'auto',
+                  }}
+                >
+                  {getCategoryProductIds(detailTarget).length ? (
+                    getCategoryProductIds(detailTarget).map((productId) => {
+                      const product = productById.get(productId);
+
+                      return (
+                        <Stack
+                          direction={{ sm: 'row', xs: 'column' }}
+                          key={productId}
+                          spacing={1}
+                          sx={{
+                            alignItems: { sm: 'center', xs: 'flex-start' },
+                            borderBottom: '1px solid',
+                            borderColor: 'divider',
+                            px: 2,
+                            py: 1.25,
+                            '&:last-of-type': { borderBottom: 0 },
+                          }}
+                        >
+                          <Stack sx={{ minWidth: 0 }}>
+                            <Typography noWrap sx={{ fontWeight: 800 }}>
+                              {product?.name ?? productId}
+                            </Typography>
+                            <Typography color="text.secondary" variant="caption">
+                              {product?.sku ?? productId}
+                              {product?.categoryName ? ` / ${product.categoryName}` : ''}
+                            </Typography>
+                          </Stack>
+                          {product ? (
+                            <Chip
+                              label={`${product.price.toLocaleString()} ${product.currency}`}
+                              size="small"
+                              sx={{ ml: { sm: 'auto' } }}
+                            />
+                          ) : null}
+                        </Stack>
+                      );
+                    })
+                  ) : (
+                    <Typography color="text.secondary" sx={{ px: 2, py: 1.5 }}>
+                      No linked products.
+                    </Typography>
+                  )}
+                </Box>
+              </Stack>
+            </Stack>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <AppButton onClick={() => setDetailTarget(null)}>Close</AppButton>
         </DialogActions>
       </Dialog>
     </PageSection>

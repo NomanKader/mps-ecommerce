@@ -19,7 +19,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { GridActionsCellItem, type GridColDef } from '@mui/x-data-grid';
+import { GridActionsCellItem, type GridColDef, type GridPaginationModel } from '@mui/x-data-grid';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -86,6 +86,10 @@ export const OrdersManagementPage = () => {
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [statusFilter, setStatusFilter] = useState<AdminOrderStatus | 'all'>('all');
+  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+    page: 0,
+    pageSize: 10,
+  });
   const debouncedSearch = useDebounce(search);
   const ordersQuery = useQuery({
     queryFn: ({ signal }) =>
@@ -106,6 +110,11 @@ export const OrdersManagementPage = () => {
   });
   const orders = ordersQuery.data ?? [];
   const stats = statsQuery.data ?? { fulfilled: 0, netRevenue: 0, openOrders: 0 };
+
+  const resetPagination = () => {
+    setPaginationModel((current) => ({ ...current, page: 0 }));
+  };
+
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: AdminOrderStatus }) =>
       adminApi.updateOrderStatus(id, status),
@@ -228,7 +237,10 @@ export const OrdersManagementPage = () => {
       >
         <TextField
           label="Search orders"
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            resetPagination();
+          }}
           placeholder="Order, customer, phone, township"
           slotProps={{
             input: {
@@ -244,7 +256,10 @@ export const OrdersManagementPage = () => {
         />
         <TextField
           label="Status"
-          onChange={(event) => setStatusFilter(event.target.value as AdminOrderStatus | 'all')}
+          onChange={(event) => {
+            setStatusFilter(event.target.value as AdminOrderStatus | 'all');
+            resetPagination();
+          }}
           select
           sx={{ minWidth: { lg: 170 } }}
           value={statusFilter}
@@ -257,14 +272,20 @@ export const OrdersManagementPage = () => {
         </TextField>
         <TextField
           label="From date"
-          onChange={(event) => setStartDate(event.target.value)}
+          onChange={(event) => {
+            setStartDate(event.target.value);
+            resetPagination();
+          }}
           slotProps={{ inputLabel: { shrink: true } }}
           type="date"
           value={startDate}
         />
         <TextField
           label="To date"
-          onChange={(event) => setEndDate(event.target.value)}
+          onChange={(event) => {
+            setEndDate(event.target.value);
+            resetPagination();
+          }}
           slotProps={{ inputLabel: { shrink: true } }}
           type="date"
           value={endDate}
@@ -278,7 +299,16 @@ export const OrdersManagementPage = () => {
         {ordersQuery.isError ? (
           <Alert severity="error">{toApiError(ordersQuery.error).message}</Alert>
         ) : null}
-        <AppDataTable columns={columns} loading={ordersQuery.isLoading} rows={orders} />
+        <AppDataTable
+          columns={columns}
+          loading={ordersQuery.isLoading}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 20, 50]}
+          pagination
+          paginationModel={paginationModel}
+          rowHeight={60}
+          rows={orders}
+        />
       </Stack>
 
       <Dialog

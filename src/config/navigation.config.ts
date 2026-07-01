@@ -12,7 +12,6 @@ import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalance
 import SegmentOutlinedIcon from '@mui/icons-material/SegmentOutlined';
 import ShoppingBasketOutlinedIcon from '@mui/icons-material/ShoppingBasketOutlined';
 import ViewAgendaOutlinedIcon from '@mui/icons-material/ViewAgendaOutlined';
-import ViewCarouselOutlinedIcon from '@mui/icons-material/ViewCarouselOutlined';
 import ViewListOutlinedIcon from '@mui/icons-material/ViewListOutlined';
 import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
 
@@ -34,12 +33,6 @@ export const dashboardNavigation: NavigationItem[] = [
     label: 'User',
     path: routePaths.tenantAdmin.adminUser,
     requiredRoles: ['tenant_admin'],
-  },
-  { icon: ViewCarouselOutlinedIcon, label: 'Carousel', path: routePaths.tenantAdmin.carousel },
-  {
-    icon: WidgetsOutlinedIcon,
-    label: 'Icon',
-    path: routePaths.tenantAdmin.storefrontIcons,
   },
   {
     icon: ShoppingBasketOutlinedIcon,
@@ -66,6 +59,11 @@ export const dashboardNavigation: NavigationItem[] = [
     icon: ViewAgendaOutlinedIcon,
     label: 'Product Sections',
     path: routePaths.tenantAdmin.productSections,
+  },
+  {
+    icon: WidgetsOutlinedIcon,
+    label: 'Page Segments',
+    path: routePaths.tenantAdmin.pageSegments,
   },
 
   { icon: DiscountOutlinedIcon, label: 'Promotion', path: routePaths.tenantAdmin.promotions },

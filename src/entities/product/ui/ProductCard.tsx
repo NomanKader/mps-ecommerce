@@ -29,7 +29,10 @@ export const ProductCard = ({ onAddToCart, product }: ProductCardProps) => {
     <Card
       sx={{
         borderRadius: 1,
+        display: 'flex',
+        flexDirection: 'column',
         height: '100%',
+        width: '100%',
         transition: 'transform 180ms ease, box-shadow 180ms ease',
         '&:hover': {
           boxShadow: 8,
@@ -85,7 +88,7 @@ export const ProductCard = ({ onAddToCart, product }: ProductCardProps) => {
           {productIsFavorite ? <FavoriteRoundedIcon /> : <FavoriteBorderRoundedIcon />}
         </IconButton>
       </Box>
-      <CardContent sx={{ display: 'grid', gap: 2 }}>
+      <CardContent sx={{ display: 'flex', flex: 1, flexDirection: 'column', gap: 2 }}>
         <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between' }}>
           <Typography
             component={Link}
@@ -97,7 +100,7 @@ export const ProductCard = ({ onAddToCart, product }: ProductCardProps) => {
           </Typography>
           <Chip color="primary" label={product.tags[0] ?? 'catalog'} size="small" />
         </Stack>
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="text.secondary" sx={{ flex: 1 }} variant="body2">
           {product.description}
         </Typography>
         <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
@@ -113,6 +116,7 @@ export const ProductCard = ({ onAddToCart, product }: ProductCardProps) => {
           fullWidth
           startIcon={<AddShoppingCartOutlinedIcon />}
           onClick={() => onAddToCart?.(product)}
+          sx={{ mt: 'auto' }}
         >
           Add to Cart
         </AppButton>

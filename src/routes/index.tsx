@@ -23,6 +23,7 @@ import { CustomersPage } from '@pages/TenantAdmin/CustomersPage/CustomersPage';
 import { DashboardPage } from '@pages/TenantAdmin/DashboardPage/DashboardPage';
 import { DeliveryFeesPage } from '@pages/TenantAdmin/DeliveryFeesPage/DeliveryFeesPage';
 import { OrdersManagementPage } from '@pages/TenantAdmin/OrdersManagementPage/OrdersManagementPage';
+import { PageSegmentsPage } from '@pages/TenantAdmin/PageSegmentsPage/PageSegmentsPage';
 import { ProductsPage } from '@pages/TenantAdmin/ProductsPage/ProductsPage';
 import { ProductSectionsPage } from '@pages/TenantAdmin/ProductSectionsPage/ProductSectionsPage';
 import { PromotionsPage } from '@pages/TenantAdmin/PromotionsPage/PromotionsPage';
@@ -85,6 +86,7 @@ export const router = createBrowserRouter([
         children: [
           { element: <HomePage />, path: routePaths.home },
           { element: <CatalogPage />, path: routePaths.catalog },
+          { element: <CatalogPage />, path: routePaths.pageSegmentDetails },
           { element: <CartPage />, path: routePaths.cart },
           { element: <ProductDetailsPage />, path: routePaths.productDetails },
           ...sustainableShoppingRoutes,
@@ -152,9 +154,83 @@ export const router = createBrowserRouter([
               { element: <OrdersManagementPage />, path: routePaths.tenantAdmin.orders },
               { element: <WalletTopUpsPage />, path: routePaths.tenantAdmin.walletTopUps },
               { element: <CustomersPage />, path: routePaths.tenantAdmin.customers },
+              { element: <PageSegmentsPage />, path: routePaths.tenantAdmin.pageSegments },
               { element: <ProductSectionsPage />, path: routePaths.tenantAdmin.productSections },
+              {
+                element: (
+                  <ProductSectionsPage
+                    description="Manage products shown in the catalog Top Offers row."
+                    sectionFilter="top-offers"
+                    title="Top Offers"
+                  />
+                ),
+                path: routePaths.tenantAdmin.topOffersSection,
+              },
+              {
+                element: (
+                  <ProductSectionsPage
+                    description="Manage products shown in the catalog New Products row."
+                    sectionFilter="new-season"
+                    title="New Products"
+                  />
+                ),
+                path: routePaths.tenantAdmin.newProductsSection,
+              },
+              {
+                element: (
+                  <ProductSectionsPage
+                    description="Manage products shown in the Top Blooms product segment."
+                    sectionFilter="top-blooms"
+                    title="Top Blooms"
+                  />
+                ),
+                path: routePaths.tenantAdmin.topBloomsSection,
+              },
+              {
+                element: (
+                  <ProductSectionsPage
+                    description="Manage pantry and ready meal products used by catalog product segments."
+                    sectionFilter="pantry-ready"
+                    title="Pantry & Ready Meals"
+                  />
+                ),
+                path: routePaths.tenantAdmin.pantryReadySection,
+              },
               { element: <CarouselPage />, path: routePaths.tenantAdmin.carousel },
               { element: <StorefrontIconsPage />, path: routePaths.tenantAdmin.storefrontIcons },
+              {
+                element: (
+                  <StorefrontIconsPage
+                    description="Manage the compact feature cards displayed in storefront feature rows."
+                    itemLabel="card"
+                    sectionFilter="featured"
+                    title="Featured Cards"
+                  />
+                ),
+                path: routePaths.tenantAdmin.featuredCards,
+              },
+              {
+                element: (
+                  <StorefrontIconsPage
+                    description="Manage merchandising cards for page sections such as the homepage card row."
+                    itemLabel="card"
+                    sectionFilter="merchandising"
+                    title="Merchandising Cards"
+                  />
+                ),
+                path: routePaths.tenantAdmin.merchandisingCards,
+              },
+              {
+                element: (
+                  <StorefrontIconsPage
+                    description="Manage poster-style merchandising cards in the Have You Seen area."
+                    itemLabel="card"
+                    sectionFilter="merchandising"
+                    title="Have You Seen"
+                  />
+                ),
+                path: routePaths.tenantAdmin.haveYouSeen,
+              },
               { element: <PromotionsPage />, path: routePaths.tenantAdmin.promotions },
               { element: <RegionsPage />, path: routePaths.tenantAdmin.regions },
               { element: <TownshipsPage />, path: routePaths.tenantAdmin.townships },

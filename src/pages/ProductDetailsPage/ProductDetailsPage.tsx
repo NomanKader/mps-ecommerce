@@ -217,7 +217,6 @@ const ProductDetailsSkeleton = () => (
 const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
   const { addToCart } = useCart();
   const allProductsQuery = useProducts();
-  const data = allProductsQuery.data ?? [];
   const productQuery = useQuery({
     enabled: Boolean(productId),
     queryFn: ({ signal }) => productApi.getProductById(productId, { signal }),
@@ -235,13 +234,16 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
     [product],
   );
   const relatedProducts = useMemo(
-    () =>
-      product
-        ? data
+    () => {
+      const products = allProductsQuery.data ?? [];
+
+      return product
+        ? products
             .filter((item) => item.id !== product.id && item.categoryId === product.categoryId)
             .slice(0, 4)
-        : [],
-    [data, product],
+        : [];
+    },
+    [allProductsQuery.data, product],
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(0);

@@ -54,7 +54,7 @@ export const WalletTopUpsPage = () => {
       ),
     queryKey: ['admin', 'wallet-topups', statusFilter],
   });
-  const topUps = topUpsQuery.data ?? [];
+  const topUps = useMemo(() => topUpsQuery.data ?? [], [topUpsQuery.data]);
   const pendingCount = useMemo(() => topUps.filter((request) => request.status === 'pending').length, [topUps]);
 
   const closeReview = () => {

@@ -60,11 +60,32 @@ export type StorefrontProductSectionAssignment = {
   status: 'active' | 'hidden';
 };
 
+export type StorefrontPageSegmentSlide = {
+  imageUrl?: string | null;
+  sortOrder: number;
+  text?: string;
+};
+
+export type StorefrontPageSegment = {
+  afterNewProductsCarousel: StorefrontPageSegmentSlide[];
+  displaySlot: 'after-storefront-icons' | 'after-new-in-season';
+  haveYouSeenCards: StorefrontPageSegmentSlide[];
+  icon?: string;
+  id: string;
+  imageUrl?: string | null;
+  primaryCategoryId: string;
+  sortOrder: number;
+  status: 'active' | 'hidden';
+  title: string;
+  topCarousel: StorefrontPageSegmentSlide[];
+};
+
 export type PromoTile = {
   accent: string;
   cta: string;
   id: string;
   imageUrl: string;
+  pageSegmentId?: string;
   targetCategoryId: string;
   targetSearch?: string;
   title: string;

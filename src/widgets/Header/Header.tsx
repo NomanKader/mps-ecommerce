@@ -24,8 +24,8 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Link, matchPath, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
 
@@ -151,7 +151,14 @@ export const Header = () => {
     queryFn: ({ signal }) => merchandisingApi.listStorefrontCategories({ signal }),
     queryKey: ['storefront', 'categories'],
   });
-  const scrollFrameRef = useRef<number | null>(null);
+  const pageSegmentMatch = matchPath(routePaths.pageSegmentDetails, location.pathname);
+  const currentPageSegmentId = pageSegmentMatch?.params.segmentId;
+  const pageSegmentQuery = useQuery({
+    enabled: Boolean(currentPageSegmentId),
+    queryFn: ({ signal }) =>
+      merchandisingApi.getStorefrontPageSegment(String(currentPageSegmentId), { signal }),
+    queryKey: ['storefront', 'page-segment', currentPageSegmentId],
+  });
   const headerCategories = useMemo(() => {
     if (!storefrontCategoriesQuery.data?.length) {
       return storefrontCategories.map((category) => ({
@@ -192,49 +199,52 @@ export const Header = () => {
     location.pathname.startsWith(routePaths.account) &&
     location.pathname !== routePaths.accountFavourites;
   const productDetailsPathPrefix = routePaths.productDetails.split('/:')[0];
+  const pageSegmentDetailsPathPrefix = routePaths.pageSegmentDetails.split('/:')[0];
   const shouldShowCategoryNavigation =
     location.pathname === routePaths.home ||
     location.pathname === routePaths.catalog ||
-    location.pathname.startsWith(`${productDetailsPathPrefix}/`);
+    location.pathname.startsWith(`${productDetailsPathPrefix}/`) ||
+    location.pathname.startsWith(`${pageSegmentDetailsPathPrefix}/`);
 
   useEffect(() => {
     const updateScrolledState = () => {
-      scrollFrameRef.current = null;
-      setIsScrolled(window.scrollY > 24);
-    };
-
-    const handleScroll = () => {
-      if (scrollFrameRef.current === null) {
-        scrollFrameRef.current = window.requestAnimationFrame(updateScrolledState);
-      }
+      setIsScrolled(window.scrollY > 0);
     };
 
     updateScrolledState();
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', updateScrolledState, { passive: true });
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-
-      if (scrollFrameRef.current !== null) {
-        window.cancelAnimationFrame(scrollFrameRef.current);
-      }
+      window.removeEventListener('scroll', updateScrolledState);
     };
   }, []);
 
   useEffect(() => {
     if (!shouldShowCategoryNavigation) {
-      setActiveCategoryId(null);
+      const timeoutId = window.setTimeout(() => setActiveCategoryId(null), 0);
+
+      return () => window.clearTimeout(timeoutId);
     }
   }, [shouldShowCategoryNavigation]);
 
   useEffect(() => {
+    if (currentPageSegmentId) {
+      const categoryName = pageSegmentQuery.data?.category?.name;
+
+      if (categoryName) {
+        const timeoutId = window.setTimeout(() => setSearchValue(categoryName), 0);
+
+        return () => window.clearTimeout(timeoutId);
+      }
+    }
+
     if (location.pathname === routePaths.catalog) {
       const nextSearchValue = new URLSearchParams(location.search).get('search') ?? '';
       const timeoutId = window.setTimeout(() => setSearchValue(nextSearchValue), 0);
 
       return () => window.clearTimeout(timeoutId);
     }
-  }, [location.pathname, location.search]);
+  }, [currentPageSegmentId, location.pathname, location.search, pageSegmentQuery.data?.category?.name]);
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -662,11 +672,8 @@ export const Header = () => {
             overflowX: 'auto',
             overflowY: 'hidden',
             pb: isScrolled ? 0.35 : 0.5,
-            scrollBehavior: 'smooth',
             scrollSnapType: 'x proximity',
             WebkitOverflowScrolling: 'touch',
-            transition:
-              'padding 260ms cubic-bezier(0.22, 1, 0.36, 1), gap 260ms cubic-bezier(0.22, 1, 0.36, 1)',
             '&::-webkit-scrollbar': {
               height: 8,
             },
@@ -718,9 +725,6 @@ export const Header = () => {
                 textAlign: 'center',
                 textDecoration: 'none',
                 transform: 'translateZ(0)',
-                transition:
-                  'flex-basis 260ms cubic-bezier(0.22, 1, 0.36, 1), height 260ms cubic-bezier(0.22, 1, 0.36, 1), min-height 260ms cubic-bezier(0.22, 1, 0.36, 1), padding 260ms cubic-bezier(0.22, 1, 0.36, 1), gap 260ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, filter 180ms ease, transform 180ms ease',
-                willChange: 'flex-basis, height, padding, gap',
                 '&:hover': {
                   boxShadow: `0 10px 22px ${alpha(category.color, 0.28)}`,
                   filter: 'brightness(1.06)',
@@ -743,9 +747,6 @@ export const Header = () => {
                   transform: isScrolled
                     ? 'scale(0.72) translateY(-8px)'
                     : 'scale(1) translateY(0)',
-                  transition:
-                    'opacity 220ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1), height 260ms cubic-bezier(0.22, 1, 0.36, 1)',
-                  willChange: 'opacity, transform, height',
                 }}
                 variant="body1"
               >

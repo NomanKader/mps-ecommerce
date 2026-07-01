@@ -67,6 +67,7 @@ export const useWallet = (user: User | null) => {
       setStoredWallets({ ...wallets, [userKey]: userWallet });
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setWallet(userWallet);
   }, [userKey]);
 
@@ -184,7 +185,7 @@ export const useWallet = (user: User | null) => {
 
       return true;
     },
-    [persistWallets, user?.email, userKey, wallet.balance],
+    [persistWallets, user?.email, userKey, wallet.balance, wallet.reservedBalance],
   );
 
   return {

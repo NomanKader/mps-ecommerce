@@ -18,7 +18,9 @@ import {
   shopBrands,
   storefrontCategories,
 } from '@features/home/data/homePage.data';
+import { PageSegmentStrip } from '@features/home/ui/PageSegmentStrip';
 import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
+import { productMatchesHighlight } from '@features/home/utils/productHighlightMatching';
 import { useProducts } from '@features/product/hooks/useProducts';
 import {
   StoreProductCard,
@@ -34,6 +36,7 @@ import type {
   StorefrontCarouselSlide,
   StorefrontHighlightItem,
   StorefrontHighlightSection,
+  StorefrontPageSegment,
   StorefrontProductSectionId,
 } from '@features/home/types/home.types';
 
@@ -46,10 +49,17 @@ const promoTileThemes: Record<string, { accent: string; icon: string }> = {
 };
 
 const getPromoTilePath = (tile: {
+  id?: string;
+  pageSegmentId?: string;
+  productIds?: string[];
   targetCategoryId: string;
   targetSearch?: string;
   title: string;
 }) => {
+  if (tile.pageSegmentId) {
+    return routePaths.pageSegmentDetails.replace(':segmentId', tile.pageSegmentId);
+  }
+
   const params = new URLSearchParams({
     category: tile.targetCategoryId,
     title: tile.title,
@@ -57,6 +67,11 @@ const getPromoTilePath = (tile: {
 
   if (tile.targetSearch) {
     params.set('search', tile.targetSearch);
+  }
+
+  if (tile.productIds?.length) {
+    params.set('productIds', tile.productIds.slice(0, 5).join(','));
+    params.set('secondaryCategory', tile.id ?? tile.title);
   }
 
   return `${routePaths.catalog}?${params.toString()}`;
@@ -70,7 +85,7 @@ const getFeaturedHighlightPath = (item: {
 }) => {
   const category = storefrontCategories.find((categoryItem) => categoryItem.id === item.id);
   const productIds = item.productIds?.length
-    ? item.productIds
+    ? item.productIds.slice(0, 5)
     : item.productId
       ? [item.productId]
       : [];
@@ -310,6 +325,7 @@ const LazyProductSection = ({
   const loadTimerRef = useRef<number | null>(null);
   const [shouldLoad, setShouldLoad] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const visibleProducts = products.slice(0, 5);
 
   useEffect(() => {
     const target = rootRef.current;
@@ -382,7 +398,7 @@ const LazyProductSection = ({
             },
           }}
         >
-          {(isLoaded ? products : Array.from({ length: products.length }, () => null)).map(
+          {(isLoaded ? visibleProducts : Array.from({ length: visibleProducts.length }, () => null)).map(
             (product, index) => (
               <Box
                 key={product?.id ?? `${title}-mobile-skeleton-${index}`}
@@ -403,9 +419,13 @@ const LazyProductSection = ({
         spacing={2.5}
         sx={{ display: mobileHorizontal ? { md: 'flex', xs: 'none' } : 'flex' }}
       >
-        {(isLoaded ? products : Array.from({ length: products.length }, () => null)).map(
+        {(isLoaded ? visibleProducts : Array.from({ length: visibleProducts.length }, () => null)).map(
           (product, index) => (
-            <Grid key={product?.id ?? `${title}-skeleton-${index}`} size={gridSize}>
+            <Grid
+              key={product?.id ?? `${title}-skeleton-${index}`}
+              size={gridSize}
+              sx={{ display: 'flex' }}
+            >
               {isLoaded && product ? (
                 <StoreProductCard onAddToCart={(item) => onAddToCart(item)} product={product} />
               ) : (
@@ -674,6 +694,10 @@ export const HomePage = () => {
     queryFn: ({ signal }) => merchandisingApi.listStorefrontProductSections({ signal }),
     queryKey: ['storefront', 'product-sections'],
   });
+  const pageSegmentsQuery = useQuery({
+    queryFn: ({ signal }) => merchandisingApi.listStorefrontPageSegments({ signal }),
+    queryKey: ['storefront', 'page-segments'],
+  });
 
   const homeHeroSlides = heroCarouselQuery.data?.length
     ? heroCarouselQuery.data
@@ -698,12 +722,84 @@ export const HomePage = () => {
   const merchandisingHighlights: StorefrontHighlightItem[] = merchandisingIconsQuery.data?.length
     ? merchandisingIconsQuery.data
     : getDefaultHighlightItems('merchandising');
+  const [activeMerchandisingHighlightId, setActiveMerchandisingHighlightId] = useState<string | null>(
+    null,
+  );
+  const activeMerchandisingHighlight =
+    merchandisingHighlights.find((item) => item.id === activeMerchandisingHighlightId) ??
+    merchandisingHighlights[0];
+  const pageSegments = useMemo(() => pageSegmentsQuery.data ?? [], [pageSegmentsQuery.data]);
+  const afterStorefrontIconSegments = pageSegments.filter(
+    (segment) => segment.displaySlot === 'after-storefront-icons',
+  );
   const getBackendSectionProducts = (sectionId: StorefrontProductSectionId) =>
     productSectionsQuery.data?.sections.find((section) => section.id === sectionId)?.products ?? [];
   const assignedTopOffers = getBackendSectionProducts('top-offers');
   const assignedTopBlooms = getBackendSectionProducts('top-blooms');
   const assignedSeasonalProducts = getBackendSectionProducts('new-season');
   const assignedPantryProducts = getBackendSectionProducts('pantry-ready');
+  const allStorefrontSectionProducts = useMemo(
+    () => productSectionsQuery.data?.sections.flatMap((section) => section.products) ?? [],
+    [productSectionsQuery.data],
+  );
+  const sectionProductById = useMemo(() => {
+    return new Map(allStorefrontSectionProducts.map((product) => [product.id, product]));
+  }, [allStorefrontSectionProducts]);
+  const activePageSegmentByCategoryId = useMemo(() => {
+    const segmentsByCategoryId = new Map<string, StorefrontPageSegment>();
+
+    pageSegments
+      .filter((segment) => segment.status === 'active')
+      .forEach((segment) => {
+        if (!segmentsByCategoryId.has(segment.primaryCategoryId)) {
+          segmentsByCategoryId.set(segment.primaryCategoryId, segment);
+        }
+      });
+
+    return segmentsByCategoryId;
+  }, [pageSegments]);
+  const dynamicPromoTiles = useMemo(
+    () =>
+      (secondaryCategoriesQuery.data ?? [])
+        .filter((item) => item.status === 'active')
+        .slice(0, 5)
+        .map((item) => {
+          const productIds = item.productIds.length ? item.productIds : item.productId ? [item.productId] : [];
+          const firstProduct = productIds.map((productId) => sectionProductById.get(productId)).find(Boolean);
+          const targetCategoryId = firstProduct?.categoryId ?? 'all';
+          const pageSegment = activePageSegmentByCategoryId.get(targetCategoryId);
+
+          return {
+            accent: item.color ?? storefrontColors.navy,
+            cta: 'Shop now',
+            icon: item.icon ?? '✦',
+            id: item.id,
+            imageUrl: firstProduct?.imageUrl || promoTiles[0]?.imageUrl || '',
+            pageSegmentId: pageSegment?.id,
+            productIds,
+            targetCategoryId,
+            title: item.name,
+          };
+        })
+        .filter((tile) => tile.imageUrl),
+    [activePageSegmentByCategoryId, secondaryCategoriesQuery.data, sectionProductById],
+  );
+  const visiblePromoTiles = dynamicPromoTiles.length ? dynamicPromoTiles : promoTiles;
+  const selectedMerchandisingProducts = useMemo(() => {
+    if (!activeMerchandisingHighlight) return assignedPantryProducts;
+
+    const matchingProducts = allStorefrontSectionProducts.filter((product) =>
+      productMatchesHighlight(product, activeMerchandisingHighlight.label),
+    );
+
+    return matchingProducts.length ? matchingProducts : assignedPantryProducts;
+  }, [activeMerchandisingHighlight, allStorefrontSectionProducts, assignedPantryProducts]);
+  const merchandisingProductSectionTitle = activeMerchandisingHighlight
+    ? `Shop ${activeMerchandisingHighlight.label}`
+    : 'Pantry & Ready Meals';
+  const merchandisingProductSectionDescription = activeMerchandisingHighlight
+    ? `Products related to ${activeMerchandisingHighlight.label}.`
+    : 'Prepared meals, bakery, and pantry modules can reuse the exact same card component and only swap data.';
   const visibleHeroSlides = homeHeroSlides.length ? homeHeroSlides : [defaultHomeHeroSlide];
   const visibleShowcaseSlides = showcaseSlides.length ? showcaseSlides : [defaultShowcaseSlide];
   const [activeHeroSlideIndex, setActiveHeroSlideIndex] = useState(0);
@@ -1228,110 +1324,7 @@ export const HomePage = () => {
           </Stack>
         </Box>
 
-        <Box sx={{ ...storefrontMutedPanelSx, p: { md: 3, xs: 2 } }}>
-          <Box
-            sx={{
-              columnGap: 2,
-              display: 'grid',
-              gridTemplateColumns: {
-                lg: 'repeat(5, minmax(0, 1fr))',
-                md: 'repeat(3, minmax(0, 1fr))',
-                xs: 'repeat(5, minmax(276px, 78vw))',
-              },
-              overflowX: { md: 'visible', xs: 'auto' },
-              pb: { md: 0, xs: 1 },
-              rowGap: 2,
-              scrollPaddingLeft: 16,
-              scrollSnapType: { md: 'none', xs: 'x proximity' },
-              WebkitOverflowScrolling: 'touch',
-              '&::-webkit-scrollbar': {
-                height: 8,
-              },
-              '&::-webkit-scrollbar-thumb': {
-                backgroundColor: alpha(storefrontColors.navy, 0.18),
-                borderRadius: 999,
-              },
-            }}
-          >
-            {promoTiles.map((tile) => (
-              <Box
-                component={Link}
-                key={tile.id}
-                sx={{
-                  backgroundColor: storefrontColors.surface,
-                  borderRadius: 1.25,
-                  border: `1px solid ${alpha(tile.accent, 0.12)}`,
-                  color: 'inherit',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  minHeight: 248,
-                  minWidth: 0,
-                  overflow: 'hidden',
-                  position: 'relative',
-                  scrollSnapAlign: 'start',
-                  textDecoration: 'none',
-                }}
-                to={getPromoTilePath(tile)}
-              >
-                <Box
-                  alt={tile.title}
-                  component="img"
-                  loading="lazy"
-                  src={tile.imageUrl}
-                  sx={{
-                    display: 'block',
-                    height: { sm: 138, xs: 158 },
-                    objectFit: 'cover',
-                    width: '100%',
-                  }}
-                />
-                <Stack
-                  sx={{
-                    background: `linear-gradient(180deg, ${alpha(tile.accent, 0.96)} 0%, ${tile.accent} 100%)`,
-                    color: '#fff',
-                    flexGrow: 1,
-                    justifyContent: 'space-between',
-                    p: { sm: 1.7, xs: 1.35 },
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: { sm: '0.95rem', xs: '0.88rem' },
-                      fontWeight: 800,
-                      letterSpacing: '-0.02em',
-                      lineHeight: 1.15,
-                      maxWidth: 180,
-                    }}
-                    variant="h6"
-                  >
-                    {tile.title}
-                  </Typography>
-                  <Button
-                    component="span"
-                    size="small"
-                    sx={{
-                      alignSelf: 'flex-start',
-                      backgroundColor: storefrontColors.surface,
-                      borderRadius: 1,
-                      boxShadow: `0 8px 18px ${alpha('#9f1714', 0.14)}`,
-                      color: storefrontColors.navy,
-                      fontSize: { sm: '0.78rem', xs: '0.74rem' },
-                      fontWeight: 800,
-                      minWidth: 'auto',
-                      px: 1.25,
-                      py: 0.5,
-                      textTransform: 'none',
-                      '&:hover': { backgroundColor: '#eef3ff' },
-                    }}
-                    tabIndex={-1}
-                  >
-                    {tile.cta}
-                  </Button>
-                </Stack>
-              </Box>
-            ))}
-          </Box>
-        </Box>
+        <PageSegmentStrip segments={afterStorefrontIconSegments} />
 
         <LazyProductSection
           description="Promo-led pricing blocks inspired by the provided design, implemented as reusable card and section primitives."
@@ -1449,7 +1442,7 @@ export const HomePage = () => {
 
         <LazyProductSection
           description="Fresh-cut bouquets and floral gift picks presented in the same storefront card style for quick browsing."
-          gridSize={{ lg: 2, md: 4, sm: 6, xs: 12 }}
+          gridSize={{ lg: 2.4, md: 4, sm: 6, xs: 12 }}
           onAddToCart={(item) => addToCart(mapHomeProductToProduct(item))}
           products={assignedTopBlooms}
           title="Top Blooms"
@@ -1457,7 +1450,7 @@ export const HomePage = () => {
 
         <LazyProductSection
           description="Seasonal, produce-led content blocks stay separate from the catalog API and can later be replaced with CMS or backend-fed content."
-          gridSize={{ lg: 2, md: 4, sm: 6, xs: 12 }}
+          gridSize={{ lg: 2.4, md: 4, sm: 6, xs: 12 }}
           onAddToCart={(item) => addToCart(mapHomeProductToProduct(item))}
           products={assignedSeasonalProducts}
           title="New In Season"
@@ -1481,8 +1474,11 @@ export const HomePage = () => {
               rowGap: 1.5,
             }}
           >
-            {promoTiles.map((tile) => {
-              const theme = promoTileThemes[tile.id] ?? { accent: tile.accent, icon: '✦' };
+            {visiblePromoTiles.slice(0, 5).map((tile) => {
+              const theme = promoTileThemes[tile.id] ?? {
+                accent: tile.accent,
+                icon: 'icon' in tile ? tile.icon : '✦',
+              };
 
               return (
                 <Box
@@ -1598,7 +1594,10 @@ export const HomePage = () => {
               rowGap: 1,
             }}
           >
-            {merchandisingHighlights.map((item, index) => (
+            {merchandisingHighlights.map((item) => {
+              const isActive = activeMerchandisingHighlight?.id === item.id;
+
+              return (
               <Stack
                 key={item.id}
                 spacing={0.75}
@@ -1615,16 +1614,25 @@ export const HomePage = () => {
                 }}
               >
                 <Box
+                  component="button"
+                  onClick={() => setActiveMerchandisingHighlightId(item.id)}
                   sx={{
                     alignItems: 'center',
                     backgroundColor: item.color,
+                    border: 0,
                     borderRadius: '50%',
                     boxShadow: 'none',
                     color: storefrontColors.surface,
+                    cursor: 'pointer',
                     display: 'flex',
+                    font: 'inherit',
                     height: { md: 60, xs: 56 },
                     justifyContent: 'center',
+                    m: 0,
+                    p: 0,
                     position: 'relative',
+                    transform: isActive ? 'translateY(-1px)' : 'none',
+                    transition: 'box-shadow 180ms ease, transform 180ms ease',
                     width: { md: 60, xs: 56 },
                     '&::before': {
                       border: '2px solid rgba(255,255,255,0.92)',
@@ -1633,7 +1641,12 @@ export const HomePage = () => {
                       inset: 7,
                       position: 'absolute',
                     },
+                    '&:focus-visible': {
+                      boxShadow: `0 0 0 4px ${alpha(item.color, 0.24)}`,
+                      outline: 'none',
+                    },
                   }}
+                  type="button"
                 >
                   <Box
                     sx={{
@@ -1655,12 +1668,12 @@ export const HomePage = () => {
                     fontSize: { md: '0.74rem', xs: '0.68rem' },
                     fontWeight: 800,
                     lineHeight: 1.35,
-                    maxWidth: { md: 88, xs: 92 },
+                  maxWidth: { md: 88, xs: 92 },
                   }}
                 >
                   {item.label}
                 </Typography>
-                {index === 0 ? (
+                {isActive ? (
                   <Box
                     sx={{
                       backgroundColor: '#be1f3f',
@@ -1673,16 +1686,17 @@ export const HomePage = () => {
                   />
                 ) : null}
               </Stack>
-            ))}
+              );
+            })}
           </Box>
         </Box>
 
         <LazyProductSection
-          description="Prepared meals, bakery, and pantry modules can reuse the exact same card component and only swap data."
-          gridSize={{ lg: 3, md: 6, xs: 6 }}
+          description={merchandisingProductSectionDescription}
+          gridSize={{ lg: 2.4, md: 4, sm: 6, xs: 12 }}
           onAddToCart={(item) => addToCart(mapHomeProductToProduct(item))}
-          products={assignedPantryProducts}
-          title="Pantry & Ready Meals"
+          products={selectedMerchandisingProducts}
+          title={merchandisingProductSectionTitle}
         />
 
         <Box sx={{ ...storefrontMutedPanelSx, borderRadius: 1, p: { md: 3, xs: 2 } }}>
@@ -1692,7 +1706,11 @@ export const HomePage = () => {
               title="All Products"
             />
             {allProductsQuery.data?.length ? (
-              <ProductGrid onAddToCart={addToCart} products={allProductsQuery.data} />
+              <ProductGrid
+                gridSize={{ lg: 2.4, md: 4, sm: 6, xs: 12 }}
+                onAddToCart={addToCart}
+                products={allProductsQuery.data}
+              />
             ) : (
               <EmptyState
                 description="The all-products shelf is connected to the live catalog. Products will appear here as soon as they are published."

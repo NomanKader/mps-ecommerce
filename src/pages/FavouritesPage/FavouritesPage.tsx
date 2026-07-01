@@ -41,7 +41,6 @@ import { useFavorites } from '@features/favorites/hooks/useFavorites';
 import { useSignOut } from '@features/auth/hooks/useSignOut';
 import type { UpdateProfilePayload } from '@features/auth/types/auth.types';
 import { useCart } from '@features/cart/hooks/useCart';
-import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
 import { myanmarLocationFallback } from '@features/locations/data/myanmarLocations';
 import { useMyanmarLocations } from '@features/locations/hooks/useMyanmarLocations';
 import { orderApi } from '@features/order/api/orderApi';
@@ -51,6 +50,7 @@ import { walletApi } from '@features/wallet/api/walletApi';
 import { useWallet } from '@features/wallet/hooks/useWallet';
 import { routePaths } from '@routes/routePaths';
 import { toApiError } from '@shared/api/apiError';
+import { validateImageFileSelection } from '@shared/utils/imageFileValidation';
 import { useAppDispatch } from '@store/hooks';
 import type { RootState } from '@store/index';
 import { updateUser } from '@store/slices/auth.slice';
@@ -574,38 +574,6 @@ const EmptyListIllustration = ({ type = 'favourites' }: { type?: 'favourites' | 
   </Box>
 );
 
-const SearchBar = ({ placeholder }: { placeholder: string }) => (
-  <Stack direction="row" sx={{ borderRadius: 1, mt: 3, overflow: 'hidden' }}>
-    <Box
-      sx={{
-        alignItems: 'center',
-        backgroundColor: '#f2f3f8',
-        color: '#a1a9bb',
-        display: 'flex',
-        flex: 1,
-        fontSize: '1.05rem',
-        fontWeight: 800,
-        minHeight: 64,
-        px: 2,
-      }}
-    >
-      {placeholder}
-    </Box>
-    <IconButton
-      aria-label={placeholder}
-      sx={{
-        backgroundColor: storefrontColors.navy,
-        borderRadius: 0,
-        color: '#ffffff',
-        width: { sm: 108, xs: 72 },
-        '&:hover': { backgroundColor: storefrontColors.navyDark },
-      }}
-    >
-      <SearchRoundedIcon />
-    </IconButton>
-  </Stack>
-);
-
 const FavouriteProducts = ({ search }: { search: string }) => {
   const { addToCart } = useCart();
   const queryClient = useQueryClient();
@@ -1029,74 +997,6 @@ const VouchersContent = () => (
   </Box>
 );
 
-const WalletAmountInput = ({
-  action,
-  amount,
-  disabled,
-  onAction,
-  onAmountChange,
-  placeholder = '100',
-}: {
-  action: string;
-  amount: string;
-  disabled?: boolean;
-  onAction: () => void;
-  onAmountChange: (value: string) => void;
-  placeholder?: string;
-}) => (
-  <Stack
-    direction={{ sm: 'row', xs: 'column' }}
-    sx={{
-      border: `1px solid ${storefrontColors.border}`,
-      borderRadius: 1,
-      minHeight: 64,
-      overflow: 'hidden',
-    }}
-  >
-    <TextField
-      fullWidth
-      onChange={(event) => onAmountChange(event.target.value)}
-      placeholder={placeholder}
-      slotProps={{
-        htmlInput: { min: 100, step: 100 },
-        input: {
-          disableUnderline: true,
-          endAdornment: <Typography sx={{ color: '#55565c', fontSize: '1.15rem', fontWeight: 900, ml: 1.4 }}>MMK</Typography>,
-          sx: {
-            color: '#55565c',
-            fontSize: '1.1rem',
-            fontWeight: 800,
-            minHeight: 64,
-            px: 2,
-          },
-        },
-      }}
-      type="number"
-      value={amount}
-      variant="standard"
-    />
-    <Button
-      disabled={disabled}
-      onClick={onAction}
-      sx={{
-        backgroundColor: '#f1f2f7',
-        borderLeft: { sm: `1px solid ${storefrontColors.border}`, xs: 0 },
-        borderTop: { sm: 0, xs: `1px solid ${storefrontColors.border}` },
-        borderRadius: 0,
-        color: storefrontColors.navy,
-        fontSize: '1rem',
-        fontWeight: 900,
-        minHeight: { sm: 'auto', xs: 52 },
-        px: { md: 5, xs: 2 },
-        textTransform: 'none',
-        '&:hover': { backgroundColor: '#e8ebf3' },
-      }}
-    >
-      {action}
-    </Button>
-  </Stack>
-);
-
 const WalletPanel = ({ children, title }: { children: ReactElement; title: string }) => (
   <Box sx={{ border: `1px solid ${storefrontColors.border}`, borderRadius: 1, overflow: 'hidden' }}>
     <Box sx={{ backgroundColor: '#f3f4f9', px: 2.2, py: 1.35 }}>
@@ -1269,7 +1169,27 @@ const WalletContent = () => {
             <TextField label="Promo code" onChange={(event) => setPromoCode(event.target.value)} value={promoCode} />
             <Button component="label" sx={{ alignItems: 'center', border: `1px dashed ${storefrontColors.border}`, color: storefrontColors.navy, display: 'flex', fontWeight: 900, minHeight: 56, textTransform: 'none' }}>
               {receipt ? receipt.name : 'Upload receipt image'}
-              <input accept="image/*" hidden onChange={(event) => setReceipt(event.target.files?.[0] ?? null)} type="file" />
+              <input
+                accept="image/*"
+                hidden
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+
+                  if (!file) {
+                    setReceipt(null);
+                    return;
+                  }
+
+                  if (!validateImageFileSelection(file, 'payment receipt image')) {
+                    event.target.value = '';
+                    return;
+                  }
+
+                  setReceipt(file);
+                  event.target.value = '';
+                }}
+                type="file"
+              />
             </Button>
           </Box>
 
@@ -1938,6 +1858,7 @@ const AddressContent = () => {
     if (!editingAddress) {
       const defaults = getAddressFormDefaults(user);
 
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm((current) => ({
         ...current,
         phone: current.phone || defaults.phone,
@@ -2120,6 +2041,7 @@ const ProfileContent = ({ activePage }: { activePage: AccountPageConfig }) => {
 
   useEffect(() => {
     if (!isEditing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm(getProfileForm(user));
     }
   }, [isEditing, user]);

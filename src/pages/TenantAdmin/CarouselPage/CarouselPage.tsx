@@ -37,6 +37,7 @@ import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
+import { validateImageFileSelection } from '@shared/utils/imageFileValidation';
 
 type CarouselForm = Omit<StorefrontCarouselSlide, 'id' | 'imageUrl'> & {
   imageFile?: File;
@@ -63,8 +64,6 @@ const emptyForm: CarouselForm = {
   targetSearch: '',
   title: '',
 };
-
-const maxCarouselImageBytes = 5 * 1024 * 1024;
 
 const placementLabels: Record<StorefrontCarouselPlacement, string> = {
   hero: 'Hero carousel',
@@ -386,13 +385,7 @@ export const CarouselPage = () => {
       return;
     }
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Only image files are allowed.');
-      return;
-    }
-
-    if (file.size > maxCarouselImageBytes) {
-      toast.error('Image is too large. Please upload an image under 5MB.');
+    if (!validateImageFileSelection(file, 'carousel image')) {
       return;
     }
 
