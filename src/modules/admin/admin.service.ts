@@ -13,11 +13,14 @@ import {
   S3Service,
   StorefrontImageMetadata
 } from '@shared/services/s3.service';
+import { IMAGE_UPLOAD_MAX_BYTES } from '@shared/constants/upload.constants';
 import { ApiError } from '@utils/ApiError';
 import { HTTP_STATUS } from '@core/response/http-status';
 import {
   AdminCustomer,
   DeliveryFee,
+  PageSegment,
+  PageSegmentSlide,
   Promotion,
   Region,
   SecondaryCategory,
@@ -29,7 +32,7 @@ import {
 } from './admin.models';
 
 const LOW_STOCK_THRESHOLD = 40;
-const MAX_REMOTE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_REMOTE_IMAGE_SIZE_BYTES = IMAGE_UPLOAD_MAX_BYTES;
 
 type ListQuery = Record<string, unknown>;
 type MongoFilter = Record<string, unknown>;
@@ -55,6 +58,34 @@ type AdminProfilePayload = Pick<UserResponse, 'firstName' | 'lastName' | 'email'
     | 'topBarTagline'
   >;
 type CarouselPayload = Partial<StorefrontCarouselSlide> & { removeImage?: boolean };
+type PageSegmentSlidePayload = Pick<PageSegmentSlide, 'text' | 'sortOrder'> & {
+  removeImage?: boolean;
+};
+type PageSegmentPayload = Partial<
+  Pick<
+    PageSegment,
+    | 'title'
+    | 'primaryCategoryId'
+    | 'displaySlot'
+    | 'icon'
+    | 'topCarousel'
+    | 'afterNewProductsCarousel'
+    | 'haveYouSeenCards'
+    | 'sortOrder'
+    | 'status'
+  >
+> & {
+  afterNewProductsCarousel?: PageSegmentSlidePayload[];
+  haveYouSeenCards?: PageSegmentSlidePayload[];
+  removeImage?: boolean;
+  topCarousel?: PageSegmentSlidePayload[];
+};
+type PageSegmentImageKey =
+  | 'image'
+  | `topCarousel.${number}.image`
+  | `afterNewProductsCarousel.${number}.image`
+  | `haveYouSeenCards.${number}.image`;
+type PageSegmentFileMap = Map<PageSegmentImageKey, Express.Multer.File>;
 
 const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const slugify = (value: string): string =>
@@ -91,6 +122,12 @@ const carouselImageFields = [
   'imageUrl',
   'removeImage'
 ] as const;
+const pageSegmentCarouselKeys = [
+  'topCarousel',
+  'afterNewProductsCarousel',
+  'haveYouSeenCards'
+] as const;
+type PageSegmentCarouselKey = (typeof pageSegmentCarouselKeys)[number];
 
 const productSections = [
   { id: 'top-offers', title: 'Top Offers', description: 'Promoted offers and seasonal savings.' },
@@ -1154,6 +1191,144 @@ export class AdminService {
     return { id };
   }
 
+  async listPageSegments(
+    tenantId: string | undefined,
+    query: ListQuery = {}
+  ): Promise<PageSegment[]> {
+    const scopedTenant = this.requireTenantId(tenantId);
+    const { PageSegmentModel } = this.models(scopedTenant);
+    const filter: MongoFilter = { tenantId: scopedTenant, isDeleted: { $ne: true } };
+
+    if (typeof query.displaySlot === 'string' && query.displaySlot && query.displaySlot !== 'all') {
+      filter.displaySlot = query.displaySlot;
+    }
+
+    if (typeof query.status === 'string' && query.status && query.status !== 'all') {
+      filter.status = query.status;
+    }
+
+    if (typeof query.primaryCategoryId === 'string' && query.primaryCategoryId) {
+      filter.primaryCategoryId = query.primaryCategoryId;
+    }
+
+    const segments = await PageSegmentModel.find(filter)
+      .sort({ displaySlot: 1, sortOrder: 1, createdAt: -1 })
+      .lean<PageSegment[]>();
+
+    return Promise.all(segments.map((segment) => this.withPageSegmentImageUrls(segment)));
+  }
+
+  async createPageSegment(
+    tenantId: string | undefined,
+    payload: PageSegmentPayload,
+    files?: unknown
+  ): Promise<PageSegment> {
+    const scopedTenant = this.requireTenantId(tenantId);
+    const { PageSegmentModel } = this.models(scopedTenant);
+    await this.requireTenantCategory(scopedTenant, String(payload.primaryCategoryId));
+    const fileMap = this.pageSegmentFileMap(files);
+    const uploadedKeys: string[] = [];
+
+    try {
+      const imageMetadata = await this.uploadOptionalPageSegmentImage(
+        fileMap.get('image'),
+        scopedTenant,
+        'segment'
+      );
+      if (imageMetadata?.imageDriveFileId) uploadedKeys.push(imageMetadata.imageDriveFileId);
+
+      const segmentPayload = await this.pageSegmentPayload(payload, fileMap, scopedTenant, uploadedKeys);
+      const segment = await PageSegmentModel.create({
+        ...segmentPayload,
+        ...imageMetadata,
+        tenantId: scopedTenant
+      });
+
+      return this.withPageSegmentImageUrls(segment.toObject() as PageSegment);
+    } catch (error) {
+      await Promise.all(uploadedKeys.map((key) => this.imageStorageService.deleteProductImage(key)));
+      throw error;
+    }
+  }
+
+  async updatePageSegment(
+    tenantId: string | undefined,
+    id: string,
+    payload: PageSegmentPayload,
+    files?: unknown
+  ): Promise<PageSegment> {
+    const scopedTenant = this.requireTenantId(tenantId);
+    const { PageSegmentModel } = this.models(scopedTenant);
+    if (payload.primaryCategoryId)
+      await this.requireTenantCategory(scopedTenant, String(payload.primaryCategoryId));
+
+    const existingSegment = await PageSegmentModel.findOne({
+      _id: id,
+      tenantId: scopedTenant,
+      isDeleted: { $ne: true }
+    }).lean<PageSegment>();
+    if (!existingSegment) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Page segment not found');
+
+    const fileMap = this.pageSegmentFileMap(files);
+    const uploadedKeys: string[] = [];
+    const replacedKeys: string[] = [];
+
+    try {
+      const imageMetadata = await this.uploadOptionalPageSegmentImage(
+        fileMap.get('image'),
+        scopedTenant,
+        'segment'
+      );
+      if (imageMetadata?.imageDriveFileId) {
+        uploadedKeys.push(imageMetadata.imageDriveFileId);
+        if (existingSegment.imageDriveFileId) replacedKeys.push(existingSegment.imageDriveFileId);
+      } else if (payload.removeImage && existingSegment.imageDriveFileId) {
+        replacedKeys.push(existingSegment.imageDriveFileId);
+      }
+
+      const segmentPayload = await this.pageSegmentPayload(
+        payload,
+        fileMap,
+        scopedTenant,
+        uploadedKeys,
+        existingSegment,
+        replacedKeys
+      );
+      const update = imageMetadata
+        ? { ...segmentPayload, ...imageMetadata }
+        : payload.removeImage
+          ? {
+              $set: segmentPayload,
+              $unset: { imageName: '', imageMimeType: '', imageSize: '', imageDriveFileId: '' }
+            }
+          : { $set: segmentPayload };
+
+      const segment = await PageSegmentModel.findOneAndUpdate(
+        { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+        update,
+        { new: true }
+      ).lean<PageSegment>();
+      if (!segment) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Page segment not found');
+
+      await Promise.all(replacedKeys.map((key) => this.imageStorageService.deleteProductImage(key)));
+      return this.withPageSegmentImageUrls(segment);
+    } catch (error) {
+      await Promise.all(uploadedKeys.map((key) => this.imageStorageService.deleteProductImage(key)));
+      throw error;
+    }
+  }
+
+  async deletePageSegment(tenantId: string | undefined, id: string): Promise<{ id: string }> {
+    const scopedTenant = this.requireTenantId(tenantId);
+    const { PageSegmentModel } = this.models(scopedTenant);
+    const result = await PageSegmentModel.updateOne(
+      { _id: id, tenantId: scopedTenant, isDeleted: { $ne: true } },
+      { isDeleted: true }
+    );
+    if (result.matchedCount === 0) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Page segment not found');
+    return { id };
+  }
+
   async storefrontHeaderSettings(tenantId?: string) {
     const scopedTenant = this.requireTenantId(tenantId);
     return this.headerSettingsResponse(await this.getTenantAdminSettings(scopedTenant));
@@ -1253,6 +1428,89 @@ export class AdminService {
       .lean<SecondaryCategory[]>();
 
     return secondaryCategories.map((category) => this.secondaryCategoryResponse(category));
+  }
+
+  async storefrontPageSegments(tenantId?: string): Promise<PageSegment[]> {
+    const scopedTenant = this.requireTenantId(tenantId);
+    const { PageSegmentModel } = this.models(scopedTenant);
+    const segments = await PageSegmentModel.find({
+      tenantId: scopedTenant,
+      status: 'active',
+      isDeleted: { $ne: true }
+    })
+      .sort({ displaySlot: 1, sortOrder: 1, createdAt: -1 })
+      .lean<PageSegment[]>();
+
+    return Promise.all(segments.map((segment) => this.withPageSegmentImageUrls(segment)));
+  }
+
+  async storefrontPageSegmentDetail(tenantId: string | undefined, id: string) {
+    const scopedTenant = this.requireTenantId(tenantId);
+    const { CategoryModel, PageSegmentModel, ProductModel } = this.models(scopedTenant);
+    const segment = await PageSegmentModel.findOne({
+      _id: id,
+      tenantId: scopedTenant,
+      status: 'active',
+      isDeleted: { $ne: true }
+    }).lean<PageSegment>();
+    if (!segment) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Page segment not found');
+
+    const [category, productsByRating, productsByDate] = await Promise.all([
+      CategoryModel.findOne({
+        _id: segment.primaryCategoryId,
+        tenantId: scopedTenant,
+        isDeleted: { $ne: true }
+      }).lean(),
+      ProductModel.find({
+        tenantId: scopedTenant,
+        categoryId: segment.primaryCategoryId,
+        status: 'active',
+        isDeleted: { $ne: true }
+      })
+        .sort({ rating: -1, createdAt: -1 })
+        .lean<Product[]>(),
+      ProductModel.find({
+        tenantId: scopedTenant,
+        categoryId: segment.primaryCategoryId,
+        status: 'active',
+        isDeleted: { $ne: true }
+      })
+        .sort({ createdAt: -1 })
+        .lean<Product[]>()
+    ]);
+
+    const allProductIds = new Set<string>();
+    const uniqueProducts = [...productsByRating, ...productsByDate].filter((product) => {
+      const productId = String(product._id);
+      if (allProductIds.has(productId)) return false;
+      allProductIds.add(productId);
+      return true;
+    });
+    const productsWithImages = new Map(
+      await Promise.all(
+        uniqueProducts.map(async (product) => [
+          String(product._id),
+          await this.withProductImageUrl(product)
+        ] as const)
+      )
+    );
+
+    return {
+      segment: await this.withPageSegmentImageUrls(segment),
+      category,
+      subcategories: category?.subcategories ?? [],
+      topOffers: productsByRating
+        .slice(0, 5)
+        .map((product) => productsWithImages.get(String(product._id)))
+        .filter(Boolean),
+      newProducts: productsByDate
+        .slice(0, 5)
+        .map((product) => productsWithImages.get(String(product._id)))
+        .filter(Boolean),
+      allProducts: productsByDate
+        .map((product) => productsWithImages.get(String(product._id)))
+        .filter(Boolean)
+    };
   }
 
   private productPayload(payload: ProductPayload): Partial<Product> {
@@ -1548,7 +1806,36 @@ export class AdminService {
       slide.imageDriveFileId,
       slide.imageName
     );
-    return { ...slide, imageUrl };
+    return { ...slide, imageUrl: imageUrl ?? slide.imageUrl ?? null };
+  }
+
+  private async withPageSegmentImageUrls(segment: PageSegment): Promise<PageSegment> {
+    const imageUrl = await this.imageStorageService.getProductImageUrl(
+      segment.imageDriveFileId,
+      segment.imageName
+    );
+    const withSlideUrls = async (slides: PageSegmentSlide[] = []) =>
+      Promise.all(
+        slides.map(async (slide) => {
+          const slideImageUrl = await this.imageStorageService.getProductImageUrl(
+            slide.imageDriveFileId,
+            slide.imageName
+          );
+
+          return {
+            ...slide,
+            imageUrl: slideImageUrl ?? slide.imageUrl ?? null
+          };
+        })
+      );
+
+    return {
+      ...segment,
+      imageUrl: imageUrl ?? segment.imageUrl ?? null,
+      topCarousel: await withSlideUrls(segment.topCarousel),
+      afterNewProductsCarousel: await withSlideUrls(segment.afterNewProductsCarousel),
+      haveYouSeenCards: await withSlideUrls(segment.haveYouSeenCards)
+    };
   }
 
   private async getTenantAdminSettings(tenantId: string): Promise<TenantAdminSettings> {
@@ -1560,6 +1847,102 @@ export class AdminService {
     ).lean<TenantAdminSettings>();
 
     return settings;
+  }
+
+  private pageSegmentFileMap(files?: unknown): PageSegmentFileMap {
+    const fileList = Array.isArray(files)
+      ? files
+      : files && typeof files === 'object'
+        ? Object.values(files).flat()
+        : [];
+    const map = new Map<PageSegmentImageKey, Express.Multer.File>();
+
+    for (const file of fileList) {
+      if (!file || typeof file !== 'object' || !('fieldname' in file)) continue;
+      map.set((file as Express.Multer.File).fieldname as PageSegmentImageKey, file as Express.Multer.File);
+    }
+
+    return map;
+  }
+
+  private async uploadOptionalPageSegmentImage(
+    image: Express.Multer.File | undefined,
+    tenantId: string,
+    reference: string
+  ): Promise<StorefrontImageMetadata | undefined> {
+    if (!image) return undefined;
+    return this.uploadStorefrontImage(image, tenantId, reference);
+  }
+
+  private async pageSegmentPayload(
+    payload: PageSegmentPayload,
+    files: PageSegmentFileMap,
+    tenantId: string,
+    uploadedKeys: string[],
+    existingSegment?: PageSegment,
+    replacedKeys: string[] = []
+  ): Promise<Partial<PageSegment>> {
+    const segmentPayload: Partial<PageSegment> = {
+      title: payload.title?.trim(),
+      primaryCategoryId: payload.primaryCategoryId,
+      displaySlot: payload.displaySlot,
+      icon: payload.icon,
+      sortOrder: payload.sortOrder,
+      status: payload.status
+    };
+
+    for (const key of pageSegmentCarouselKeys) {
+      segmentPayload[key] = await this.pageSegmentSlidesPayload(
+        key,
+        payload[key] ?? [],
+        files,
+        tenantId,
+        uploadedKeys,
+        existingSegment?.[key] ?? [],
+        replacedKeys
+      );
+    }
+
+    return segmentPayload;
+  }
+
+  private async pageSegmentSlidesPayload(
+    key: PageSegmentCarouselKey,
+    slides: PageSegmentSlidePayload[],
+    files: PageSegmentFileMap,
+    tenantId: string,
+    uploadedKeys: string[],
+    existingSlides: PageSegmentSlide[],
+    replacedKeys: string[]
+  ): Promise<PageSegmentSlide[]> {
+    return Promise.all(
+      slides.map(async (slide, index) => {
+        const existingSlide = existingSlides[index];
+        const image = files.get(`${key}.${index}.image` as PageSegmentImageKey);
+        const metadata = await this.uploadOptionalPageSegmentImage(image, tenantId, `${key}-${index}`);
+
+        if (metadata?.imageDriveFileId) {
+          uploadedKeys.push(metadata.imageDriveFileId);
+          if (existingSlide?.imageDriveFileId) replacedKeys.push(existingSlide.imageDriveFileId);
+        } else if (slide.removeImage && existingSlide?.imageDriveFileId) {
+          replacedKeys.push(existingSlide.imageDriveFileId);
+        }
+
+        return {
+          text: slide.text,
+          sortOrder: slide.sortOrder ?? index,
+          ...(!metadata && !slide.removeImage && existingSlide
+            ? {
+                imageName: existingSlide.imageName,
+                imageMimeType: existingSlide.imageMimeType,
+                imageSize: existingSlide.imageSize,
+                imageDriveFileId: existingSlide.imageDriveFileId
+              }
+            : {}),
+          ...metadata
+        };
+      })
+    );
   }
 
   private adminProfileResponse(admin: UserResponse) {
@@ -1592,6 +1975,16 @@ export class AdminService {
       isDeleted: { $ne: true }
     });
     if (!product) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Product not found');
+  }
+
+  private async requireTenantCategory(tenantId: string, categoryId: string): Promise<void> {
+    const { CategoryModel } = this.models(tenantId);
+    const category = await CategoryModel.exists({
+      _id: categoryId,
+      tenantId,
+      isDeleted: { $ne: true }
+    });
+    if (!category) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Primary category not found');
   }
 
   private normalizeSecondaryCategoryProductIds(

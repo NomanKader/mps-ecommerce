@@ -67,4 +67,23 @@ export class StorefrontController extends BaseController {
       'Secondary categories fetched'
     );
   });
+
+  pageSegments = asyncHandler(async (req: Request, res: Response) => {
+    this.ok(
+      res,
+      await this.adminService.storefrontPageSegments(req.tenant?.tenantId),
+      'Page segments fetched'
+    );
+  });
+
+  pageSegmentDetail = asyncHandler(async (req: Request, res: Response) => {
+    this.ok(
+      res,
+      await this.adminService.storefrontPageSegmentDetail(
+        req.tenant?.tenantId,
+        String(req.params.id)
+      ),
+      'Page segment fetched'
+    );
+  });
 }

@@ -152,6 +152,41 @@ export interface StorefrontProductSectionAssignment {
   updatedAt: Date;
 }
 
+export interface PageSegmentMedia {
+  imageName?: string;
+  imageMimeType?: string;
+  imageSize?: number;
+  imageDriveFileId?: string;
+  imageUrl?: string | null;
+}
+
+export interface PageSegmentSlide extends PageSegmentMedia {
+  text?: string;
+  sortOrder: number;
+}
+
+export interface PageSegment {
+  _id: string;
+  tenantId: string;
+  title: string;
+  primaryCategoryId: string;
+  displaySlot: 'after-storefront-icons' | 'after-new-in-season';
+  icon?: string;
+  imageName?: string;
+  imageMimeType?: string;
+  imageSize?: number;
+  imageDriveFileId?: string;
+  imageUrl?: string | null;
+  topCarousel: PageSegmentSlide[];
+  afterNewProductsCarousel: PageSegmentSlide[];
+  haveYouSeenCards: PageSegmentSlide[];
+  sortOrder: number;
+  status: 'active' | 'hidden';
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export const customerSchema = new Schema<AdminCustomer>(
   {
     tenantId: { type: String, required: true, index: true },
@@ -258,6 +293,7 @@ export const carouselSlideSchema = new Schema<StorefrontCarouselSlide>(
     imageMimeType: { type: String },
     imageSize: { type: Number, min: 0 },
     imageDriveFileId: { type: String },
+    imageUrl: { type: String, trim: true },
     metric: { type: String, trim: true },
     headline: { type: String, trim: true },
     partner: { type: String, trim: true },
@@ -321,6 +357,45 @@ export const productSectionAssignmentSchema = new Schema<StorefrontProductSectio
   baseSchemaOptions
 );
 
+const pageSegmentSlideSchema = new Schema<PageSegmentSlide>(
+  {
+    text: { type: String, trim: true },
+    imageName: { type: String },
+    imageMimeType: { type: String },
+    imageSize: { type: Number, min: 0 },
+    imageDriveFileId: { type: String },
+    imageUrl: { type: String, trim: true },
+    sortOrder: { type: Number, default: 0 }
+  },
+  { _id: false }
+);
+
+export const pageSegmentSchema = new Schema<PageSegment>(
+  {
+    tenantId: { type: String, required: true, index: true },
+    title: { type: String, required: true, trim: true },
+    primaryCategoryId: { type: String, required: true, trim: true, index: true },
+    displaySlot: {
+      type: String,
+      enum: ['after-storefront-icons', 'after-new-in-season'],
+      required: true,
+      index: true
+    },
+    icon: { type: String, trim: true },
+    imageName: { type: String },
+    imageMimeType: { type: String },
+    imageSize: { type: Number, min: 0 },
+    imageDriveFileId: { type: String },
+    imageUrl: { type: String, trim: true },
+    topCarousel: { type: [pageSegmentSlideSchema], default: [] },
+    afterNewProductsCarousel: { type: [pageSegmentSlideSchema], default: [] },
+    haveYouSeenCards: { type: [pageSegmentSlideSchema], default: [] },
+    sortOrder: { type: Number, default: 0, index: true },
+    status: { type: String, enum: ['active', 'hidden'], default: 'active', index: true }
+  },
+  baseSchemaOptions
+);
+
 addSoftDeleteFields(customerSchema);
 addSoftDeleteFields(promotionSchema);
 addSoftDeleteFields(deliveryFeeSchema);
@@ -331,6 +406,7 @@ addSoftDeleteFields(carouselSlideSchema);
 addSoftDeleteFields(highlightIconSchema);
 addSoftDeleteFields(secondaryCategorySchema);
 addSoftDeleteFields(productSectionAssignmentSchema);
+addSoftDeleteFields(pageSegmentSchema);
 
 customerSchema.index({ tenantId: 1, email: 1 }, { unique: true });
 promotionSchema.index({ tenantId: 1, code: 1 }, { unique: true });
@@ -358,3 +434,6 @@ productSectionAssignmentSchema.index(
   { tenantId: 1, sectionId: 1, productId: 1, status: 1 },
   { unique: true, partialFilterExpression: { status: 'active', isDeleted: false } }
 );
+pageSegmentSchema.index({ tenantId: 1, status: 1 });
+pageSegmentSchema.index({ tenantId: 1, displaySlot: 1, status: 1, sortOrder: 1 });
+pageSegmentSchema.index({ tenantId: 1, primaryCategoryId: 1, status: 1 });

@@ -15,6 +15,8 @@ import {
   carouselSlideSchema,
   StorefrontHighlightIcon,
   highlightIconSchema,
+  PageSegment,
+  pageSegmentSchema,
   StorefrontProductSectionAssignment,
   productSectionAssignmentSchema,
   TenantAdminSettings,
@@ -64,6 +66,7 @@ export type TenantModels = {
   StorefrontHighlightIconModel: Model<StorefrontHighlightIcon>;
   SecondaryCategoryModel: Model<SecondaryCategory>;
   StorefrontProductSectionAssignmentModel: Model<StorefrontProductSectionAssignment>;
+  PageSegmentModel: Model<PageSegment>;
 };
 
 const tenantModelCache = new Map<string, TenantModels>();
@@ -142,6 +145,11 @@ export const getTenantModels = (tenantSlug: string): TenantModels => {
       'StorefrontProductSectionAssignment',
       productSectionAssignmentSchema,
       'storefront_product_section_assignments'
+    ),
+    PageSegmentModel: connection.model<PageSegment>(
+      'PageSegment',
+      pageSegmentSchema,
+      'page_segments'
     )
   };
 

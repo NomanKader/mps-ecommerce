@@ -4,7 +4,10 @@ import { Role } from '@common/enums/role.enum';
 import { HTTP_STATUS } from '@core/response/http-status';
 import { bulkProductUploadMiddleware } from '@middlewares/bulk-product-upload.middleware';
 import { authMiddleware } from '@middlewares/auth.middleware';
-import { productImageUploadMiddleware } from '@middlewares/product-image-upload.middleware';
+import {
+  pageSegmentImageUploadMiddleware,
+  productImageUploadMiddleware
+} from '@middlewares/product-image-upload.middleware';
 import { roleMiddleware } from '@middlewares/role.middleware';
 import { validateMiddleware } from '@middlewares/validate.middleware';
 import { AdminController } from '@modules/admin/admin.controller';
@@ -22,6 +25,8 @@ import {
   idParamSchema,
   orderQuerySchema,
   orderStatusSchema,
+  pageSegmentBodySchema,
+  pageSegmentQuerySchema,
   productBodySchema,
   productQuerySchema,
   productSectionAssignmentBodySchema,
@@ -233,6 +238,33 @@ router.delete(
   dashboardAccess,
   validateMiddleware(idParamSchema),
   controller.deleteProductSectionAssignment
+);
+
+router.get(
+  '/page-segments',
+  dashboardAccess,
+  validateMiddleware(pageSegmentQuerySchema),
+  controller.listPageSegments
+);
+router.post(
+  '/page-segments',
+  dashboardAccess,
+  pageSegmentImageUploadMiddleware,
+  validateMiddleware(pageSegmentBodySchema),
+  controller.createPageSegment
+);
+router.put(
+  '/page-segments/:id',
+  dashboardAccess,
+  pageSegmentImageUploadMiddleware,
+  validateMiddleware(pageSegmentBodySchema),
+  controller.updatePageSegment
+);
+router.delete(
+  '/page-segments/:id',
+  dashboardAccess,
+  validateMiddleware(idParamSchema),
+  controller.deletePageSegment
 );
 
 router.get('/categories', dashboardAccess, controller.listCategories);

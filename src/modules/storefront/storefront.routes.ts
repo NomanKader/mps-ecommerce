@@ -19,5 +19,7 @@ router.get('/categories', controller.categories);
 router.get('/icons', validateMiddleware(requiredStorefrontIconQuerySchema), controller.icons);
 router.get('/product-sections', controller.productSections);
 router.get('/secondary-categories', controller.secondaryCategories);
+router.get('/page-segments', controller.pageSegments);
+router.get('/page-segments/:id', controller.pageSegmentDetail);
 
 export default router;

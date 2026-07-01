@@ -282,6 +282,45 @@ export const productSectionAssignmentUpdateSchema = z.object({
   })
 });
 
+const pageSegmentSlideSchema = z.object({
+  text: z.string().max(220).optional(),
+  sortOrder: z.coerce.number().int().nonnegative().default(0),
+  removeImage: booleanStringSchema
+});
+
+const pageSegmentSlidesSchema = z.preprocess((value) => {
+  if (typeof value !== 'string') return value;
+
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return value;
+  }
+}, z.array(pageSegmentSlideSchema).default([]));
+
+export const pageSegmentBodySchema = z.object({
+  body: z.object({
+    title: z.string().min(1).max(160),
+    primaryCategoryId: z.string().min(1).max(120),
+    displaySlot: z.enum(['after-storefront-icons', 'after-new-in-season']),
+    icon: z.string().trim().max(24).optional(),
+    topCarousel: pageSegmentSlidesSchema,
+    afterNewProductsCarousel: pageSegmentSlidesSchema,
+    haveYouSeenCards: pageSegmentSlidesSchema,
+    sortOrder: z.coerce.number().int().nonnegative().default(0),
+    status: z.enum(['active', 'hidden']).default('active'),
+    removeImage: booleanStringSchema
+  })
+});
+
+export const pageSegmentQuerySchema = z.object({
+  query: z.object({
+    displaySlot: z.enum(['after-storefront-icons', 'after-new-in-season', 'all']).optional(),
+    primaryCategoryId: z.string().optional(),
+    status: z.enum(['active', 'hidden', 'all']).optional()
+  })
+});
+
 export const orderStatusSchema = z.object({
   params: z.object({ id: z.string().min(1) }),
   body: z.object({

@@ -43,6 +43,10 @@ Admin routes require `Authorization: Bearer <tenant_admin token>`; the token inc
 | POST   | `/api/v1/admin/product-sections/assignments`      | Assign an existing product to a section                                 |
 | PUT    | `/api/v1/admin/product-sections/assignments/:id`  | Update section assignment                                               |
 | DELETE | `/api/v1/admin/product-sections/assignments/:id`  | Soft-delete section assignment                                          |
+| GET    | `/api/v1/admin/page-segments`                     | List homepage page segments                                             |
+| POST   | `/api/v1/admin/page-segments`                     | Create page segment with optional nested images                         |
+| PUT    | `/api/v1/admin/page-segments/:id`                 | Update page segment with optional nested images/removals                |
+| DELETE | `/api/v1/admin/page-segments/:id`                 | Soft-delete page segment                                                |
 | GET    | `/api/v1/admin/categories`                        | List categories with `search` filter                                    |
 | POST   | `/api/v1/admin/categories`                        | Create category                                                         |
 | PUT    | `/api/v1/admin/categories/:id`                    | Update category                                                         |
@@ -70,6 +74,7 @@ Admin routes require `Authorization: Bearer <tenant_admin token>`; the token inc
 | GET    | `/api/v1/storefront/icons?section=featured`      | Active featured icons                            |
 | GET    | `/api/v1/storefront/icons?section=merchandising` | Active merchandising icons                       |
 | GET    | `/api/v1/storefront/product-sections`            | Active products grouped by homepage section      |
+| GET    | `/api/v1/storefront/page-segments`               | Active homepage page segments                    |
 
 ## Merchandising Payloads
 
@@ -126,5 +131,21 @@ Admin routes require `Authorization: Bearer <tenant_admin token>`; the token inc
   "productId": "PRODUCT_ID",
   "sortOrder": 1,
   "status": "active"
+}
+```
+
+`POST /api/v1/admin/page-segments` accepts multipart form data. Use `image` for the segment image and nested fields such as `topCarousel.0.image`, `afterNewProductsCarousel.0.image`, and `haveYouSeenCards.0.image` for slide/card images.
+
+```json
+{
+  "title": "Featured smartphone gallery",
+  "primaryCategoryId": "category-id",
+  "displaySlot": "after-storefront-icons",
+  "icon": "🛍️",
+  "sortOrder": 1,
+  "status": "active",
+  "topCarousel": [{ "text": "Launch offers", "sortOrder": 0 }],
+  "afterNewProductsCarousel": [],
+  "haveYouSeenCards": [{ "text": "Accessories you may like", "sortOrder": 0 }]
 }
 ```

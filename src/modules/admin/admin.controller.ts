@@ -215,6 +215,44 @@ export class AdminController extends BaseController {
     );
   });
 
+  listPageSegments = asyncHandler(async (req: Request, res: Response) => {
+    this.ok(
+      res,
+      await this.adminService.listPageSegments(req.tenant?.tenantId, req.query),
+      'Page segments loaded'
+    );
+  });
+
+  createPageSegment = asyncHandler(async (req: Request, res: Response) => {
+    this.ok(
+      res,
+      await this.adminService.createPageSegment(req.tenant?.tenantId, req.body, req.files),
+      'Page segment created',
+      HTTP_STATUS.CREATED
+    );
+  });
+
+  updatePageSegment = asyncHandler(async (req: Request, res: Response) => {
+    this.ok(
+      res,
+      await this.adminService.updatePageSegment(
+        req.tenant?.tenantId,
+        routeId(req),
+        req.body,
+        req.files
+      ),
+      'Page segment updated'
+    );
+  });
+
+  deletePageSegment = asyncHandler(async (req: Request, res: Response) => {
+    this.ok(
+      res,
+      await this.adminService.deletePageSegment(req.tenant?.tenantId, routeId(req)),
+      'Page segment deleted'
+    );
+  });
+
   listCategories = asyncHandler(async (req: Request, res: Response) => {
     this.ok(
       res,

@@ -44,6 +44,6 @@ export class ProductService extends BaseService {
       product.imageName
     );
 
-    return { ...product, imageUrl };
+    return { ...product, imageUrl: imageUrl ?? product.imageUrl ?? null };
   }
 }
