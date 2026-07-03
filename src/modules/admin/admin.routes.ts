@@ -21,6 +21,7 @@ import {
   carouselBodySchema,
   carouselQuerySchema,
   customerQuerySchema,
+  dashboardQuerySchema,
   deliveryFeeBodySchema,
   idParamSchema,
   orderQuerySchema,
@@ -75,7 +76,7 @@ const dashboardAccess = [
   useAuthenticatedTenant
 ];
 
-router.get('/dashboard', dashboardAccess, controller.dashboard);
+router.get('/dashboard', dashboardAccess, validateMiddleware(dashboardQuerySchema), controller.dashboard);
 
 router.get('/wallet-topups', dashboardAccess, walletController.listAdminTopUps);
 router.put('/wallet-topups/:id/approve', dashboardAccess, walletController.approveTopUp);

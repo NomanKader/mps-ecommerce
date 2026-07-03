@@ -36,6 +36,12 @@ const MAX_REMOTE_IMAGE_SIZE_BYTES = IMAGE_UPLOAD_MAX_BYTES;
 
 type ListQuery = Record<string, unknown>;
 type MongoFilter = Record<string, unknown>;
+type DashboardPeriod = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+type DashboardQuery = {
+  from?: unknown;
+  period?: unknown;
+  to?: unknown;
+};
 type ProductPayload = Partial<Product> & { removeImage?: boolean };
 type BulkProductPayload = {
   mode?: 'upsert' | 'create-only';
@@ -58,6 +64,36 @@ type AdminProfilePayload = Pick<UserResponse, 'firstName' | 'lastName' | 'email'
     | 'topBarTagline'
   >;
 type CarouselPayload = Partial<StorefrontCarouselSlide> & { removeImage?: boolean };
+
+const startOfDay = (date: Date): Date => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+const endOfDay = (date: Date): Date =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+const addDays = (date: Date, days: number): Date =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+const monthLabel = (date: Date): string => date.toLocaleDateString('en-US', { month: 'short' });
+const dayLabel = (date: Date): string => date.toLocaleDateString('en-US', { weekday: 'short' });
+const shortDateLabel = (date: Date): string =>
+  date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+
+const dateFromQuery = (value: unknown): Date | undefined => {
+  if (typeof value !== 'string' || !value) return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+};
+
+const dashboardPeriodFromQuery = (value: unknown): DashboardPeriod => {
+  if (
+    value === 'daily' ||
+    value === 'weekly' ||
+    value === 'monthly' ||
+    value === 'yearly' ||
+    value === 'custom'
+  ) {
+    return value;
+  }
+
+  return 'weekly';
+};
 type PageSegmentSlidePayload = Pick<PageSegmentSlide, 'text' | 'sortOrder'> & {
   removeImage?: boolean;
 };
@@ -201,7 +237,7 @@ export class AdminService {
     return this.requireTenantId(tenantId);
   }
 
-  async dashboard(tenantId?: string): Promise<Record<string, unknown>> {
+  async dashboard(tenantId?: string, query: DashboardQuery = {}): Promise<Record<string, unknown>> {
     const scopedTenant = this.tenantId(tenantId);
     const { ProductModel, OrderModel, AdminCustomerModel, PromotionModel } =
       this.models(scopedTenant);
@@ -229,29 +265,66 @@ export class AdminService {
     const lowStockProducts = products
       .filter((product) => product.stock <= LOW_STOCK_THRESHOLD)
       .sort((a, b) => a.stock - b.stock);
+    const period = dashboardPeriodFromQuery(query.period);
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weeklyBuckets = Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(startOfToday);
-      date.setDate(startOfToday.getDate() - (6 - index));
-      return {
-        date,
-        key: date.toISOString().slice(0, 10),
-        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        sales: 0
-      };
-    });
-    const weeklySalesByDate = new Map(weeklyBuckets.map((bucket) => [bucket.key, bucket]));
+    const fromDate = dateFromQuery(query.from);
+    const toDate = dateFromQuery(query.to);
+    const today = startOfDay(now);
+    const startDate =
+      period === 'daily'
+        ? today
+        : period === 'monthly'
+          ? new Date(now.getFullYear(), now.getMonth(), 1)
+          : period === 'yearly'
+            ? new Date(now.getFullYear(), 0, 1)
+            : period === 'custom' && fromDate
+              ? startOfDay(fromDate)
+              : addDays(today, -6);
+    const endDate = period === 'custom' && toDate ? endOfDay(toDate) : endOfDay(now);
+    const trendBuckets =
+      period === 'daily'
+        ? Array.from({ length: 24 }, (_, hour) => ({
+            key: `${hour}`,
+            label: `${hour === 0 ? 12 : hour > 12 ? hour - 12 : hour}${hour < 12 ? ' AM' : ' PM'}`,
+            sales: 0
+          }))
+        : period === 'yearly'
+          ? Array.from({ length: 12 }, (_, month) => {
+              const date = new Date(now.getFullYear(), month, 1);
+              return { key: `${month}`, label: monthLabel(date), sales: 0 };
+            })
+          : Array.from(
+              {
+                length: Math.max(
+                  Math.floor((startOfDay(endDate).getTime() - startDate.getTime()) / 86400000) + 1,
+                  1
+                )
+              },
+              (_, index) => {
+                const date = addDays(startDate, index);
+                return {
+                  key: date.toISOString().slice(0, 10),
+                  label: period === 'weekly' ? dayLabel(date) : shortDateLabel(date),
+                  sales: 0
+                };
+              }
+            );
+    const salesByKey = new Map(trendBuckets.map((bucket) => [bucket.key, bucket]));
 
     for (const order of orders) {
       if (!revenueStatuses.has(order.status)) continue;
       const placedAt = new Date(order.placedAt || order.createdAt);
-      const key = new Date(placedAt.getFullYear(), placedAt.getMonth(), placedAt.getDate())
-        .toISOString()
-        .slice(0, 10);
-      const bucket = weeklySalesByDate.get(key);
+      if (placedAt < startDate || placedAt > endDate) continue;
+      const key =
+        period === 'daily'
+          ? `${placedAt.getHours()}`
+          : period === 'yearly'
+            ? `${placedAt.getMonth()}`
+            : startOfDay(placedAt).toISOString().slice(0, 10);
+      const bucket = salesByKey.get(key);
       if (bucket) bucket.sales += Number(order.totalAmount || 0);
     }
+    const salesTrend = trendBuckets.map(({ label, sales }) => ({ label, sales }));
 
     return {
       tenant: {
@@ -264,7 +337,13 @@ export class AdminService {
         customers: customers.length || this.customerStatsFromOrders(orders).length,
         revenue
       },
-      weeklySales: weeklyBuckets.map(({ day, sales }) => ({ day, sales })),
+      salesTrend,
+      salesTrendMeta: {
+        from: startDate.toISOString(),
+        period,
+        to: endDate.toISOString()
+      },
+      weeklySales: salesTrend.map(({ label, sales }) => ({ day: label, sales })),
       workQueue: {
         ordersToFulfill,
         lowStockSkus: lowStockProducts.length,

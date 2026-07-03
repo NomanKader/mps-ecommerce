@@ -62,6 +62,19 @@ export const idParamSchema = z.object({
   params: z.object({ id: z.string().min(1) })
 });
 
+export const dashboardQuerySchema = z.object({
+  query: z
+    .object({
+      from: z.string().optional(),
+      period: z.enum(['daily', 'weekly', 'monthly', 'yearly', 'custom']).optional(),
+      to: z.string().optional()
+    })
+    .refine((query) => query.period !== 'custom' || (query.from && query.to), {
+      message: 'Custom dashboard range requires from and to dates',
+      path: ['from']
+    })
+});
+
 export const productBodySchema = z.object({
   body: z.object({
     name: z.string().min(2),

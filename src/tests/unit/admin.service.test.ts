@@ -7,13 +7,18 @@ const mockedCategoryModel = {
   updateOne: jest.fn()
 };
 
+const mockedOrderModel = {
+  findOneAndUpdate: jest.fn()
+};
+
 jest.mock('@core/database/tenant-database', () => ({
   getTenantModels: jest.fn(() => ({
-    CategoryModel: mockedCategoryModel
+    CategoryModel: mockedCategoryModel,
+    OrderModel: mockedOrderModel
   }))
 }));
 
-describe('AdminService category management', () => {
+describe('AdminService management', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -68,6 +73,37 @@ describe('AdminService category management', () => {
     await expect(service.createCategory('av', { name: 'Fruits', slug: 'fruits' })).rejects.toMatchObject({
       statusCode: 409,
       message: 'Category slug already exists for tenant'
+    });
+  });
+
+  it('updates an order to any valid status, including a previous workflow status', async () => {
+    const service = new AdminService();
+
+    mockedOrderModel.findOneAndUpdate.mockReturnValue({
+      lean: jest.fn().mockResolvedValue({
+        _id: 'order-id',
+        createdAt: '2026-07-01T00:00:00.000Z',
+        currency: 'MMK',
+        customerName: 'May Hnin',
+        itemCount: 2,
+        orderNumber: 'DEMO-1002',
+        placedAt: '2026-07-01T00:00:00.000Z',
+        status: 'processing',
+        tenantId: 'av',
+        totalAmount: 13800
+      })
+    });
+
+    const result = await service.updateOrderStatus('av', 'order-id', 'processing');
+
+    expect(mockedOrderModel.findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: 'order-id', tenantId: 'av' },
+      { status: 'processing' },
+      { new: true }
+    );
+    expect(result).toMatchObject({
+      _id: 'order-id',
+      status: 'processing'
     });
   });
 });

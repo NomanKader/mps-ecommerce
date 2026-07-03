@@ -13,7 +13,11 @@ export class AdminController extends BaseController {
   }
 
   dashboard = asyncHandler(async (req: Request, res: Response) => {
-    this.ok(res, await this.adminService.dashboard(req.tenant?.tenantId), 'Dashboard loaded');
+    this.ok(
+      res,
+      await this.adminService.dashboard(req.tenant?.tenantId, req.query),
+      'Dashboard loaded'
+    );
   });
 
   listProducts = asyncHandler(async (req: Request, res: Response) => {

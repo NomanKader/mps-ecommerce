@@ -5,7 +5,7 @@
 - Dashboard: tenant summary, catalog count, order count, revenue, weekly sales chart, work queue, low stock alerts, recent orders.
 - Products: search/filter products, list SKU/name/category/subcategory/price/stock/rating, create product, update product, soft-delete product.
 - Categories: search categories, list storefront category cards with icon/color/item count/subcategories, create category, update category, soft-delete category.
-- Orders: order KPIs, search/filter by status/date/customer/township, list orders, update fulfillment status, cancel orders through status update.
+- Orders: order KPIs, search/filter by status/date/customer/township, list orders, and update orders to any valid status, including previous statuses for correction.
 - Customers: search/filter customers by name/email/segment/date fields, list segment/order/spend/last-order data.
 - Promotions: search promotions, list code/discount/date/status/uses, create promotion, update promotion, soft-delete promotion.
 - Delivery fees: search/filter delivery fees by region, list township/fee/free-over/ETA/status, create delivery fee, update delivery fee, soft-delete delivery fee.
@@ -53,7 +53,7 @@ Admin routes require `Authorization: Bearer <tenant_admin token>`; the token inc
 | DELETE | `/api/v1/admin/categories/:id`                    | Soft-delete category                                                    |
 | GET    | `/api/v1/admin/orders/stats`                      | Order KPI cards                                                         |
 | GET    | `/api/v1/admin/orders`                            | List orders with `search`, `status`, `from`, `to` filters               |
-| PATCH  | `/api/v1/admin/orders/:id/status`                 | Change order status                                                     |
+| PATCH  | `/api/v1/admin/orders/:id/status`                 | Change order status to any valid value                                  |
 | GET    | `/api/v1/admin/customers`                         | List customers with `search`, `segment` filters                         |
 | GET    | `/api/v1/admin/promotions`                        | List promotions with `search` filter                                    |
 | POST   | `/api/v1/admin/promotions`                        | Create promotion                                                        |
