@@ -237,6 +237,15 @@ export type AdminDashboard = {
     name: string;
     plan: string;
   };
+  salesTrend?: Array<{
+    label: string;
+    sales: number;
+  }>;
+  salesTrendMeta?: {
+    from: string;
+    period: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+    to: string;
+  };
   totals: {
     catalogItems: number;
     customers: number;

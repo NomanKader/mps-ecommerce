@@ -1,5 +1,6 @@
 import type { SvgIconComponent } from '@mui/icons-material';
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
+import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import DiscountOutlinedIcon from '@mui/icons-material/DiscountOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
@@ -9,7 +10,7 @@ import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
-import SegmentOutlinedIcon from '@mui/icons-material/SegmentOutlined';
+import SchemaOutlinedIcon from '@mui/icons-material/SchemaOutlined';
 import ShoppingBasketOutlinedIcon from '@mui/icons-material/ShoppingBasketOutlined';
 import ViewAgendaOutlinedIcon from '@mui/icons-material/ViewAgendaOutlined';
 import ViewListOutlinedIcon from '@mui/icons-material/ViewListOutlined';
@@ -45,13 +46,13 @@ export const dashboardNavigation: NavigationItem[] = [
     path: routePaths.tenantAdmin.primaryCategory,
   },
   {
-    icon: SegmentOutlinedIcon,
+    icon: CategoryOutlinedIcon,
     label: 'Sub Category',
     path: routePaths.tenantAdmin.subCategory,
   },
 
   {
-    icon: SegmentOutlinedIcon,
+    icon: SchemaOutlinedIcon,
     label: 'Secondary Category',
     path: routePaths.tenantAdmin.secondaryCategory,
   },

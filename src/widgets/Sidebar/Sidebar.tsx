@@ -128,19 +128,33 @@ const SidebarContent = ({ onMobileClose }: SidebarContentProps) => {
   };
 
   return (
-    <Stack sx={{ height: '100%' }}>
-      <Stack spacing={1} sx={{ alignItems: 'flex-start', px: 3, py: 2.5 }}>
+    <Stack sx={{ height: '100%', overflow: 'hidden' }}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          alignItems: 'center',
+          backdropFilter: 'blur(28px) saturate(145%)',
+          background:
+            'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,247,239,0.76) 100%)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.72)',
+          flexShrink: 0,
+          justifyContent: 'space-between',
+          px: 3,
+          py: 2.5,
+        }}
+      >
         <Box
           alt="AV's Store"
           component="img"
           src={logoUrl || logoImage}
-          sx={{ display: 'block', height: 76, maxWidth: '100%', objectFit: 'contain' }}
+          sx={{ display: 'block', flexShrink: 0, height: 64, maxWidth: 96, objectFit: 'contain' }}
         />
-        <Typography color="text.secondary" variant="caption">
+        <Typography color="text.secondary" sx={{ fontWeight: 500, textAlign: 'right' }} variant="caption">
           Admin Console
         </Typography>
       </Stack>
-      <List sx={{ flex: 1, px: 2, py: 1 }}>
+      <List sx={{ flex: 1, overflowY: 'auto', px: 2, py: 1 }}>
         {dashboardNavigation.filter(canViewItem).map(renderNavigationItem)}
       </List>
     </Stack>

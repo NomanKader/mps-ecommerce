@@ -32,6 +32,11 @@ type MongoEntity = { _id: string };
 type BackendEntity<T extends { id: string }> = Omit<T, 'id'> & MongoEntity;
 type ListOptions = { signal?: globalThis.AbortSignal };
 type Query = Record<string, string | undefined>;
+type DashboardQuery = {
+  from?: string;
+  period?: NonNullable<AdminDashboard['salesTrendMeta']>['period'];
+  to?: string;
+};
 
 const mapId = <T extends MongoEntity>({ _id, ...entity }: T) => ({ ...entity, id: _id });
 const params = (query: Query) =>
@@ -226,7 +231,7 @@ export const adminApi = {
     );
     return response.data.data.map(mapId);
   },
-  async getDashboard(options: ListOptions = {}) {
+  async getDashboard(query: DashboardQuery = {}, options: ListOptions = {}) {
     const response = await apiClient.get<
       ApiResponse<
         Omit<AdminDashboard, 'inventoryAlerts' | 'recentOrders'> & {
@@ -236,7 +241,7 @@ export const adminApi = {
           recentOrders: Array<Omit<AdminDashboard['recentOrders'][number], 'id'> & MongoEntity>;
         }
       >
-    >(endpoints.admin.dashboard, { signal: options.signal });
+    >(endpoints.admin.dashboard, { params: params(query), signal: options.signal });
     const data = response.data.data;
 
     return {

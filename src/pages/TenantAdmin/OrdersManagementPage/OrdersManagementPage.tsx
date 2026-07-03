@@ -1,7 +1,3 @@
-import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
-import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
-import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
-import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import {
@@ -26,7 +22,6 @@ import toast from 'react-hot-toast';
 
 import { adminApi } from '@features/admin/api/adminApi';
 import type { AdminOrder, AdminOrderStatus } from '@features/admin/types/admin.types';
-import { OrderStatusChip } from '@entities/order/ui/OrderStatusChip';
 import { useDebounce } from '@hooks/useDebounce';
 import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
@@ -35,17 +30,7 @@ import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
 import { formatCurrency } from '@utils/formatCurrency';
 import { formatDate } from '@utils/formatDate';
 
-const nextStatus: Record<AdminOrderStatus, AdminOrderStatus> = {
-  cancelled: 'cancelled',
-  delivered: 'delivered',
-  fulfilled: 'fulfilled',
-  pending: 'processing',
-  processing: 'shipped',
-  shipped: 'delivered',
-};
-
-const statusOptions: Array<{ label: string; value: AdminOrderStatus | 'all' }> = [
-  { label: 'All statuses', value: 'all' },
+const orderStatusOptions: Array<{ label: string; value: AdminOrderStatus }> = [
   { label: 'Pending', value: 'pending' },
   { label: 'Processing', value: 'processing' },
   { label: 'Shipped', value: 'shipped' },
@@ -54,34 +39,55 @@ const statusOptions: Array<{ label: string; value: AdminOrderStatus | 'all' }> =
   { label: 'Cancelled', value: 'cancelled' },
 ];
 
-const getAdvanceIcon = (status: AdminOrderStatus) => {
-  if (status === 'pending') {
-    return <Inventory2OutlinedIcon />;
-  }
+const statusFilterOptions: Array<{ label: string; value: AdminOrderStatus | 'all' }> = [
+  { label: 'All statuses', value: 'all' },
+  ...orderStatusOptions,
+];
 
-  if (status === 'processing') {
-    return <LocalShippingOutlinedIcon />;
-  }
-
-  return <CheckCircleOutlineRoundedIcon />;
+const orderStatusColorMap: Record<
+  AdminOrderStatus,
+  { background: string; border: string; color: string }
+> = {
+  cancelled: { background: '#fdecea', border: '#f5c2c7', color: '#b42318' },
+  delivered: { background: '#e8f5e9', border: '#a5d6a7', color: '#1b7f3a' },
+  fulfilled: { background: '#e7f6ee', border: '#8fd3aa', color: '#117a45' },
+  pending: { background: '#fff4e5', border: '#ffcc80', color: '#c2410c' },
+  processing: { background: '#e3f2fd', border: '#90caf9', color: '#0277bd' },
+  shipped: { background: '#eef2ff', border: '#b4c6fc', color: '#4338ca' },
 };
 
-const getAdvanceLabel = (status: AdminOrderStatus) => {
-  if (status === 'pending') {
-    return 'Mark processing';
-  }
+const statusSelectSx = (status: AdminOrderStatus) => {
+  const colors = orderStatusColorMap[status];
 
-  if (status === 'processing') {
-    return 'Mark shipped';
-  }
-
-  return 'Mark delivered';
+  return {
+    minWidth: 150,
+    '& .MuiSelect-select': {
+      bgcolor: colors.background,
+      borderRadius: 0.75,
+      color: colors.color,
+      fontWeight: 800,
+      py: 0.75,
+    },
+    '& .MuiOutlinedInput-root': {
+      '& fieldset': {
+        borderColor: colors.border,
+      },
+      '&:hover fieldset': {
+        borderColor: colors.color,
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: colors.color,
+      },
+    },
+    '& .MuiSvgIcon-root': {
+      color: colors.color,
+    },
+  };
 };
 
 export const OrdersManagementPage = () => {
   const queryClient = useQueryClient();
   const [detailOrder, setDetailOrder] = useState<AdminOrder | null>(null);
-  const [cancelTarget, setCancelTarget] = useState<AdminOrder | null>(null);
   const [endDate, setEndDate] = useState('');
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -119,12 +125,22 @@ export const OrdersManagementPage = () => {
     mutationFn: ({ id, status }: { id: string; status: AdminOrderStatus }) =>
       adminApi.updateOrderStatus(id, status),
     onError: (error) => toast.error(toApiError(error).message),
-    onSuccess: async (result) => {
+    onSuccess: async (result, variables) => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
       toast.success(result.message);
-      setCancelTarget(null);
+      setDetailOrder((current) =>
+        current?.id === variables.id ? { ...current, status: variables.status } : current,
+      );
     },
   });
+
+  const handleStatusChange = (order: AdminOrder, status: AdminOrderStatus) => {
+    if (order.status === status) {
+      return;
+    }
+
+    statusMutation.mutate({ id: order.id, status });
+  };
 
   const columns: GridColDef<AdminOrder>[] = [
     { field: 'orderNumber', flex: 1, headerName: 'Order #', minWidth: 130 },
@@ -145,8 +161,26 @@ export const OrdersManagementPage = () => {
     {
       field: 'status',
       headerName: 'Status',
-      renderCell: (params) => <OrderStatusChip status={params.value} />,
-      width: 140,
+      renderCell: (params) => (
+        <TextField
+          disabled={statusMutation.isPending && statusMutation.variables?.id === params.row.id}
+          onChange={(event) =>
+            handleStatusChange(params.row, event.target.value as AdminOrderStatus)
+          }
+          onClick={(event) => event.stopPropagation()}
+          select
+          size="small"
+          sx={statusSelectSx(params.row.status)}
+          value={params.row.status}
+        >
+          {orderStatusOptions.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </TextField>
+      ),
+      width: 180,
     },
     {
       field: 'actions',
@@ -157,27 +191,9 @@ export const OrdersManagementPage = () => {
           label="View details"
           onClick={() => setDetailOrder(row)}
         />,
-        <GridActionsCellItem
-          disabled={
-            row.status === 'delivered' || row.status === 'fulfilled' || row.status === 'cancelled'
-          }
-          icon={getAdvanceIcon(row.status)}
-          key="advance"
-          label={getAdvanceLabel(row.status)}
-          onClick={() => statusMutation.mutate({ id: row.id, status: nextStatus[row.status] })}
-        />,
-        <GridActionsCellItem
-          disabled={
-            row.status === 'cancelled' || row.status === 'delivered' || row.status === 'fulfilled'
-          }
-          icon={<BlockOutlinedIcon />}
-          key="cancel"
-          label="Cancel order"
-          onClick={() => setCancelTarget(row)}
-        />,
       ],
       type: 'actions',
-      width: 132,
+      width: 72,
     },
   ];
 
@@ -264,7 +280,7 @@ export const OrdersManagementPage = () => {
           sx={{ minWidth: { lg: 170 } }}
           value={statusFilter}
         >
-          {statusOptions.map((option) => (
+          {statusFilterOptions.map((option) => (
             <MenuItem key={option.value} value={option.value}>
               {option.label}
             </MenuItem>
@@ -328,7 +344,25 @@ export const OrdersManagementPage = () => {
                     Placed {formatDate(detailOrder.createdAt)}
                   </Typography>
                 </Stack>
-                <OrderStatusChip status={detailOrder.status} />
+                <TextField
+                  disabled={
+                    statusMutation.isPending && statusMutation.variables?.id === detailOrder.id
+                  }
+                  label="Status"
+                  onChange={(event) =>
+                    handleStatusChange(detailOrder, event.target.value as AdminOrderStatus)
+                  }
+                  select
+                  size="small"
+                  sx={{ ...statusSelectSx(detailOrder.status), minWidth: 170 }}
+                  value={detailOrder.status}
+                >
+                  {orderStatusOptions.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Stack>
               <Grid container spacing={2}>
                 <Grid size={{ sm: 6, xs: 12 }}>
@@ -383,31 +417,6 @@ export const OrdersManagementPage = () => {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <AppButton onClick={() => setDetailOrder(null)}>Close</AppButton>
-        </DialogActions>
-      </Dialog>
-      <Dialog
-        fullWidth
-        maxWidth="xs"
-        onClose={() => setCancelTarget(null)}
-        open={Boolean(cancelTarget)}
-      >
-        <DialogTitle>Cancel Order?</DialogTitle>
-        <DialogContent>
-          <Typography color="text.secondary">Cancel {cancelTarget?.orderNumber}?</Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <AppButton color="inherit" onClick={() => setCancelTarget(null)} variant="outlined">
-            Keep order
-          </AppButton>
-          <AppButton
-            color="error"
-            disabled={statusMutation.isPending}
-            onClick={() =>
-              cancelTarget && statusMutation.mutate({ id: cancelTarget.id, status: 'cancelled' })
-            }
-          >
-            Cancel order
-          </AppButton>
         </DialogActions>
       </Dialog>
     </PageSection>
