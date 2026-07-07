@@ -1836,6 +1836,7 @@ export class AdminService {
     for (const field of carouselImageFields) {
       delete sanitizedPayload[field];
     }
+    delete sanitizedPayload.removeImage;
 
     return sanitizedPayload;
   }

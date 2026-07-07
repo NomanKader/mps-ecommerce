@@ -8,6 +8,7 @@ import {
   tenantDatabaseName
 } from '@core/database/tenant-database';
 import { TenantModel } from '@modules/tenants/tenant.model';
+import { S3Service, StorefrontImageMetadata } from '@shared/services/s3.service';
 import { hashPassword } from '@utils/password';
 
 const tenantSlug = 'av';
@@ -18,6 +19,58 @@ const customerPassword = 'Customer12345!';
 
 const image = (id: string, width = 900, height = 620): string =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&h=${height}&q=85`;
+
+type SeedImageFile = {
+  buffer: Buffer;
+  mimetype: string;
+  originalname: string;
+  size: number;
+};
+
+type CarouselSeedSlide = {
+  cta: string;
+  description: string;
+  eyebrow: string;
+  headline: string;
+  imageSourceUrl: string;
+  metric: string;
+  partner: string;
+  placement: 'hero' | 'showcase';
+  sortOrder: number;
+  targetCategoryId?: string;
+  targetSearch?: string;
+  title: string;
+};
+
+const s3Service = new S3Service();
+
+const extensionByMimeType: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp'
+};
+
+const downloadSeedImage = async (
+  sourceUrl: string,
+  placement: CarouselSeedSlide['placement'],
+  sortOrder: number
+): Promise<SeedImageFile> => {
+  const response = await fetch(sourceUrl);
+  if (!response.ok) {
+    throw new Error(`Unable to download carousel seed image: ${sourceUrl}`);
+  }
+
+  const mimetype = response.headers.get('content-type')?.split(';')[0] ?? 'image/jpeg';
+  const extension = extensionByMimeType[mimetype] ?? 'jpg';
+  const buffer = Buffer.from(await response.arrayBuffer());
+
+  return {
+    buffer,
+    mimetype,
+    originalname: `${placement}-carousel-${sortOrder}.${extension}`,
+    size: buffer.byteLength
+  };
+};
 
 type ProductSeed = readonly [
   categoryName: string,
@@ -359,6 +412,7 @@ const run = async (): Promise<void> => {
     )
   );
 
+  const pantryCategory = categoryByName.get('Pantry');
   const vegetableCategory = categoryByName.get('Vegetable');
   const vegetableProducts = products.filter((product) => product.categoryName === 'Vegetable');
 
@@ -484,44 +538,138 @@ const run = async (): Promise<void> => {
     )
   );
 
+  const carouselSeedSlides: CarouselSeedSlide[] = [
+    {
+      placement: 'hero',
+      sortOrder: 1,
+      title: 'Fresh groceries for every basket',
+      description: 'Shop daily produce, pantry staples, and chilled essentials.',
+      eyebrow: 'Daily Market',
+      cta: 'Shop now',
+      headline: 'Fresh',
+      metric: 'Daily',
+      partner: 'AV Market',
+      imageSourceUrl: image('photo-1542838132-92c53300491e', 1500, 620),
+      targetCategoryId: String(vegetableCategory?._id),
+      targetSearch: 'fresh'
+    },
+    {
+      placement: 'hero',
+      sortOrder: 2,
+      title: 'Fast delivery across Yangon',
+      description: 'Curated products packed carefully for the same-day run.',
+      eyebrow: 'Same Day',
+      cta: 'Browse deals',
+      headline: 'Fast',
+      metric: 'Same day',
+      partner: 'Delivery team',
+      imageSourceUrl: image('photo-1604719312566-8912e9227c6a', 1500, 620),
+      targetCategoryId: String(vegetableCategory?._id),
+      targetSearch: 'deals'
+    },
+    {
+      placement: 'hero',
+      sortOrder: 3,
+      title: 'Pantry staples ready for the week',
+      description: 'Build a complete basket with rice, oils, snacks, and household essentials.',
+      eyebrow: 'Weekly Stock-up',
+      cta: 'Stock up',
+      headline: 'Pantry',
+      metric: 'Weekly',
+      partner: 'Storefront edit',
+      imageSourceUrl: image('photo-1583258292688-d0213dc5a3a8', 1500, 620),
+      targetCategoryId: String(pantryCategory?._id),
+      targetSearch: 'pantry'
+    },
+    {
+      placement: 'showcase',
+      sortOrder: 1,
+      title: 'Partner shops',
+      description: 'Explore trusted ranges in one place.',
+      eyebrow: 'Partner brands',
+      cta: 'View shops',
+      headline: 'Shops',
+      metric: 'Featured',
+      partner: 'Supporting copy',
+      imageSourceUrl: image('photo-1607082349566-187342175e2f', 900, 620),
+      targetCategoryId: 'all',
+      targetSearch: 'shops'
+    },
+    {
+      placement: 'showcase',
+      sortOrder: 2,
+      title: 'Fresh picks for your kitchen',
+      description: 'Seasonal vegetables and fruit selected for everyday meals.',
+      eyebrow: 'Curated this week',
+      cta: 'Shop fresh',
+      headline: 'Fresh',
+      metric: 'New',
+      partner: 'Produce counter',
+      imageSourceUrl: image('photo-1488459716781-31db52582fe9', 900, 620),
+      targetCategoryId: String(vegetableCategory?._id),
+      targetSearch: 'vegetables'
+    },
+    {
+      placement: 'showcase',
+      sortOrder: 3,
+      title: 'Offers for bigger baskets',
+      description: 'Promotions on daily essentials, pantry packs, and family favourites.',
+      eyebrow: 'Weekly offers',
+      cta: 'See offers',
+      headline: 'Offers',
+      metric: 'Promo',
+      partner: 'Savings edit',
+      imageSourceUrl: image('photo-1607083206869-4c7672e72a8a', 900, 620),
+      targetCategoryId: 'all',
+      targetSearch: 'offer'
+    }
+  ];
+
   await Promise.all(
-    [
-      {
-        placement: 'hero',
-        sortOrder: 1,
-        title: 'Fresh groceries for every basket',
-        description: 'Shop daily produce, pantry staples, and chilled essentials.',
-        eyebrow: 'Daily Market',
-        cta: 'Shop now',
-        imageUrl: image('photo-1542838132-92c53300491e', 1500, 620),
-        targetCategoryId: String(vegetableCategory?._id)
-      },
-      {
-        placement: 'hero',
-        sortOrder: 2,
-        title: 'Fast delivery across Yangon',
-        description: 'Curated products packed carefully for the same-day run.',
-        eyebrow: 'Same Day',
-        cta: 'Browse deals',
-        imageUrl: image('photo-1604719312566-8912e9227c6a', 1500, 620),
-        targetCategoryId: String(vegetableCategory?._id)
-      },
-      {
-        placement: 'showcase',
-        sortOrder: 1,
-        title: 'Partner shops',
-        description: 'Explore trusted ranges in one place.',
-        eyebrow: 'Partner brands',
-        cta: 'View shops',
-        imageUrl: image('photo-1607082349566-187342175e2f', 620, 620)
-      }
-    ].map((slide) =>
-      StorefrontCarouselSlideModel.findOneAndUpdate(
-        { tenantId, placement: slide.placement, sortOrder: slide.sortOrder },
-        { ...slide, tenantId, status: 'active', startsAt: new Date(Date.now() - 86400000) },
+    carouselSeedSlides.map(async ({ imageSourceUrl, ...slide }) => {
+      const existingSlide =
+        (await StorefrontCarouselSlideModel.findOne({
+          tenantId,
+          placement: slide.placement,
+          sortOrder: slide.sortOrder,
+          isDeleted: { $ne: true }
+        }).lean()) ??
+        (await StorefrontCarouselSlideModel.findOne({
+          tenantId,
+          placement: slide.placement,
+          sortOrder: slide.sortOrder
+        }).lean());
+      const imageMetadata: StorefrontImageMetadata = existingSlide?.imageDriveFileId
+        ? {
+            imageDriveFileId: existingSlide.imageDriveFileId,
+            imageMimeType: existingSlide.imageMimeType ?? 'image/jpeg',
+            imageName: existingSlide.imageName ?? '',
+            imageSize: existingSlide.imageSize ?? 0
+          }
+        : await s3Service.uploadStorefrontImage(
+            await downloadSeedImage(imageSourceUrl, slide.placement, slide.sortOrder),
+            tenantId,
+            `${slide.placement}-${slide.sortOrder}`
+          );
+
+      return StorefrontCarouselSlideModel.findOneAndUpdate(
+        existingSlide?._id
+          ? { _id: existingSlide._id }
+          : { tenantId, placement: slide.placement, sortOrder: slide.sortOrder },
+        {
+          $set: {
+            ...slide,
+            ...imageMetadata,
+            tenantId,
+            isDeleted: false,
+            status: 'active',
+            startsAt: new Date(Date.now() - 86400000)
+          },
+          $unset: { imageUrl: '' }
+        },
         { upsert: true, new: true, setDefaultsOnInsert: true }
-      )
-    )
+      );
+    })
   );
 
   await Promise.all(
