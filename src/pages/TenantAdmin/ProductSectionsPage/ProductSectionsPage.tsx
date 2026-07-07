@@ -463,10 +463,17 @@ export const ProductSectionsPage = ({
           setIsDialogOpen(false);
         }}
         open={isDialogOpen}
+        slotProps={{
+          paper: {
+            sx: {
+              maxHeight: 'min(820px, calc(100dvh - 48px))',
+            },
+          },
+        }}
       >
-        <DialogTitle>Assign Existing Product</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2.25} sx={{ pt: 1 }}>
+        <DialogTitle sx={{ flex: '0 0 auto', pb: 1.5 }}>Assign Existing Product</DialogTitle>
+        <DialogContent sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto' }}>
+          <Stack spacing={2} sx={{ height: '100%', minHeight: 0, pt: 1 }}>
             <TextField
               label="Section"
               onChange={(event) =>
@@ -509,7 +516,7 @@ export const ProductSectionsPage = ({
                   : ''
               }
             />
-            <Box sx={{ position: 'relative' }}>
+            <Box sx={{ minHeight: 0, position: 'relative' }}>
               {isProductPickerOpen ? (
                 <Box
                   sx={{
@@ -522,10 +529,14 @@ export const ProductSectionsPage = ({
                     overflow: 'hidden',
                     position: 'relative',
                     right: 0,
+                    display: 'flex',
+                    flex: '1 1 auto',
+                    flexDirection: 'column',
+                    minHeight: 0,
                     zIndex: 1,
                   }}
                 >
-                  <Box sx={{ p: 1.5 }}>
+                  <Box sx={{ flex: '0 0 auto', p: 1.5 }}>
                     <TextField
                       autoFocus
                       fullWidth
@@ -548,7 +559,8 @@ export const ProductSectionsPage = ({
                     sx={{
                       borderTop: 1,
                       borderColor: 'divider',
-                      maxHeight: { md: 560, sm: 520, xs: 420 },
+                      height: { md: 'min(42dvh, 390px)', xs: 'min(44dvh, 340px)' },
+                      minHeight: 220,
                       overflowY: 'auto',
                     }}
                   >
@@ -615,6 +627,7 @@ export const ProductSectionsPage = ({
                       alignItems: 'center',
                       borderTop: 1,
                       borderColor: 'divider',
+                      flex: '0 0 auto',
                       justifyContent: 'space-between',
                       px: 1.5,
                       py: 1,
@@ -634,7 +647,7 @@ export const ProductSectionsPage = ({
                 </Box>
               ) : null}
             </Box>
-            <Grid container spacing={2}>
+            <Grid container spacing={2} sx={{ flex: '0 0 auto' }}>
               <Grid size={{ sm: 6, xs: 12 }}>
                 <TextField
                   fullWidth
@@ -666,7 +679,15 @@ export const ProductSectionsPage = ({
             </Grid>
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
+        <DialogActions
+          sx={{
+            borderTop: 1,
+            borderColor: 'divider',
+            flex: '0 0 auto',
+            px: 3,
+            py: 2,
+          }}
+        >
           <AppButton
             color="inherit"
             onClick={() => {

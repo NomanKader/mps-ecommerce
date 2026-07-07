@@ -38,10 +38,12 @@ import {
   storefrontCategoryMenuItems,
 } from '@features/home/data/homePage.data';
 import { useCart } from '@features/cart/hooks/useCart';
+import { useAddresses } from '@features/addresses/hooks/useAddresses';
 import { merchandisingApi } from '@features/home/api/merchandisingApi';
 import { useSignOut } from '@features/auth/hooks/useSignOut';
 import { storefrontIconButtonSx } from '@shared/styles/storefront';
 import type { RootState } from '@store/index';
+import type { CustomerAddress } from '@entities/address/types/address.types';
 
 const getCatalogPath = (categoryId: string, title: string, search?: string) => {
   const params = new URLSearchParams({
@@ -131,14 +133,19 @@ const sustainableShoppingLinks = [
   { label: "AV's Store Kitchen", to: routePaths.sustainability.kitchen },
 ];
 
+const addressSummary = (address: CustomerAddress) =>
+  [address.addressLine1, address.township, address.city].filter(Boolean).join(', ');
+
 export const Header = () => {
   const { totalItems } = useCart();
   const signOut = useSignOut();
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const { addresses, isLoading: isLoadingAddresses } = useAddresses();
   const [isAppPromptVisible, setIsAppPromptVisible] = useState(true);
   const [isAuthDrawerOpen, setIsAuthDrawerOpen] = useState(false);
+  const [isAddressShortcutOpen, setIsAddressShortcutOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [isSustainableMenuOpen, setIsSustainableMenuOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
@@ -185,6 +192,10 @@ export const Header = () => {
   const activeMenuItems = activeCategory?.menuItems ?? [];
   const isCustomer = isAuthenticated && user?.role === 'customer';
   const isTenantAdmin = isAuthenticated && user?.role === 'tenant_admin';
+  const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0];
+  const addressButtonLabel = defaultAddress
+    ? `${defaultAddress.label.toUpperCase()} · ${defaultAddress.township || defaultAddress.city}`
+    : 'Add your address';
   const deliveryHeadline =
     headerSettingsQuery.data?.deliveryHeadline ?? user?.deliveryHeadline ?? 'Delivery all over UAE';
   const supportPhoneLabel = headerSettingsQuery.data
@@ -258,6 +269,20 @@ export const Header = () => {
     }
 
     navigate(`${routePaths.catalog}${params.toString() ? `?${params.toString()}` : ''}`);
+  };
+
+  const handleAddressButtonClick = () => {
+    if (!isAuthenticated) {
+      setIsAuthDrawerOpen(true);
+      return;
+    }
+
+    if (!addresses.length) {
+      void navigate(routePaths.accountAddresses);
+      return;
+    }
+
+    setIsAddressShortcutOpen((isOpen) => !isOpen);
   };
 
   return (
@@ -357,18 +382,75 @@ export const Header = () => {
                 {deliveryHeadline}
               </Typography>
             </Stack>
-            <Button
-              startIcon={<FmdGoodOutlinedIcon />}
-              sx={{
-                border: `1px solid ${alpha('#ffffff', 0.28)}`,
-                borderRadius: 2,
-                color: storefrontColors.surface,
-                px: 2,
-                textTransform: 'none',
-              }}
-            >
-              Add your address
-            </Button>
+            <ClickAwayListener onClickAway={() => setIsAddressShortcutOpen(false)}>
+              <Box sx={{ position: 'relative' }}>
+                <Button
+                  onClick={handleAddressButtonClick}
+                  startIcon={<FmdGoodOutlinedIcon />}
+                  sx={{
+                    border: `1px solid ${alpha('#ffffff', 0.28)}`,
+                    borderRadius: 2,
+                    color: storefrontColors.surface,
+                    maxWidth: 310,
+                    px: 2,
+                    textTransform: 'none',
+                  }}
+                >
+                  <Typography noWrap sx={{ fontWeight: 800 }} variant="body2">
+                    {isLoadingAddresses && isAuthenticated ? 'Checking address...' : addressButtonLabel}
+                  </Typography>
+                </Button>
+                {isAddressShortcutOpen && defaultAddress ? (
+                  <Box
+                    sx={{
+                      backgroundColor: '#ffffff',
+                      border: `1px solid ${alpha(storefrontColors.navy, 0.12)}`,
+                      borderRadius: 1,
+                      boxShadow: `0 18px 44px ${alpha(storefrontColors.navyDark, 0.18)}`,
+                      color: storefrontColors.navy,
+                      left: 0,
+                      minWidth: 340,
+                      p: 2,
+                      position: 'absolute',
+                      top: 'calc(100% + 10px)',
+                      zIndex: 40,
+                    }}
+                  >
+                    <Stack spacing={1.35}>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
+                        <FmdGoodOutlinedIcon color="primary" sx={{ mt: 0.15 }} />
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography sx={{ fontWeight: 900 }} variant="body2">
+                            {defaultAddress.label.toUpperCase()}
+                            {defaultAddress.isDefault ? ' · Default' : ''}
+                          </Typography>
+                          <Typography sx={{ color: '#4b5563', fontWeight: 800 }} variant="body2">
+                            {defaultAddress.recipientName} · {defaultAddress.phone}
+                          </Typography>
+                          <Typography color="text.secondary" variant="body2">
+                            {addressSummary(defaultAddress)}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          fullWidth
+                          onClick={() => {
+                            setIsAddressShortcutOpen(false);
+                            void navigate(routePaths.accountAddresses);
+                          }}
+                          size="small"
+                          sx={{ fontWeight: 900, textTransform: 'none' }}
+                          variant="contained"
+                        >
+                          Manage address
+                        </Button>
+                      </Stack>
+                    </Stack>
+                  </Box>
+                ) : null}
+              </Box>
+            </ClickAwayListener>
           </Stack>
           <Stack direction="row" spacing={3} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
             {topBarTagline ? (
