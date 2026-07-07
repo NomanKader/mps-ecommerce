@@ -48,6 +48,8 @@ const promoTileThemes: Record<string, { accent: string; icon: string }> = {
   snacks: { accent: '#e05458', icon: '⬡' },
 };
 
+const carouselAutoAdvanceMs = 4500;
+
 const getPromoTilePath = (tile: {
   id?: string;
   pageSegmentId?: string;
@@ -810,6 +812,30 @@ export const HomePage = () => {
   const activeShopBrandIndex = shopBrands.findIndex((brand) => brand.id === activeShopBrandId);
   const activeShowcase = visibleShowcaseSlides[activeShowcaseIndex] ?? defaultShowcaseSlide;
 
+  useEffect(() => {
+    if (visibleHeroSlides.length <= 1) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setActiveHeroSlideIndex((currentIndex) => (currentIndex + 1) % visibleHeroSlides.length);
+    }, carouselAutoAdvanceMs);
+
+    return () => window.clearInterval(timer);
+  }, [visibleHeroSlides.length]);
+
+  useEffect(() => {
+    if (visibleShowcaseSlides.length <= 1) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setActiveShowcaseIndex((currentIndex) => (currentIndex + 1) % visibleShowcaseSlides.length);
+    }, carouselAutoAdvanceMs);
+
+    return () => window.clearInterval(timer);
+  }, [visibleShowcaseSlides.length]);
+
   const goToPreviousShowcase = () => {
     setActiveShowcaseIndex((currentIndex) =>
       currentIndex === 0 ? visibleShowcaseSlides.length - 1 : currentIndex - 1,
@@ -865,7 +891,18 @@ export const HomePage = () => {
                 }}
               >
                 <Grid size={{ md: 6.8, xs: 12 }}>
-                  <Stack spacing={1.75} sx={{ minWidth: 0 }}>
+                  <Stack
+                    key={`hero-copy-${activeHeroSlide.id}`}
+                    spacing={1.75}
+                    sx={{
+                      animation: 'homeCarouselCopyIn 420ms ease',
+                      minWidth: 0,
+                      '@keyframes homeCarouselCopyIn': {
+                        from: { opacity: 0, transform: 'translateX(-14px)' },
+                        to: { opacity: 1, transform: 'translateX(0)' },
+                      },
+                    }}
+                  >
                     <Typography
                       sx={{
                         backdropFilter: 'blur(14px)',
@@ -993,9 +1030,11 @@ export const HomePage = () => {
                       <Box
                         alt={activeHeroSlide.title}
                         component="img"
+                        key={`hero-image-${activeHeroSlide.id}`}
                         loading="lazy"
                         src={activeHeroSlide.imageUrl}
                         sx={{
+                          animation: 'homeCarouselImageIn 460ms ease',
                           aspectRatio: '4 / 3',
                           borderRadius: 1,
                           display: 'block',
@@ -1003,6 +1042,10 @@ export const HomePage = () => {
                           maxHeight: { lg: 420, md: 360 },
                           objectFit: 'cover',
                           width: '100%',
+                          '@keyframes homeCarouselImageIn': {
+                            from: { opacity: 0, transform: 'translateX(18px) scale(0.985)' },
+                            to: { opacity: 1, transform: 'translateX(0) scale(1)' },
+                          },
                         }}
                       />
                     </Box>
@@ -1346,7 +1389,17 @@ export const HomePage = () => {
         >
           <Grid container spacing={3} sx={{ alignItems: 'center' }}>
             <Grid size={{ md: 8, xs: 12 }}>
-              <Stack spacing={1.5}>
+              <Stack
+                key={`showcase-copy-${activeShowcase.id}`}
+                spacing={1.5}
+                sx={{
+                  animation: 'showcaseCopyIn 360ms ease',
+                  '@keyframes showcaseCopyIn': {
+                    from: { opacity: 0, transform: 'translateX(-12px)' },
+                    to: { opacity: 1, transform: 'translateX(0)' },
+                  },
+                }}
+              >
                 <Typography sx={{ color: storefrontColors.navy, fontWeight: 800 }} variant="h2">
                   {activeShowcase.title}
                 </Typography>
@@ -1383,14 +1436,20 @@ export const HomePage = () => {
                 <Box
                   alt={activeShowcase.title}
                   component="img"
+                  key={`showcase-image-${activeShowcase.id}`}
                   loading="lazy"
                   src={activeShowcase.imageUrl}
                   sx={{
+                    animation: 'showcaseImageIn 420ms ease',
                     borderRadius: 1,
                     display: 'block',
                     height: 220,
                     objectFit: 'cover',
                     width: '100%',
+                    '@keyframes showcaseImageIn': {
+                      from: { opacity: 0, transform: 'translateX(16px) scale(0.985)' },
+                      to: { opacity: 1, transform: 'translateX(0) scale(1)' },
+                    },
                   }}
                 />
                 <IconButton

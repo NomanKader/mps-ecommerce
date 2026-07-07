@@ -189,23 +189,25 @@ const normalizeStoreProduct = ({ _id, stock, subcategory, categoryName, ...produ
 
 const carouselFormData = (payload: CarouselPayload) => {
   const formData = new FormData();
+  const appendIfPresent = (key: string, value: string | number | undefined | null) => {
+    if (value === undefined || value === null || value === '') return;
+    formData.append(key, String(value));
+  };
 
   formData.append('placement', payload.placement);
-  formData.append('title', payload.title);
-  formData.append('description', payload.description);
-  formData.append('eyebrow', payload.eyebrow);
-  formData.append('cta', payload.cta);
-  formData.append('metric', payload.metric);
-  formData.append('headline', payload.headline);
-  formData.append('partner', payload.partner);
-  formData.append('targetCategoryId', payload.targetCategoryId);
+  appendIfPresent('title', payload.title);
+  appendIfPresent('description', payload.description);
+  appendIfPresent('eyebrow', payload.eyebrow);
+  appendIfPresent('cta', payload.cta);
+  appendIfPresent('metric', payload.metric);
+  appendIfPresent('headline', payload.headline);
+  appendIfPresent('partner', payload.partner);
+  appendIfPresent('targetCategoryId', payload.targetCategoryId);
   formData.append('sortOrder', String(payload.sortOrder));
   formData.append('status', payload.status);
-  formData.append('startsAt', payload.startsAt);
+  appendIfPresent('startsAt', payload.startsAt);
 
-  if (payload.targetSearch) {
-    formData.append('targetSearch', payload.targetSearch);
-  }
+  appendIfPresent('targetSearch', payload.targetSearch);
 
   if (payload.image) {
     formData.append('image', payload.image);

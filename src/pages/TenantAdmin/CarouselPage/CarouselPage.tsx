@@ -81,6 +81,17 @@ const revokeImagePreview = (previewUrl: string) => {
   }
 };
 
+const textValue = (value: string | null | undefined) => value ?? '';
+
+const dateInputValue = (value: string | null | undefined) => {
+  if (!value) return '';
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return '';
+
+  return parsedDate.toISOString().slice(0, 10);
+};
+
 const createCarouselPayload = (form: CarouselForm, removeImage = false): CarouselPayload => ({
   cta: form.cta.trim(),
   description: form.description.trim(),
@@ -310,21 +321,21 @@ export const CarouselPage = () => {
           onClick={() => {
             setEditingId(row.id);
             setForm({
-              cta: row.cta,
-              description: row.description,
-              eyebrow: row.eyebrow,
-              headline: row.headline,
+              cta: textValue(row.cta),
+              description: textValue(row.description),
+              eyebrow: textValue(row.eyebrow),
+              headline: textValue(row.headline),
               imageFileName: '',
-              imagePreviewUrl: row.imageUrl,
-              metric: row.metric,
-              partner: row.partner,
+              imagePreviewUrl: textValue(row.imageUrl),
+              metric: textValue(row.metric),
+              partner: textValue(row.partner),
               placement: row.placement,
               sortOrder: row.sortOrder,
-              startsAt: row.startsAt,
+              startsAt: dateInputValue(row.startsAt),
               status: 'active',
-              targetCategoryId: row.targetCategoryId,
+              targetCategoryId: textValue(row.targetCategoryId) || 'all',
               targetSearch: '',
-              title: row.title,
+              title: textValue(row.title),
             });
             setIsDialogOpen(true);
           }}
