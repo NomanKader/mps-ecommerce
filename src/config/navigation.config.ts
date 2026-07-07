@@ -12,6 +12,7 @@ import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import SchemaOutlinedIcon from '@mui/icons-material/SchemaOutlined';
 import ShoppingBasketOutlinedIcon from '@mui/icons-material/ShoppingBasketOutlined';
+import ViewCarouselOutlinedIcon from '@mui/icons-material/ViewCarouselOutlined';
 import ViewAgendaOutlinedIcon from '@mui/icons-material/ViewAgendaOutlined';
 import ViewListOutlinedIcon from '@mui/icons-material/ViewListOutlined';
 import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
@@ -65,6 +66,11 @@ export const dashboardNavigation: NavigationItem[] = [
     icon: WidgetsOutlinedIcon,
     label: 'Page Segments',
     path: routePaths.tenantAdmin.pageSegments,
+  },
+  {
+    icon: ViewCarouselOutlinedIcon,
+    label: 'Carousel',
+    path: routePaths.tenantAdmin.carousel,
   },
 
   { icon: DiscountOutlinedIcon, label: 'Promotion', path: routePaths.tenantAdmin.promotions },
