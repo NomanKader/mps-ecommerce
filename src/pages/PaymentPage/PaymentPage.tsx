@@ -98,7 +98,12 @@ export const PaymentPage = () => {
 
       return orderApi.createOrder({
         ...draft,
+        items: items.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+        })),
         paymentMethod,
+        productIds: items.map((item) => item.product.id),
       });
     },
     onError: (error) => toast.error(toApiError(error).message),

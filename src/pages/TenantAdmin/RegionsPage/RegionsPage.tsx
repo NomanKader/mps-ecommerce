@@ -1,10 +1,10 @@
+import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
   Chip,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -184,15 +184,18 @@ export const RegionsPage = () => {
         rowHeight={64}
         rows={regions}
         sx={{
-          '& .MuiDataGrid-cell[data-field="status"], & .MuiDataGrid-columnHeader[data-field="status"]': {
-            justifyContent: 'center',
-          },
-          '& .MuiDataGrid-columnHeader[data-field="status"] .MuiDataGrid-columnHeaderTitleContainer': {
-            justifyContent: 'center',
-          },
-          '& .MuiDataGrid-cell[data-field="actions"], & .MuiDataGrid-columnHeader[data-field="actions"]': {
-            justifyContent: 'center',
-          },
+          '& .MuiDataGrid-cell[data-field="status"], & .MuiDataGrid-columnHeader[data-field="status"]':
+            {
+              justifyContent: 'center',
+            },
+          '& .MuiDataGrid-columnHeader[data-field="status"] .MuiDataGrid-columnHeaderTitleContainer':
+            {
+              justifyContent: 'center',
+            },
+          '& .MuiDataGrid-cell[data-field="actions"], & .MuiDataGrid-columnHeader[data-field="actions"]':
+            {
+              justifyContent: 'center',
+            },
         }}
       />
 

@@ -1,10 +1,10 @@
+import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
   Chip,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -74,7 +74,8 @@ export const TownshipsPage = () => {
     setEditingId(township.id);
     setForm({
       name: township.name,
-      regionId: township.regionId ?? regions.find((region) => region.name === township.region)?.id ?? '',
+      regionId:
+        township.regionId ?? regions.find((region) => region.name === township.region)?.id ?? '',
       status: township.status,
     });
     setIsDialogOpen(true);

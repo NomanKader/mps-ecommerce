@@ -13,6 +13,7 @@ export const storefrontColors = {
 } as const;
 
 export const storefrontGradients = {
+  brandBar: 'linear-gradient(105deg, #c91f1a 0%, #df321d 62%, #ef7622 100%)',
   footer: 'linear-gradient(180deg, #b9221d 0%, #611010 100%)',
   hero: 'linear-gradient(135deg, #9f1714 0%, #cf2d24 46%, #d8a942 100%)',
   softHero: 'linear-gradient(180deg, #ffffff 0%, #fbf7f1 100%)',

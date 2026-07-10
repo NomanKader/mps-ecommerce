@@ -29,7 +29,7 @@ import { Link, matchPath, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
 
-import { storefrontColors } from '@app/providers/theme/tokens';
+import { storefrontColors, storefrontGradients } from '@app/providers/theme/tokens';
 import logoImage from '@assets/images/logo.png';
 import { AuthDrawer } from '@widgets/AuthDrawer/AuthDrawer';
 import { routePaths } from '@routes/routePaths';
@@ -298,7 +298,7 @@ export const Header = () => {
     >
       <Box
         sx={{
-          backgroundColor: storefrontColors.navy,
+          background: storefrontGradients.brandBar,
           display: { md: 'none', xs: 'block' },
           px: 2.4,
           py: 1.4,
@@ -358,7 +358,7 @@ export const Header = () => {
 
       <Box
         sx={{
-          backgroundColor: storefrontColors.navy,
+          background: storefrontGradients.brandBar,
           color: storefrontColors.surface,
           display: { md: 'block', xs: 'none' },
           px: { lg: 5, xs: 2 },
@@ -668,7 +668,7 @@ export const Header = () => {
               fullWidth
               inputProps={{ 'aria-label': 'Search products' }}
               onChange={(event) => setSearchValue(event.target.value)}
-              placeholder="Search for pantry essentials"
+              placeholder="Search items, categories, or sub categories"
               sx={{
                 color: storefrontColors.navy,
                 fontSize: { md: '1.05rem', lg: '1.1rem' },
@@ -1047,7 +1047,7 @@ export const Header = () => {
         aria-label="Primary mobile navigation"
         component="nav"
         sx={{
-          backgroundColor: storefrontColors.navy,
+          background: storefrontGradients.brandBar,
           bottom: 0,
           boxShadow: `0 -8px 24px ${alpha(storefrontColors.navyDark, 0.2)}`,
           color: storefrontColors.surface,

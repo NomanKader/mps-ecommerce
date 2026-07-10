@@ -1,13 +1,19 @@
+import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
+import FilterListRoundedIcon from '@mui/icons-material/FilterListRounded';
+import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import {
   Alert,
+  Box,
+  Button,
   Card,
   CardContent,
-  Dialog,
+  Chip,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Grid,
   InputAdornment,
   MenuItem,
@@ -17,7 +23,7 @@ import {
 } from '@mui/material';
 import { GridActionsCellItem, type GridColDef, type GridPaginationModel } from '@mui/x-data-grid';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 
 import { adminApi } from '@features/admin/api/adminApi';
@@ -88,27 +94,50 @@ const statusSelectSx = (status: AdminOrderStatus) => {
 export const OrdersManagementPage = () => {
   const queryClient = useQueryClient();
   const [detailOrder, setDetailOrder] = useState<AdminOrder | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [endDate, setEndDate] = useState('');
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [statusFilter, setStatusFilter] = useState<AdminOrderStatus | 'all'>('all');
+  const [subcategoryFilter, setSubcategoryFilter] = useState('all');
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 10,
   });
   const debouncedSearch = useDebounce(search);
+  const categoriesQuery = useQuery({
+    queryFn: ({ signal }) => adminApi.listCategories({}, { signal }),
+    queryKey: ['admin', 'categories'],
+  });
+  const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.id === categoryFilter),
+    [categories, categoryFilter],
+  );
+  const subcategoryOptions = selectedCategory?.subcategories ?? [];
   const ordersQuery = useQuery({
     queryFn: ({ signal }) =>
       adminApi.listOrders(
         {
+          categoryId: categoryFilter === 'all' ? undefined : categoryFilter,
           from: startDate,
           search: debouncedSearch,
           status: statusFilter === 'all' ? undefined : statusFilter,
+          subcategory: subcategoryFilter === 'all' ? undefined : subcategoryFilter,
           to: endDate,
         },
         { signal },
       ),
-    queryKey: ['admin', 'orders', debouncedSearch, statusFilter, startDate, endDate],
+    queryKey: [
+      'admin',
+      'orders',
+      debouncedSearch,
+      statusFilter,
+      categoryFilter,
+      subcategoryFilter,
+      startDate,
+      endDate,
+    ],
   });
   const statsQuery = useQuery({
     queryFn: ({ signal }) => adminApi.orderStats({ signal }),
@@ -116,9 +145,27 @@ export const OrdersManagementPage = () => {
   });
   const orders = ordersQuery.data ?? [];
   const stats = statsQuery.data ?? { fulfilled: 0, netRevenue: 0, openOrders: 0 };
+  const hasActiveFilters = Boolean(
+    search ||
+      statusFilter !== 'all' ||
+      categoryFilter !== 'all' ||
+      subcategoryFilter !== 'all' ||
+      startDate ||
+      endDate,
+  );
 
   const resetPagination = () => {
     setPaginationModel((current) => ({ ...current, page: 0 }));
+  };
+
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setCategoryFilter('all');
+    setSubcategoryFilter('all');
+    setStartDate('');
+    setEndDate('');
+    resetPagination();
   };
 
   const statusMutation = useMutation({
@@ -238,78 +285,165 @@ export const OrdersManagementPage = () => {
         <Alert severity="error">{toApiError(statsQuery.error).message}</Alert>
       ) : null}
 
-      <Stack
-        direction={{ lg: 'row', xs: 'column' }}
-        spacing={2}
+      <Box
         sx={{
-          alignItems: { lg: 'center', xs: 'stretch' },
           bgcolor: 'background.paper',
           border: 1,
           borderColor: 'divider',
           borderRadius: 1,
           mt: 3,
-          p: 2,
+          overflow: 'hidden',
         }}
       >
-        <TextField
-          label="Search orders"
-          onChange={(event) => {
-            setSearch(event.target.value);
-            resetPagination();
+        <Stack
+          direction="row"
+          sx={{
+            alignItems: 'center',
+            borderBottom: 1,
+            borderColor: 'divider',
+            justifyContent: 'space-between',
+            minHeight: 64,
+            px: { sm: 2.5, xs: 2 },
           }}
-          placeholder="Order, customer, phone, township"
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchRoundedIcon fontSize="small" />
-                </InputAdornment>
-              ),
-            },
-          }}
-          sx={{ minWidth: { lg: 320 } }}
-          value={search}
-        />
-        <TextField
-          label="Status"
-          onChange={(event) => {
-            setStatusFilter(event.target.value as AdminOrderStatus | 'all');
-            resetPagination();
-          }}
-          select
-          sx={{ minWidth: { lg: 170 } }}
-          value={statusFilter}
         >
-          {statusFilterOptions.map((option) => (
-            <MenuItem key={option.value} value={option.value}>
-              {option.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          label="From date"
-          onChange={(event) => {
-            setStartDate(event.target.value);
-            resetPagination();
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            <FilterListRoundedIcon color="primary" />
+            <Typography sx={{ fontWeight: 800 }} variant="subtitle1">
+              Order filters
+            </Typography>
+          </Stack>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            <Chip label={`${orders.length} results`} size="small" variant="outlined" />
+            <Button
+              disabled={!hasActiveFilters}
+              onClick={clearFilters}
+              startIcon={<RestartAltRoundedIcon />}
+              sx={{ display: { sm: 'inline-flex', xs: 'none' }, minWidth: 0, px: 1.5 }}
+            >
+              Clear
+            </Button>
+          </Stack>
+        </Stack>
+
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 2,
+            gridTemplateColumns: {
+              sm: 'repeat(2, minmax(0, 1fr))',
+              xl: 'minmax(300px, 1.6fr) minmax(170px, 0.8fr) minmax(220px, 1fr) minmax(210px, 1fr)',
+              xs: 'minmax(0, 1fr)',
+            },
+            p: { sm: 2.5, xs: 2 },
           }}
-          slotProps={{ inputLabel: { shrink: true } }}
-          type="date"
-          value={startDate}
-        />
-        <TextField
-          label="To date"
-          onChange={(event) => {
-            setEndDate(event.target.value);
-            resetPagination();
-          }}
-          slotProps={{ inputLabel: { shrink: true } }}
-          type="date"
-          value={endDate}
-        />
-        <Typography color="text.secondary" sx={{ ml: { lg: 'auto' } }} variant="body2">
-          Showing {orders.length}
-        </Typography>
-      </Stack>
+        >
+          <TextField
+            label="Search orders"
+            onChange={(event) => {
+              setSearch(event.target.value);
+              resetPagination();
+            }}
+            placeholder="Order, customer, phone, township"
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              },
+            }}
+            value={search}
+          />
+          <TextField
+            label="Status"
+            onChange={(event) => {
+              setStatusFilter(event.target.value as AdminOrderStatus | 'all');
+              resetPagination();
+            }}
+            select
+            value={statusFilter}
+          >
+            {statusFilterOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="Primary category"
+            onChange={(event) => {
+              setCategoryFilter(event.target.value);
+              setSubcategoryFilter('all');
+              resetPagination();
+            }}
+            select
+            value={categoryFilter}
+          >
+            <MenuItem value="all">All primary categories</MenuItem>
+            {categories.map((category) => (
+              <MenuItem key={category.id} value={category.id}>
+                {category.name}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            disabled={categoryFilter === 'all' || subcategoryOptions.length === 0}
+            label="Sub category"
+            onChange={(event) => {
+              setSubcategoryFilter(event.target.value);
+              resetPagination();
+            }}
+            select
+            value={subcategoryFilter}
+          >
+            <MenuItem value="all">All sub categories</MenuItem>
+            {subcategoryOptions.map((subcategory) => (
+              <MenuItem key={subcategory} value={subcategory}>
+                {subcategory}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 2,
+              gridColumn: { sm: '1 / -1', xl: '1 / span 2' },
+              gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' },
+            }}
+          >
+            <TextField
+              label="From date"
+              onChange={(event) => {
+                setStartDate(event.target.value);
+                resetPagination();
+              }}
+              slotProps={{ inputLabel: { shrink: true } }}
+              type="date"
+              value={startDate}
+            />
+            <TextField
+              label="To date"
+              onChange={(event) => {
+                setEndDate(event.target.value);
+                resetPagination();
+              }}
+              slotProps={{ inputLabel: { shrink: true } }}
+              type="date"
+              value={endDate}
+            />
+          </Box>
+          <Button
+            disabled={!hasActiveFilters}
+            onClick={clearFilters}
+            startIcon={<RestartAltRoundedIcon />}
+            sx={{ display: { sm: 'none', xs: 'inline-flex' }, justifySelf: 'start' }}
+          >
+            Clear filters
+          </Button>
+        </Box>
+      </Box>
 
       <Stack sx={{ mt: 2 }}>
         {ordersQuery.isError ? (
@@ -329,14 +463,14 @@ export const OrdersManagementPage = () => {
 
       <Dialog
         fullWidth
-        maxWidth="sm"
+        maxWidth="md"
         onClose={() => setDetailOrder(null)}
         open={Boolean(detailOrder)}
       >
         <DialogTitle>Order Details</DialogTitle>
         <DialogContent>
           {detailOrder ? (
-            <Stack spacing={2} sx={{ pt: 1 }}>
+            <Stack spacing={2.5} sx={{ pt: 1 }}>
               <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
                 <Stack>
                   <Typography variant="h6">{detailOrder.orderNumber}</Typography>
@@ -364,52 +498,154 @@ export const OrdersManagementPage = () => {
                   ))}
                 </TextField>
               </Stack>
-              <Grid container spacing={2}>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <Typography color="text.secondary" variant="caption">
-                    Customer
-                  </Typography>
-                  <Typography>{detailOrder.customerName}</Typography>
+              <Grid container spacing={3}>
+                <Grid size={{ md: 7.5, xs: 12 }}>
+                  <Stack spacing={1.5}>
+                    <Stack direction="row" sx={{ alignItems: 'baseline', justifyContent: 'space-between' }}>
+                      <Typography sx={{ fontWeight: 800 }} variant="subtitle1">
+                        Items to prepare
+                      </Typography>
+                      <Typography color="text.secondary" variant="body2">
+                        {detailOrder.itemCount} units
+                      </Typography>
+                    </Stack>
+                    {detailOrder.lineItems?.length ? (
+                      <Stack divider={<Divider flexItem />}>
+                        {detailOrder.lineItems.map((item, index) => (
+                          <Stack
+                            direction="row"
+                            key={`${item.productId}-${index}`}
+                            spacing={1.5}
+                            sx={{ alignItems: 'center', py: 1.5 }}
+                          >
+                            <Box
+                              sx={{
+                                alignItems: 'center',
+                                bgcolor: 'background.default',
+                                border: 1,
+                                borderColor: 'divider',
+                                borderRadius: 1,
+                                display: 'flex',
+                                flexShrink: 0,
+                                height: 64,
+                                justifyContent: 'center',
+                                overflow: 'hidden',
+                                width: 64,
+                              }}
+                            >
+                              {item.imageUrl ? (
+                                <Box
+                                  alt={item.name}
+                                  component="img"
+                                  src={item.imageUrl}
+                                  sx={{ height: '100%', objectFit: 'cover', width: '100%' }}
+                                />
+                              ) : (
+                                <Typography color="text.secondary" sx={{ fontWeight: 800 }}>
+                                  {item.quantity}x
+                                </Typography>
+                              )}
+                            </Box>
+                            <Stack spacing={0.65} sx={{ flex: 1, minWidth: 0 }}>
+                              <Stack
+                                direction="row"
+                                spacing={1}
+                                sx={{ alignItems: 'baseline', justifyContent: 'space-between' }}
+                              >
+                                <Typography noWrap sx={{ fontWeight: 800 }}>
+                                  {item.name}
+                                </Typography>
+                                <Typography sx={{ flexShrink: 0, fontWeight: 800 }}>
+                                  {formatCurrency(item.lineTotal)}
+                                </Typography>
+                              </Stack>
+                              <Typography color="text.secondary" variant="caption">
+                                SKU {item.sku} · {item.quantity} × {formatCurrency(item.unitPrice)}
+                              </Typography>
+                              <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+                                {item.categoryName ? (
+                                  <Chip
+                                    clickable={Boolean(item.categoryId)}
+                                    label={item.categoryName}
+                                    onClick={() => {
+                                      if (!item.categoryId) return;
+                                      setCategoryFilter(item.categoryId);
+                                      setSubcategoryFilter('all');
+                                      setDetailOrder(null);
+                                      resetPagination();
+                                    }}
+                                    size="small"
+                                    variant="outlined"
+                                  />
+                                ) : null}
+                                {item.subcategory ? (
+                                  <Chip
+                                    clickable={Boolean(item.categoryId)}
+                                    label={item.subcategory}
+                                    onClick={() => {
+                                      if (!item.categoryId) return;
+                                      setCategoryFilter(item.categoryId);
+                                      setSubcategoryFilter(item.subcategory ?? 'all');
+                                      setDetailOrder(null);
+                                      resetPagination();
+                                    }}
+                                    size="small"
+                                  />
+                                ) : null}
+                              </Stack>
+                            </Stack>
+                          </Stack>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Alert severity="warning">
+                        Product details are unavailable for this legacy order. New orders retain a
+                        complete item snapshot.
+                      </Alert>
+                    )}
+                  </Stack>
                 </Grid>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <Typography color="text.secondary" variant="caption">
-                    Email
-                  </Typography>
-                  <Typography>{detailOrder.customerEmail ?? 'N/A'}</Typography>
-                </Grid>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <Typography color="text.secondary" variant="caption">
-                    Phone
-                  </Typography>
-                  <Typography>{detailOrder.customerPhone ?? 'N/A'}</Typography>
-                </Grid>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <Typography color="text.secondary" variant="caption">
-                    Payment
-                  </Typography>
-                  <Typography>{detailOrder.paymentMethod ?? 'N/A'}</Typography>
-                </Grid>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <Typography color="text.secondary" variant="caption">
-                    Region / Township
-                  </Typography>
-                  <Typography>
-                    {detailOrder.region ?? 'N/A'} / {detailOrder.township ?? 'N/A'}
-                  </Typography>
-                </Grid>
-                <Grid size={{ sm: 6, xs: 12 }}>
-                  <Typography color="text.secondary" variant="caption">
-                    Items / Total
-                  </Typography>
-                  <Typography>
-                    {detailOrder.itemCount} items · {formatCurrency(detailOrder.totalAmount)}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <Typography color="text.secondary" variant="caption">
-                    Delivery address
-                  </Typography>
-                  <Typography>{detailOrder.deliveryAddress ?? 'N/A'}</Typography>
+
+                <Grid size={{ md: 4.5, xs: 12 }}>
+                  <Stack
+                    spacing={2}
+                    sx={{ bgcolor: 'background.default', borderRadius: 1, p: 2 }}
+                  >
+                    <Typography sx={{ fontWeight: 800 }} variant="subtitle1">
+                      Fulfillment details
+                    </Typography>
+                    <Box>
+                      <Typography color="text.secondary" variant="caption">Customer</Typography>
+                      <Typography sx={{ fontWeight: 700 }}>{detailOrder.customerName}</Typography>
+                      <Typography color="text.secondary" variant="body2">
+                        {detailOrder.customerPhone ?? 'No phone'}
+                      </Typography>
+                      <Typography color="text.secondary" variant="body2">
+                        {detailOrder.customerEmail ?? 'No email'}
+                      </Typography>
+                    </Box>
+                    <Divider />
+                    <Box>
+                      <Typography color="text.secondary" variant="caption">Deliver to</Typography>
+                      <Typography sx={{ fontWeight: 700 }}>
+                        {detailOrder.deliveryAddress ?? 'No delivery address'}
+                      </Typography>
+                      <Typography color="text.secondary" variant="body2">
+                        {detailOrder.region ?? 'N/A'} / {detailOrder.township ?? 'N/A'}
+                      </Typography>
+                    </Box>
+                    <Divider />
+                    <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                      <Typography color="text.secondary">Payment</Typography>
+                      <Typography sx={{ fontWeight: 700 }}>{detailOrder.paymentMethod ?? 'N/A'}</Typography>
+                    </Stack>
+                    <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                      <Typography color="text.secondary">Order total</Typography>
+                      <Typography sx={{ fontWeight: 900 }}>
+                        {formatCurrency(detailOrder.totalAmount)}
+                      </Typography>
+                    </Stack>
+                  </Stack>
                 </Grid>
               </Grid>
             </Stack>

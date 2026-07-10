@@ -1,3 +1,5 @@
+import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
 import UploadRoundedIcon from '@mui/icons-material/UploadRounded';
 import {
@@ -7,12 +9,12 @@ import {
   Card,
   CardContent,
   Divider,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   FormControlLabel,
   Grid,
+  IconButton,
   MenuItem,
   Stack,
   Switch,
@@ -267,13 +269,13 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
               session.
             </Typography>
           </Box>
-          <AppButton
-            disabled={updateProfileMutation.isPending || profileQuery.isLoading}
-            onClick={handleSave}
-            startIcon={<SaveRoundedIcon />}
+          <IconButton
+            aria-label="Close admin profile"
+            onClick={onClose}
+            sx={{ alignSelf: { sm: 'center', xs: 'flex-end' } }}
           >
-            Save admin info
-          </AppButton>
+            <CloseRoundedIcon />
+          </IconButton>
         </Stack>
       </DialogTitle>
       <DialogContent dividers sx={{ bgcolor: 'background.default' }}>
@@ -558,9 +560,13 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
           </Grid>
         </Grid>
       </DialogContent>
-      <DialogActions>
-        <AppButton color="inherit" onClick={onClose}>
-          Close
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <AppButton
+          disabled={updateProfileMutation.isPending || profileQuery.isLoading}
+          onClick={handleSave}
+          startIcon={<SaveRoundedIcon />}
+        >
+          Save admin info
         </AppButton>
       </DialogActions>
     </Dialog>

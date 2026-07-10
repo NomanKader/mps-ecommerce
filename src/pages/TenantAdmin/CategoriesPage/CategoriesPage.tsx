@@ -1,3 +1,4 @@
+import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
@@ -8,7 +9,6 @@ import {
   Card,
   CardContent,
   Chip,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -39,6 +39,7 @@ type CategoryForm = {
   icon: string;
   name: string;
   primaryCategoryId: string;
+  sortOrder: number;
 };
 
 type CategoryFilter = 'all' | 'with-subcategories' | 'large-assortment' | 'small-assortment';
@@ -205,6 +206,7 @@ const emptyForm: CategoryForm = {
   icon: '🥬',
   name: '',
   primaryCategoryId: '',
+  sortOrder: 1,
 };
 
 const categoryVisuals: Array<{
@@ -296,6 +298,7 @@ const categoryPayloadWithSubcategories = (category: AdminCategory, subcategories
   icon: getCategoryVisual(category).icon,
   name: category.name,
   slug: category.slug,
+  sortOrder: category.sortOrder ?? 0,
   subcategories,
 });
 
@@ -307,6 +310,7 @@ const toForm = (category: AdminCategory): CategoryForm => {
     icon: visual.icon,
     name: category.name,
     primaryCategoryId: '',
+    sortOrder: (category.sortOrder ?? 0) + 1,
   };
 };
 
@@ -323,6 +327,7 @@ export const CategoriesPage = () => {
   const [form, setForm] = useState<CategoryForm>(emptyForm);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [subcategoryFilter, setSubcategoryFilter] = useState('all');
   const debouncedSearch = useDebounce(search);
   const categoriesQuery = useQuery({
     queryFn: ({ signal }) => adminApi.listCategories({ search: debouncedSearch }, { signal }),
@@ -392,10 +397,14 @@ export const CategoriesPage = () => {
       ]
         .join(' ')
         .toLowerCase();
+      const matchesFilter =
+        subcategoryFilter === 'all' || subcategory.categoryId === subcategoryFilter;
 
-      return normalizedSearch ? searchableValue.includes(normalizedSearch) : true;
+      return (
+        (normalizedSearch ? searchableValue.includes(normalizedSearch) : true) && matchesFilter
+      );
     });
-  }, [search, subcategoryRows]);
+  }, [search, subcategoryFilter, subcategoryRows]);
 
   const filteredCategories = useMemo(
     () =>
@@ -447,14 +456,17 @@ export const CategoriesPage = () => {
           throw new Error('This sub category already exists in the selected primary category.');
         }
 
-        const nextSubcategories = editingSubcategory
-          ? subcategories.map((item, index) =>
-              index === editingSubcategory.index ? subcategory : item,
-            )
-          : [...subcategories, subcategory];
+        const reorderedSubcategories = editingSubcategory
+          ? subcategories.filter((_item, index) => index !== editingSubcategory.index)
+          : [...subcategories];
+        const targetIndex = Math.min(
+          Math.max(Math.trunc(form.sortOrder) - 1, 0),
+          reorderedSubcategories.length,
+        );
+        reorderedSubcategories.splice(targetIndex, 0, subcategory);
 
         return adminApi.updateCategory(primaryCategory.id, {
-          ...categoryPayloadWithSubcategories(primaryCategory, nextSubcategories),
+          ...categoryPayloadWithSubcategories(primaryCategory, reorderedSubcategories),
         });
       }
 
@@ -464,6 +476,7 @@ export const CategoriesPage = () => {
         icon: form.icon.trim() || '🛒',
         name: trimmedName,
         slug,
+        sortOrder: Math.max(Math.trunc(form.sortOrder) - 1, 0),
       };
 
       return editingId
@@ -517,6 +530,9 @@ export const CategoriesPage = () => {
       ...emptyForm,
       icon: iconOptions[0]?.icon ?? emptyForm.icon,
       primaryCategoryId: isSubCategoryPage ? (categories[0]?.id ?? '') : '',
+      sortOrder: isSubCategoryPage
+        ? (categories[0]?.subcategories.length ?? 0) + 1
+        : categories.length + 1,
     });
     setIsCategoryDialogOpen(true);
   };
@@ -536,6 +552,7 @@ export const CategoriesPage = () => {
       icon: subcategory.icon,
       name: subcategory.name,
       primaryCategoryId: subcategory.categoryId,
+      sortOrder: subcategory.index + 1,
     });
     setIsCategoryDialogOpen(true);
   };
@@ -587,7 +604,22 @@ export const CategoriesPage = () => {
           sx={{ minWidth: { lg: 360 } }}
           value={search}
         />
-        {isSubCategoryPage ? null : (
+        {isSubCategoryPage ? (
+          <TextField
+            label="Filter by primary category"
+            onChange={(event) => setSubcategoryFilter(event.target.value)}
+            select
+            sx={{ minWidth: { lg: 260 } }}
+            value={subcategoryFilter}
+          >
+            <MenuItem value="all">All primary categories</MenuItem>
+            {categories.map((category) => (
+              <MenuItem key={category.id} value={category.id}>
+                {category.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        ) : (
           <TextField
             label="Filter"
             onChange={(event) => setFilter(event.target.value as CategoryFilter)}
@@ -649,7 +681,7 @@ export const CategoriesPage = () => {
                           {subcategory.name}
                         </Typography>
                         <Typography color="text.secondary" variant="body2">
-                          {subcategory.categoryName}
+                          {subcategory.categoryName} · Order {subcategory.index + 1}
                         </Typography>
                         <Chip
                           label={subcategory.label}
@@ -689,98 +721,98 @@ export const CategoriesPage = () => {
             const visual = getCategoryVisual(category);
 
             return (
-            <Grid key={category.id} size={{ lg: 4, md: 6, xs: 12 }}>
-              <Card
-                sx={{
-                  bgcolor: alpha(visual.color, 0.08),
-                  border: 1,
-                  borderColor: alpha(visual.color, 0.28),
-                  borderRadius: 1,
-                  height: '100%',
-                }}
-              >
-                <CardContent>
-                  <Stack spacing={2}>
-                    <Stack
-                      direction="row"
-                      sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}
-                    >
-                      <Stack direction="row" spacing={1.5} sx={{ minWidth: 0 }}>
-                        <Box
-                          sx={{
-                            alignItems: 'center',
-                            bgcolor: visual.color,
-                            boxShadow: `0 12px 24px ${alpha(visual.color, 0.22)}`,
-                            borderRadius: 1,
-                            color: 'common.white',
-                            display: 'flex',
-                            flexShrink: 0,
-                            fontSize: 24,
-                            height: 48,
-                            justifyContent: 'center',
-                            width: 48,
-                          }}
-                        >
-                          {visual.icon}
-                        </Box>
-                        <Stack spacing={0.5} sx={{ minWidth: 0 }}>
-                          <Typography noWrap variant="h6">
-                            {category.name}
-                          </Typography>
-                          <Typography color="text.secondary" variant="body2">
-                            {category.itemCount} items · {(category.subcategories ?? []).length}{' '}
-                            subcategories
-                          </Typography>
-                          <Typography color="text.secondary" variant="caption">
-                            /{category.slug}
-                          </Typography>
+              <Grid key={category.id} size={{ lg: 4, md: 6, xs: 12 }}>
+                <Card
+                  sx={{
+                    bgcolor: alpha(visual.color, 0.08),
+                    border: 1,
+                    borderColor: alpha(visual.color, 0.28),
+                    borderRadius: 1,
+                    height: '100%',
+                  }}
+                >
+                  <CardContent>
+                    <Stack spacing={2}>
+                      <Stack
+                        direction="row"
+                        sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}
+                      >
+                        <Stack direction="row" spacing={1.5} sx={{ minWidth: 0 }}>
+                          <Box
+                            sx={{
+                              alignItems: 'center',
+                              bgcolor: visual.color,
+                              boxShadow: `0 12px 24px ${alpha(visual.color, 0.22)}`,
+                              borderRadius: 1,
+                              color: 'common.white',
+                              display: 'flex',
+                              flexShrink: 0,
+                              fontSize: 24,
+                              height: 48,
+                              justifyContent: 'center',
+                              width: 48,
+                            }}
+                          >
+                            {visual.icon}
+                          </Box>
+                          <Stack spacing={0.5} sx={{ minWidth: 0 }}>
+                            <Typography noWrap variant="h6">
+                              {category.name}
+                            </Typography>
+                            <Typography color="text.secondary" variant="body2">
+                              {category.itemCount} items · {(category.subcategories ?? []).length}{' '}
+                              subcategories
+                            </Typography>
+                            <Typography color="text.secondary" variant="caption">
+                              /{category.slug} · Order {(category.sortOrder ?? 0) + 1}
+                            </Typography>
+                          </Stack>
+                        </Stack>
+                        <Stack direction="row">
+                          <IconButton
+                            aria-label={`Edit ${category.name}`}
+                            onClick={() => openEditDialog(category)}
+                          >
+                            <EditRoundedIcon />
+                          </IconButton>
+                          <IconButton
+                            aria-label={`Delete ${category.name}`}
+                            onClick={() => setDeleteTarget(category)}
+                          >
+                            <DeleteOutlineRoundedIcon />
+                          </IconButton>
                         </Stack>
                       </Stack>
-                      <Stack direction="row">
-                        <IconButton
-                          aria-label={`Edit ${category.name}`}
-                          onClick={() => openEditDialog(category)}
-                        >
-                          <EditRoundedIcon />
-                        </IconButton>
-                        <IconButton
-                          aria-label={`Delete ${category.name}`}
-                          onClick={() => setDeleteTarget(category)}
-                        >
-                          <DeleteOutlineRoundedIcon />
-                        </IconButton>
+
+                      <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                        {category.subcategories.slice(0, 8).map((subcategory) => {
+                          const parsed = parseSubcategory(visual.icon, subcategory);
+
+                          return (
+                            <Chip
+                              key={subcategory}
+                              label={`${parsed.icon} ${parsed.name}`}
+                              size="small"
+                              sx={{
+                                bgcolor: alpha(visual.color, 0.08),
+                                borderColor: alpha(visual.color, 0.32),
+                                color: 'text.primary',
+                              }}
+                              variant="outlined"
+                            />
+                          );
+                        })}
+                        {(category.subcategories ?? []).length > 8 ? (
+                          <Chip
+                            label={`+${(category.subcategories ?? []).length - 8} more`}
+                            size="small"
+                          />
+                        ) : null}
                       </Stack>
                     </Stack>
-
-                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                      {category.subcategories.slice(0, 8).map((subcategory) => {
-                        const parsed = parseSubcategory(visual.icon, subcategory);
-
-                        return (
-                          <Chip
-                            key={subcategory}
-                            label={`${parsed.icon} ${parsed.name}`}
-                            size="small"
-                            sx={{
-                              bgcolor: alpha(visual.color, 0.08),
-                              borderColor: alpha(visual.color, 0.32),
-                              color: 'text.primary',
-                            }}
-                            variant="outlined"
-                          />
-                        );
-                      })}
-                      {(category.subcategories ?? []).length > 8 ? (
-                        <Chip
-                          label={`+${(category.subcategories ?? []).length - 8} more`}
-                          size="small"
-                        />
-                      ) : null}
-                    </Stack>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
             );
           })}
         </Grid>
@@ -874,6 +906,9 @@ export const CategoriesPage = () => {
                       setForm((current) => ({
                         ...current,
                         primaryCategoryId: event.target.value,
+                        sortOrder:
+                          (categories.find((category) => category.id === event.target.value)
+                            ?.subcategories.length ?? 0) + 1,
                       }))
                     }
                     disabled={Boolean(editingSubcategory)}
@@ -899,6 +934,24 @@ export const CategoriesPage = () => {
                 </Grid>
               </Grid>
             ) : null}
+            <TextField
+              fullWidth
+              helperText={
+                isSubCategoryPage
+                  ? 'Position within the selected primary category.'
+                  : 'Lower numbers appear first in category lists.'
+              }
+              label="Sort order"
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  sortOrder: Math.max(Number(event.target.value) || 1, 1),
+                }))
+              }
+              slotProps={{ htmlInput: { min: 1, step: 1 } }}
+              type="number"
+              value={form.sortOrder}
+            />
             <Stack spacing={1.25}>
               <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
                 <Box

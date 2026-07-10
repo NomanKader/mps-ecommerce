@@ -5,6 +5,7 @@ export type Category = {
   itemCount: number;
   name: string;
   slug: string;
+  sortOrder?: number;
   subcategories?: {
     icon: string;
     id: string;

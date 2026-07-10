@@ -1,3 +1,4 @@
+import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import AddShoppingCartOutlinedIcon from '@mui/icons-material/AddShoppingCartOutlined';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
@@ -23,7 +24,22 @@ import SpaOutlinedIcon from '@mui/icons-material/SpaOutlined';
 import VolunteerActivismOutlinedIcon from '@mui/icons-material/VolunteerActivismOutlined';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
-import { Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Grid, IconButton, MenuItem, Stack, Switch, TextField, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Chip,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControlLabel,
+  Grid,
+  IconButton,
+  MenuItem,
+  Stack,
+  Switch,
+  TextField,
+  Typography,
+} from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useEffect, useState, type ReactElement } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -32,7 +48,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
-import type { CustomerAddress, CustomerAddressPayload } from '@entities/address/types/address.types';
+import type {
+  CustomerAddress,
+  CustomerAddressPayload,
+} from '@entities/address/types/address.types';
 import type { Order } from '@entities/order/types/order.types';
 import { OrderStatusChip } from '@entities/order/ui/OrderStatusChip';
 import { useAddresses } from '@features/addresses/hooks/useAddresses';
@@ -77,7 +96,8 @@ type SidebarSection = {
 
 const accountPageConfigs = {
   accountStatus: {
-    description: 'Review your account profile, contact details, saved addresses, and security settings.',
+    description:
+      'Review your account profile, contact details, saved addresses, and security settings.',
     emptyAction: 'View profile',
     icon: <AutoAwesomeOutlinedIcon />,
     kind: 'info',
@@ -85,7 +105,8 @@ const accountPageConfigs = {
     title: 'Account Overview',
   },
   addresses: {
-    description: 'Manage delivery addresses, saved locations, labels, and default address preferences.',
+    description:
+      'Manage delivery addresses, saved locations, labels, and default address preferences.',
     emptyAction: 'Add address',
     icon: <LocationOnOutlinedIcon />,
     kind: 'profile',
@@ -93,7 +114,8 @@ const accountPageConfigs = {
     title: 'My Addresses',
   },
   awards: {
-    description: "Browse awards and recognitions from AV's Store product, service, and sustainability milestones.",
+    description:
+      "Browse awards and recognitions from AV's Store product, service, and sustainability milestones.",
     emptyAction: 'View awards',
     icon: <EmojiEventsOutlinedIcon />,
     kind: 'info',
@@ -101,7 +123,8 @@ const accountPageConfigs = {
     title: 'Awards',
   },
   brand: {
-    description: "Learn about the AV's Store brand promise, fresh sourcing standards, and customer commitments.",
+    description:
+      "Learn about the AV's Store brand promise, fresh sourcing standards, and customer commitments.",
     emptyAction: 'Explore brand',
     icon: <SpaOutlinedIcon />,
     kind: 'info',
@@ -125,7 +148,8 @@ const accountPageConfigs = {
     title: 'Change Password',
   },
   collectionService: {
-    description: 'Review collection requests, recycling returns, and scheduled customer service pickups.',
+    description:
+      'Review collection requests, recycling returns, and scheduled customer service pickups.',
     emptyAction: 'Book collection',
     icon: <RecyclingOutlinedIcon />,
     kind: 'commerce',
@@ -134,7 +158,8 @@ const accountPageConfigs = {
     title: 'Collection Service',
   },
   deleteAccount: {
-    description: 'Review account closure options and data removal requests before deleting your account.',
+    description:
+      'Review account closure options and data removal requests before deleting your account.',
     emptyAction: 'Request deletion',
     icon: <DeleteOutlineRoundedIcon />,
     kind: 'profile',
@@ -168,7 +193,8 @@ const accountPageConfigs = {
     title: 'Media',
   },
   orders: {
-    description: 'View current orders, delivery progress, previous purchases, and order support actions.',
+    description:
+      'View current orders, delivery progress, previous purchases, and order support actions.',
     emptyAction: 'Start shopping',
     icon: <Inventory2OutlinedIcon />,
     kind: 'commerce',
@@ -185,7 +211,8 @@ const accountPageConfigs = {
     title: 'My Profile',
   },
   quality: {
-    description: "Understand the quality checks, freshness controls, and delivery standards used by AV's Store.",
+    description:
+      "Understand the quality checks, freshness controls, and delivery standards used by AV's Store.",
     emptyAction: 'Read standards',
     icon: <VolunteerActivismOutlinedIcon />,
     kind: 'info',
@@ -245,7 +272,8 @@ const accountPageConfigs = {
     title: 'Our Story',
   },
   vision: {
-    description: 'Explore the company vision for freshness, savings, service, and sustainable grocery shopping.',
+    description:
+      'Explore the company vision for freshness, savings, service, and sustainable grocery shopping.',
     emptyAction: 'Read vision',
     icon: <LightbulbOutlinedIcon />,
     kind: 'info',
@@ -253,7 +281,8 @@ const accountPageConfigs = {
     title: 'Our Vision',
   },
   vouchers: {
-    description: 'Find saved vouchers, promo codes, and special savings available for your account.',
+    description:
+      'Find saved vouchers, promo codes, and special savings available for your account.',
     emptyAction: 'Browse offers',
     icon: <LocalOfferOutlinedIcon />,
     kind: 'commerce',
@@ -328,8 +357,22 @@ const AccountSidebar = ({ activePath }: { activePath: string }) => (
   >
     {sidebarSections.map((section) => (
       <Box key={section.title} sx={{ display: { md: 'block', xs: 'contents' } }}>
-        <Box sx={{ backgroundColor: '#f2f3f8', display: { md: 'block', xs: 'none' }, px: 2.2, py: 1.7 }}>
-          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.05rem', fontWeight: 900, lineHeight: 1.15 }}>
+        <Box
+          sx={{
+            backgroundColor: '#f2f3f8',
+            display: { md: 'block', xs: 'none' },
+            px: 2.2,
+            py: 1.7,
+          }}
+        >
+          <Typography
+            sx={{
+              color: storefrontColors.navy,
+              fontSize: '1.05rem',
+              fontWeight: 900,
+              lineHeight: 1.15,
+            }}
+          >
             {section.title}
           </Typography>
         </Box>
@@ -345,7 +388,10 @@ const AccountSidebar = ({ activePath }: { activePath: string }) => (
                 sx={{
                   alignItems: 'center',
                   backgroundColor: isActive ? '#f5f5f9' : '#ffffff',
-                  border: { md: 0, xs: `1px solid ${isActive ? storefrontColors.navy : storefrontColors.border}` },
+                  border: {
+                    md: 0,
+                    xs: `1px solid ${isActive ? storefrontColors.navy : storefrontColors.border}`,
+                  },
                   borderRadius: { md: 0, xs: 999 },
                   color: isActive ? storefrontColors.navy : '#54565c',
                   display: 'flex',
@@ -361,7 +407,13 @@ const AccountSidebar = ({ activePath }: { activePath: string }) => (
                   },
                 }}
               >
-                <Box sx={{ color: storefrontColors.accent, display: 'inline-flex', '& svg': { fontSize: { md: 27, xs: 20 } } }}>
+                <Box
+                  sx={{
+                    color: storefrontColors.accent,
+                    display: 'inline-flex',
+                    '& svg': { fontSize: { md: 27, xs: 20 } },
+                  }}
+                >
                   {item.icon}
                 </Box>
                 <Typography
@@ -440,12 +492,12 @@ const ProfileSummary = () => {
             width: { sm: 72, xs: 56 },
           }}
         >
-          <PersonOutlineRoundedIcon
-            sx={{ color: '#ffffff', fontSize: { sm: 46, xs: 34 } }}
-          />
+          <PersonOutlineRoundedIcon sx={{ color: '#ffffff', fontSize: { sm: 46, xs: 34 } }} />
         </Box>
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: { md: '1.15rem', xs: '1rem' }, fontWeight: 900, lineHeight: 1.15 }}>
+          <Typography
+            sx={{ fontSize: { md: '1.15rem', xs: '1rem' }, fontWeight: 900, lineHeight: 1.15 }}
+          >
             {fullName}
           </Typography>
           <Typography
@@ -471,11 +523,18 @@ const ProfileSummary = () => {
           alignItems: 'center',
           display: 'grid',
           gap: 2,
-          gridTemplateColumns: { sm: 'repeat(2, minmax(120px, 1fr))', xs: 'repeat(2, minmax(96px, 1fr))' },
+          gridTemplateColumns: {
+            sm: 'repeat(2, minmax(120px, 1fr))',
+            xs: 'repeat(2, minmax(96px, 1fr))',
+          },
         }}
       >
         {stats.map((stat) => (
-          <Stack key={stat.label} spacing={1} sx={{ alignItems: 'center', color: storefrontColors.navy, textAlign: 'center' }}>
+          <Stack
+            key={stat.label}
+            spacing={1}
+            sx={{ alignItems: 'center', color: storefrontColors.navy, textAlign: 'center' }}
+          >
             <Box
               sx={{
                 alignItems: 'center',
@@ -491,14 +550,18 @@ const ProfileSummary = () => {
               {stat.icon ? (
                 <Box sx={{ display: 'inline-flex', '& svg': { fontSize: 31 } }}>{stat.icon}</Box>
               ) : (
-                <Typography sx={{ color: '#e43224', fontSize: { md: '1rem', xs: '0.82rem' }, fontWeight: 900 }}>
+                <Typography
+                  sx={{
+                    color: '#e43224',
+                    fontSize: { md: '1rem', xs: '0.82rem' },
+                    fontWeight: 900,
+                  }}
+                >
                   {stat.value}
                 </Typography>
               )}
             </Box>
-            <Typography sx={{ fontSize: '0.95rem', fontWeight: 800 }}>
-              {stat.label}
-            </Typography>
+            <Typography sx={{ fontSize: '0.95rem', fontWeight: 800 }}>{stat.label}</Typography>
           </Stack>
         ))}
       </Box>
@@ -542,9 +605,39 @@ const EmptyListIllustration = ({ type = 'favourites' }: { type?: 'favourites' | 
         width: 126,
       }}
     >
-      <Box sx={{ backgroundColor: '#b5bfdc', borderRadius: 1, height: 20, left: -16, position: 'absolute', top: 0, width: 158 }} />
-      <Box sx={{ backgroundColor: '#ffffff', borderRadius: 999, height: 86, left: 35, position: 'absolute', top: 18, width: 13 }} />
-      <Box sx={{ backgroundColor: '#ffffff', borderRadius: 999, height: 86, left: 77, position: 'absolute', top: 18, width: 13 }} />
+      <Box
+        sx={{
+          backgroundColor: '#b5bfdc',
+          borderRadius: 1,
+          height: 20,
+          left: -16,
+          position: 'absolute',
+          top: 0,
+          width: 158,
+        }}
+      />
+      <Box
+        sx={{
+          backgroundColor: '#ffffff',
+          borderRadius: 999,
+          height: 86,
+          left: 35,
+          position: 'absolute',
+          top: 18,
+          width: 13,
+        }}
+      />
+      <Box
+        sx={{
+          backgroundColor: '#ffffff',
+          borderRadius: 999,
+          height: 86,
+          left: 77,
+          position: 'absolute',
+          top: 18,
+          width: 13,
+        }}
+      />
       <Box
         sx={{
           backgroundColor: storefrontColors.navy,
@@ -570,7 +663,16 @@ const EmptyListIllustration = ({ type = 'favourites' }: { type?: 'favourites' | 
         }}
       />
     </Box>
-    <Box sx={{ backgroundColor: '#d9deee', bottom: 0, height: 1, left: 0, position: 'absolute', width: '100%' }} />
+    <Box
+      sx={{
+        backgroundColor: '#d9deee',
+        bottom: 0,
+        height: 1,
+        left: 0,
+        position: 'absolute',
+        width: '100%',
+      }}
+    />
   </Box>
 );
 
@@ -620,7 +722,9 @@ const FavouriteProducts = ({ search }: { search: string }) => {
         <Typography sx={{ color: storefrontColors.navy, fontSize: '1.3rem', fontWeight: 900 }}>
           {normalizedSearch ? 'No matching favourites' : 'No favourites yet'}
         </Typography>
-        <Button component={Link} to={routePaths.catalog}>Browse products</Button>
+        <Button component={Link} to={routePaths.catalog}>
+          Browse products
+        </Button>
       </Stack>
     );
   }
@@ -631,7 +735,11 @@ const FavouriteProducts = ({ search }: { search: string }) => {
         sx={{
           display: 'grid',
           gap: 2.2,
-          gridTemplateColumns: { lg: 'repeat(3, minmax(0, 1fr))', sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' },
+          gridTemplateColumns: {
+            lg: 'repeat(3, minmax(0, 1fr))',
+            sm: 'repeat(2, minmax(0, 1fr))',
+            xs: '1fr',
+          },
         }}
       >
         {favouriteProducts.map((product) => (
@@ -675,12 +783,21 @@ const FavouriteProducts = ({ search }: { search: string }) => {
                 <Typography sx={{ color: '#2b2d33', fontSize: '1.05rem', fontWeight: 900 }}>
                   {product.name}
                 </Typography>
-                <Typography sx={{ color: storefrontColors.muted, fontSize: '0.9rem', fontWeight: 700, mt: 0.6 }}>
+                <Typography
+                  sx={{
+                    color: storefrontColors.muted,
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    mt: 0.6,
+                  }}
+                >
                   {product.description}
                 </Typography>
               </Box>
               <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography sx={{ color: storefrontColors.navy, fontSize: '1.1rem', fontWeight: 900 }}>
+                <Typography
+                  sx={{ color: storefrontColors.navy, fontSize: '1.1rem', fontWeight: 900 }}
+                >
                   {formatCurrency(product.price, product.currency)}
                 </Typography>
                 <Button
@@ -710,7 +827,12 @@ const FavouriteProducts = ({ search }: { search: string }) => {
           </Box>
         ))}
       </Box>
-      <Dialog fullWidth maxWidth="xs" onClose={() => setListProductId(null)} open={Boolean(listProductId)}>
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        onClose={() => setListProductId(null)}
+        open={Boolean(listProductId)}
+      >
         <DialogTitle>Add to shopping list</DialogTitle>
         <DialogContent>
           <TextField
@@ -779,20 +901,44 @@ const ShoppingListsContent = ({ search }: { search: string }) => {
     <Box sx={{ mt: 3 }}>
       <Button
         onClick={() => setDialogOpen(true)}
-        sx={{ backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#fff', fontWeight: 900, px: 3, textTransform: 'none' }}
+        sx={{
+          backgroundColor: storefrontColors.navy,
+          borderRadius: 999,
+          color: '#fff',
+          fontWeight: 900,
+          px: 3,
+          textTransform: 'none',
+        }}
       >
         Create new list
       </Button>
       {lists.length ? (
-        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { md: 'repeat(2, 1fr)', xs: '1fr' }, mt: 3 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 2,
+            gridTemplateColumns: { md: 'repeat(2, 1fr)', xs: '1fr' },
+            mt: 3,
+          }}
+        >
           {lists.map((list) => (
-            <Box key={list.id} sx={{ border: `1px solid ${storefrontColors.border}`, borderRadius: 2, p: 2.5 }}>
+            <Box
+              key={list.id}
+              sx={{ border: `1px solid ${storefrontColors.border}`, borderRadius: 2, p: 2.5 }}
+            >
               <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography sx={{ color: storefrontColors.navy, fontSize: '1.1rem', fontWeight: 900 }}>{list.name}</Typography>
+                  <Typography
+                    sx={{ color: storefrontColors.navy, fontSize: '1.1rem', fontWeight: 900 }}
+                  >
+                    {list.name}
+                  </Typography>
                   <Typography color="text.secondary">{list.productIds.length} items</Typography>
                 </Box>
-                <IconButton aria-label={`Delete ${list.name}`} onClick={() => deleteMutation.mutate(list.id)}>
+                <IconButton
+                  aria-label={`Delete ${list.name}`}
+                  onClick={() => deleteMutation.mutate(list.id)}
+                >
                   <DeleteOutlineRoundedIcon />
                 </IconButton>
               </Stack>
@@ -810,11 +956,23 @@ const ShoppingListsContent = ({ search }: { search: string }) => {
       <Dialog fullWidth maxWidth="xs" onClose={() => setDialogOpen(false)} open={dialogOpen}>
         <DialogTitle>Create shopping list</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth label="List name" onChange={(event) => setName(event.target.value)} sx={{ mt: 1 }} value={name} />
+          <TextField
+            autoFocus
+            fullWidth
+            label="List name"
+            onChange={(event) => setName(event.target.value)}
+            sx={{ mt: 1 }}
+            value={name}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button disabled={!name.trim() || createMutation.isPending} onClick={() => createMutation.mutate(name.trim())}>Create</Button>
+          <Button
+            disabled={!name.trim() || createMutation.isPending}
+            onClick={() => createMutation.mutate(name.trim())}
+          >
+            Create
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
@@ -822,7 +980,9 @@ const ShoppingListsContent = ({ search }: { search: string }) => {
 };
 
 const CommerceContent = ({ activePage }: { activePage: AccountPageConfig }) => {
-  const showTabs = activePage.path === routePaths.accountFavourites || activePage.path === routePaths.accountShoppingList;
+  const showTabs =
+    activePage.path === routePaths.accountFavourites ||
+    activePage.path === routePaths.accountShoppingList;
   const isShoppingList = activePage.path === routePaths.accountShoppingList;
   const isFavourites = activePage.path === routePaths.accountFavourites;
   const [search, setSearch] = useState('');
@@ -830,7 +990,11 @@ const CommerceContent = ({ activePage }: { activePage: AccountPageConfig }) => {
   return (
     <Box sx={{ maxWidth: 1180, mt: 4.8 }}>
       {showTabs ? (
-        <Stack direction="row" spacing={6} sx={{ borderBottom: `1px solid ${storefrontColors.border}` }}>
+        <Stack
+          direction="row"
+          spacing={6}
+          sx={{ borderBottom: `1px solid ${storefrontColors.border}` }}
+        >
           {[accountPageConfigs.favourites, accountPageConfigs.shoppingList].map((page) => {
             const isActive = page.path === activePage.path;
 
@@ -839,13 +1003,21 @@ const CommerceContent = ({ activePage }: { activePage: AccountPageConfig }) => {
                 component={Link}
                 key={page.path}
                 sx={{
-                  borderBottom: isActive ? `3px solid ${storefrontColors.navy}` : '3px solid transparent',
+                  borderBottom: isActive
+                    ? `3px solid ${storefrontColors.navy}`
+                    : '3px solid transparent',
                   px: 2,
                   py: 1.3,
                 }}
                 to={page.path}
               >
-                <Typography sx={{ color: storefrontColors.navy, fontSize: '1.25rem', fontWeight: isActive ? 900 : 800 }}>
+                <Typography
+                  sx={{
+                    color: storefrontColors.navy,
+                    fontSize: '1.25rem',
+                    fontWeight: isActive ? 900 : 800,
+                  }}
+                >
                   {page.title}
                 </Typography>
               </Box>
@@ -853,7 +1025,9 @@ const CommerceContent = ({ activePage }: { activePage: AccountPageConfig }) => {
           })}
         </Stack>
       ) : (
-        <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>{activePage.title}</Typography>
+        <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>
+          {activePage.title}
+        </Typography>
       )}
 
       <TextField
@@ -870,12 +1044,23 @@ const CommerceContent = ({ activePage }: { activePage: AccountPageConfig }) => {
       ) : isShoppingList ? (
         <ShoppingListsContent search={search} />
       ) : (
-        <Stack spacing={2.6} sx={{ alignItems: 'center', minHeight: 430, pt: { md: 5, xs: 4 }, textAlign: 'center' }}>
+        <Stack
+          spacing={2.6}
+          sx={{ alignItems: 'center', minHeight: 430, pt: { md: 5, xs: 4 }, textAlign: 'center' }}
+        >
           <EmptyListIllustration type={isShoppingList ? 'lists' : 'favourites'} />
-          <Typography sx={{ color: storefrontColors.navy, fontSize: { md: '1.45rem', xs: '1.2rem' }, fontWeight: 900 }}>
+          <Typography
+            sx={{
+              color: storefrontColors.navy,
+              fontSize: { md: '1.45rem', xs: '1.2rem' },
+              fontWeight: 900,
+            }}
+          >
             {activePage.emptyTitle ?? `No ${activePage.title.toLowerCase()} yet`}
           </Typography>
-          <Typography sx={{ color: storefrontColors.muted, maxWidth: 520 }}>{activePage.description}</Typography>
+          <Typography sx={{ color: storefrontColors.muted, maxWidth: 520 }}>
+            {activePage.description}
+          </Typography>
           <Button
             component={Link}
             to={routePaths.catalog}
@@ -950,8 +1135,18 @@ const VoucherIllustration = () => (
         width: 78,
       }}
     >
-      <CardGiftcardOutlinedIcon sx={{ color: storefrontColors.navy, fontSize: 38, left: 17, position: 'absolute', top: 28 }} />
-      <Box sx={{ borderTop: `3px dashed ${storefrontColors.navy}`, bottom: 20, left: 10, position: 'absolute', width: 50 }} />
+      <CardGiftcardOutlinedIcon
+        sx={{ color: storefrontColors.navy, fontSize: 38, left: 17, position: 'absolute', top: 28 }}
+      />
+      <Box
+        sx={{
+          borderTop: `3px dashed ${storefrontColors.navy}`,
+          bottom: 20,
+          left: 10,
+          position: 'absolute',
+          width: 50,
+        }}
+      />
     </Box>
     <Box
       sx={{
@@ -973,7 +1168,16 @@ const VoucherIllustration = () => (
     >
       ~
     </Box>
-    <Box sx={{ backgroundColor: '#d9deee', bottom: 18, height: 1, left: 10, position: 'absolute', width: 230 }} />
+    <Box
+      sx={{
+        backgroundColor: '#d9deee',
+        bottom: 18,
+        height: 1,
+        left: 10,
+        position: 'absolute',
+        width: 230,
+      }}
+    />
   </Box>
 );
 
@@ -992,7 +1196,9 @@ const VouchersContent = () => (
     </Box>
     <Stack spacing={2} sx={{ alignItems: 'center', minHeight: 390, pt: 8, textAlign: 'center' }}>
       <VoucherIllustration />
-      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.25rem', fontWeight: 900 }}>No Vouchers Found</Typography>
+      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.25rem', fontWeight: 900 }}>
+        No Vouchers Found
+      </Typography>
     </Stack>
   </Box>
 );
@@ -1000,7 +1206,9 @@ const VouchersContent = () => (
 const WalletPanel = ({ children, title }: { children: ReactElement; title: string }) => (
   <Box sx={{ border: `1px solid ${storefrontColors.border}`, borderRadius: 1, overflow: 'hidden' }}>
     <Box sx={{ backgroundColor: '#f3f4f9', px: 2.2, py: 1.35 }}>
-      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.25rem', fontWeight: 900 }}>{title}</Typography>
+      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.25rem', fontWeight: 900 }}>
+        {title}
+      </Typography>
     </Box>
     <Box sx={{ backgroundColor: '#ffffff', p: { md: 2.2, xs: 1.5 } }}>{children}</Box>
   </Box>
@@ -1017,7 +1225,9 @@ const WalletAccordionRow = ({ title }: { title: string }) => (
     }}
   >
     <Box sx={{ alignItems: 'center', display: 'flex', flex: 1, px: 2.2 }}>
-      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.1rem', fontWeight: 900 }}>{title}</Typography>
+      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.1rem', fontWeight: 900 }}>
+        {title}
+      </Typography>
     </Box>
     <Box
       sx={{
@@ -1103,7 +1313,9 @@ const WalletContent = () => {
         <Typography sx={{ fontSize: '1.25rem', fontWeight: 900 }}>My Wallet</Typography>
       </Box>
 
-      <Box sx={{ border: `1px solid ${storefrontColors.navy}`, borderRadius: 0.5, overflow: 'hidden' }}>
+      <Box
+        sx={{ border: `1px solid ${storefrontColors.navy}`, borderRadius: 0.5, overflow: 'hidden' }}
+      >
         <Stack
           spacing={0.6}
           sx={{
@@ -1114,51 +1326,123 @@ const WalletContent = () => {
             minHeight: 108,
           }}
         >
-          <Typography sx={{ fontSize: '1.35rem', fontWeight: 900 }}>{formatWalletAmount(walletBalance)}</Typography>
+          <Typography sx={{ fontSize: '1.35rem', fontWeight: 900 }}>
+            {formatWalletAmount(walletBalance)}
+          </Typography>
           <Stack direction="row" spacing={0.8} sx={{ alignItems: 'center' }}>
             <AccountBalanceWalletOutlinedIcon />
             <Typography sx={{ fontSize: '1.05rem', fontWeight: 900 }}>My Wallet</Typography>
           </Stack>
         </Stack>
         <Box sx={{ display: 'grid', gridTemplateColumns: { sm: '1fr 1fr', xs: '1fr' } }}>
-          <Stack spacing={0.6} sx={{ alignItems: 'center', borderRight: { sm: `1px solid ${storefrontColors.navy}`, xs: 0 }, py: 2.2 }}>
-            <Typography sx={{ color: '#55565c', fontSize: '1.05rem', fontWeight: 700 }}>Reserved For Regular:</Typography>
-            <Typography sx={{ color: '#55565c', fontWeight: 800 }}>{formatWalletAmount(reservedBalance)}</Typography>
+          <Stack
+            spacing={0.6}
+            sx={{
+              alignItems: 'center',
+              borderRight: { sm: `1px solid ${storefrontColors.navy}`, xs: 0 },
+              py: 2.2,
+            }}
+          >
+            <Typography sx={{ color: '#55565c', fontSize: '1.05rem', fontWeight: 700 }}>
+              Reserved For Regular:
+            </Typography>
+            <Typography sx={{ color: '#55565c', fontWeight: 800 }}>
+              {formatWalletAmount(reservedBalance)}
+            </Typography>
           </Stack>
           <Stack spacing={0.6} sx={{ alignItems: 'center', py: 2.2 }}>
-            <Typography sx={{ color: storefrontColors.navy, fontSize: '1.05rem', fontWeight: 900 }}>Available Balance:</Typography>
-            <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>{formatWalletAmount(availableBalance)}</Typography>
+            <Typography sx={{ color: storefrontColors.navy, fontSize: '1.05rem', fontWeight: 900 }}>
+              Available Balance:
+            </Typography>
+            <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
+              {formatWalletAmount(availableBalance)}
+            </Typography>
           </Stack>
         </Box>
       </Box>
 
       {pendingTopUps.length ? (
-        <Box sx={{ backgroundColor: '#fff8e1', border: `1px solid ${storefrontColors.border}`, borderRadius: 1, px: 2, py: 1.3 }}>
-          <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>Wallet top-up under review</Typography>
+        <Box
+          sx={{
+            backgroundColor: '#fff8e1',
+            border: `1px solid ${storefrontColors.border}`,
+            borderRadius: 1,
+            px: 2,
+            py: 1.3,
+          }}
+        >
+          <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
+            Wallet top-up under review
+          </Typography>
           <Typography sx={{ color: '#55565c', fontWeight: 700, mt: 0.4 }}>
-            {pendingTopUps.length} request{pendingTopUps.length > 1 ? 's are' : ' is'} waiting for admin review. Your wallet will be topped up manually within 24 hours after receipt confirmation.
+            {pendingTopUps.length} request{pendingTopUps.length > 1 ? 's are' : ' is'} waiting for
+            admin review. Your wallet will be topped up manually within 24 hours after receipt
+            confirmation.
           </Typography>
         </Box>
       ) : null}
 
       <WalletPanel title="Request Wallet Top-up">
         <Stack spacing={2.2}>
-          <Box sx={{ backgroundColor: '#f6f8fc', border: `1px solid ${storefrontColors.border}`, borderRadius: 1, p: 2 }}>
-            <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>Transfer payment first</Typography>
-            <Box sx={{ display: 'grid', gap: 1.2, gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' }, mt: 1.4 }}>
-              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>Account name: {transferDetails?.accountName ?? "AV's Store"}</Typography>
-              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>Account number: {transferDetails?.accountNumber ?? '+95 8877594332'}</Typography>
-              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>Payment methods: {transferDetails?.provider ?? 'Myanmar mobile wallet / bank transfer'}</Typography>
-              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>Review time: within 24 hours</Typography>
+          <Box
+            sx={{
+              backgroundColor: '#f6f8fc',
+              border: `1px solid ${storefrontColors.border}`,
+              borderRadius: 1,
+              p: 2,
+            }}
+          >
+            <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
+              Transfer payment first
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gap: 1.2,
+                gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' },
+                mt: 1.4,
+              }}
+            >
+              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>
+                Account name: {transferDetails?.accountName ?? "AV's Store"}
+              </Typography>
+              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>
+                Account number: {transferDetails?.accountNumber ?? '+95 8877594332'}
+              </Typography>
+              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>
+                Payment methods:{' '}
+                {transferDetails?.provider ?? 'Myanmar mobile wallet / bank transfer'}
+              </Typography>
+              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>
+                Review time: within 24 hours
+              </Typography>
             </Box>
             <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 1.4 }}>
-              {transferDetails?.instructions ?? 'Transfer by KBZPay, WavePay, AYA Pay, CB Pay, bank transfer, or any Myanmar payment method. Upload the payment receipt after transfer.'}
+              {transferDetails?.instructions ??
+                'Transfer by KBZPay, WavePay, AYA Pay, CB Pay, bank transfer, or any Myanmar payment method. Upload the payment receipt after transfer.'}
             </Typography>
           </Box>
 
-          <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' } }}>
-            <TextField label="Transferred amount" onChange={(event) => setTopUpAmount(event.target.value)} required type="number" value={topUpAmount} />
-            <TextField label="Payment method" onChange={(event) => setPaymentMethod(event.target.value)} select value={paymentMethod}>
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' },
+            }}
+          >
+            <TextField
+              label="Transferred amount"
+              onChange={(event) => setTopUpAmount(event.target.value)}
+              required
+              type="number"
+              value={topUpAmount}
+            />
+            <TextField
+              label="Payment method"
+              onChange={(event) => setPaymentMethod(event.target.value)}
+              select
+              value={paymentMethod}
+            >
               <MenuItem value="KBZPay">KBZPay</MenuItem>
               <MenuItem value="WavePay">WavePay</MenuItem>
               <MenuItem value="AYA Pay">AYA Pay</MenuItem>
@@ -1166,8 +1450,23 @@ const WalletContent = () => {
               <MenuItem value="Bank transfer">Bank transfer</MenuItem>
               <MenuItem value="Other Myanmar payment">Other Myanmar payment</MenuItem>
             </TextField>
-            <TextField label="Promo code" onChange={(event) => setPromoCode(event.target.value)} value={promoCode} />
-            <Button component="label" sx={{ alignItems: 'center', border: `1px dashed ${storefrontColors.border}`, color: storefrontColors.navy, display: 'flex', fontWeight: 900, minHeight: 56, textTransform: 'none' }}>
+            <TextField
+              label="Promo code"
+              onChange={(event) => setPromoCode(event.target.value)}
+              value={promoCode}
+            />
+            <Button
+              component="label"
+              sx={{
+                alignItems: 'center',
+                border: `1px dashed ${storefrontColors.border}`,
+                color: storefrontColors.navy,
+                display: 'flex',
+                fontWeight: 900,
+                minHeight: 56,
+                textTransform: 'none',
+              }}
+            >
               {receipt ? receipt.name : 'Upload receipt image'}
               <input
                 accept="image/*"
@@ -1193,7 +1492,22 @@ const WalletContent = () => {
             </Button>
           </Box>
 
-          <Button disabled={submitTopUpMutation.isPending || !receipt || topUpValue < 100} onClick={submitTopUpRequest} sx={{ alignSelf: 'flex-start', backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#ffffff', fontWeight: 900, px: 4, py: 1.15, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark }, '&.Mui-disabled': { backgroundColor: '#c9cdd6', color: '#ffffff' } }}>
+          <Button
+            disabled={submitTopUpMutation.isPending || !receipt || topUpValue < 100}
+            onClick={submitTopUpRequest}
+            sx={{
+              alignSelf: 'flex-start',
+              backgroundColor: storefrontColors.navy,
+              borderRadius: 999,
+              color: '#ffffff',
+              fontWeight: 900,
+              px: 4,
+              py: 1.15,
+              textTransform: 'none',
+              '&:hover': { backgroundColor: storefrontColors.navyDark },
+              '&.Mui-disabled': { backgroundColor: '#c9cdd6', color: '#ffffff' },
+            }}
+          >
             {submitTopUpMutation.isPending ? 'Submitting...' : 'Submit top-up request'}
           </Button>
         </Stack>
@@ -1203,18 +1517,51 @@ const WalletContent = () => {
         {recentTopUps.length ? (
           <Stack spacing={1.2}>
             {recentTopUps.map((request) => (
-              <Stack direction={{ sm: 'row', xs: 'column' }} key={request.id} spacing={1} sx={{ border: `1px solid ${storefrontColors.border}`, borderRadius: 1, justifyContent: 'space-between', px: 1.5, py: 1.2 }}>
+              <Stack
+                direction={{ sm: 'row', xs: 'column' }}
+                key={request.id}
+                spacing={1}
+                sx={{
+                  border: `1px solid ${storefrontColors.border}`,
+                  borderRadius: 1,
+                  justifyContent: 'space-between',
+                  px: 1.5,
+                  py: 1.2,
+                }}
+              >
                 <Box>
-                  <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>{formatWalletAmount(request.amount)} via {request.paymentMethod ?? 'payment transfer'}</Typography>
-                  <Typography sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 700 }}>{new Date(request.createdAt).toLocaleString()}</Typography>
-                  {request.adminNote ? <Typography sx={{ color: storefrontColors.muted, mt: 0.4 }}>{request.adminNote}</Typography> : null}
+                  <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
+                    {formatWalletAmount(request.amount)} via{' '}
+                    {request.paymentMethod ?? 'payment transfer'}
+                  </Typography>
+                  <Typography
+                    sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 700 }}
+                  >
+                    {new Date(request.createdAt).toLocaleString()}
+                  </Typography>
+                  {request.adminNote ? (
+                    <Typography sx={{ color: storefrontColors.muted, mt: 0.4 }}>
+                      {request.adminNote}
+                    </Typography>
+                  ) : null}
                 </Box>
-                <Chip color={request.status === 'approved' ? 'success' : request.status === 'rejected' ? 'error' : 'warning'} label={request.status} />
+                <Chip
+                  color={
+                    request.status === 'approved'
+                      ? 'success'
+                      : request.status === 'rejected'
+                        ? 'error'
+                        : 'warning'
+                  }
+                  label={request.status}
+                />
               </Stack>
             ))}
           </Stack>
         ) : (
-          <Typography sx={{ color: storefrontColors.muted, fontWeight: 700 }}>No top-up requests yet.</Typography>
+          <Typography sx={{ color: storefrontColors.muted, fontWeight: 700 }}>
+            No top-up requests yet.
+          </Typography>
         )}
       </WalletPanel>
 
@@ -1222,19 +1569,48 @@ const WalletContent = () => {
         {transactions.length ? (
           <Stack spacing={1.2}>
             {transactions.slice(0, 6).map((transaction, index) => (
-              <Stack direction={{ sm: 'row', xs: 'column' }} key={`${transaction.createdAt}-${index}`} spacing={0.8} sx={{ border: `1px solid ${storefrontColors.border}`, borderRadius: 1, justifyContent: 'space-between', px: 1.5, py: 1.2 }}>
+              <Stack
+                direction={{ sm: 'row', xs: 'column' }}
+                key={`${transaction.createdAt}-${index}`}
+                spacing={0.8}
+                sx={{
+                  border: `1px solid ${storefrontColors.border}`,
+                  borderRadius: 1,
+                  justifyContent: 'space-between',
+                  px: 1.5,
+                  py: 1.2,
+                }}
+              >
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>{transaction.description}</Typography>
-                  <Typography sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 700 }}>{new Date(transaction.createdAt).toLocaleString()}</Typography>
+                  <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
+                    {transaction.description}
+                  </Typography>
+                  <Typography
+                    sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 700 }}
+                  >
+                    {new Date(transaction.createdAt).toLocaleString()}
+                  </Typography>
                 </Box>
-                <Typography sx={{ color: transaction.direction === 'credit' ? storefrontColors.success : storefrontColors.navy, flexShrink: 0, fontWeight: 900 }}>
-                  {transaction.direction === 'credit' ? '+' : '-'} {formatWalletAmount(transaction.amount)}
+                <Typography
+                  sx={{
+                    color:
+                      transaction.direction === 'credit'
+                        ? storefrontColors.success
+                        : storefrontColors.navy,
+                    flexShrink: 0,
+                    fontWeight: 900,
+                  }}
+                >
+                  {transaction.direction === 'credit' ? '+' : '-'}{' '}
+                  {formatWalletAmount(transaction.amount)}
                 </Typography>
               </Stack>
             ))}
           </Stack>
         ) : (
-          <Typography sx={{ color: storefrontColors.muted, fontWeight: 700 }}>No wallet activity yet.</Typography>
+          <Typography sx={{ color: storefrontColors.muted, fontWeight: 700 }}>
+            No wallet activity yet.
+          </Typography>
         )}
       </WalletPanel>
       <WalletAccordionRow title="About AV's Store Wallet" />
@@ -1330,394 +1706,462 @@ const OrdersContent = () => {
     : tabOrders;
 
   return (
-  <Box sx={{ mt: 4.5 }}>
-    <Box sx={{ maxWidth: 1080 }}>
-      <Box
-        sx={{
-          backgroundColor: storefrontColors.navy,
-          borderRadius: '3px 3px 0 0',
-          color: '#ffffff',
-          px: 2.2,
-          py: 1.55,
-        }}
-      >
-        <Typography sx={{ fontSize: '1.25rem', fontWeight: 900 }}>My Orders</Typography>
-      </Box>
-
-      <Box
-        sx={{
-          backgroundColor: '#ffffff',
-          border: `1px solid ${storefrontColors.border}`,
-          borderTop: 0,
-          p: { md: 2.5, xs: 1.5 },
-        }}
-      >
+    <Box sx={{ mt: 4.5 }}>
+      <Box sx={{ maxWidth: 1080 }}>
         <Box
           sx={{
-            display: 'grid',
-            gap: 1.5,
-            gridTemplateColumns: { md: 'repeat(3, minmax(0, 1fr))', xs: '1fr' },
-            mb: 3,
+            backgroundColor: storefrontColors.navy,
+            borderRadius: '3px 3px 0 0',
+            color: '#ffffff',
+            px: 2.2,
+            py: 1.55,
           }}
         >
-          {[
-            { label: 'Upcoming', value: String(upcomingOrders.length), helper: 'Active orders and deliveries' },
-            { label: 'Past orders', value: String(pastOrders.length), helper: 'Completed and cancelled orders' },
-            { label: 'Support tickets', value: '0', helper: 'No order issues reported' },
-          ].map((item) => (
-            <Box
-              key={item.label}
-              sx={{
-                backgroundColor: '#f7f8fb',
-                border: `1px solid ${storefrontColors.border}`,
-                borderRadius: 1,
-                px: 2,
-                py: 1.7,
-              }}
-            >
-              <Typography sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 800 }}>
-                {item.label}
-              </Typography>
-              <Typography sx={{ color: storefrontColors.navy, fontSize: '1.8rem', fontWeight: 900, lineHeight: 1.1, mt: 0.4 }}>
-                {item.value}
-              </Typography>
-              <Typography sx={{ color: '#697180', fontSize: '0.85rem', fontWeight: 700, mt: 0.5 }}>
-                {item.helper}
-              </Typography>
-            </Box>
-          ))}
+          <Typography sx={{ fontSize: '1.25rem', fontWeight: 900 }}>My Orders</Typography>
         </Box>
 
-        <Stack
-          direction={{ sm: 'row', xs: 'column' }}
-          spacing={1}
+        <Box
           sx={{
-            backgroundColor: '#f2f3f8',
-            borderRadius: 999,
-            p: 0.7,
-            width: 'fit-content',
+            backgroundColor: '#ffffff',
+            border: `1px solid ${storefrontColors.border}`,
+            borderTop: 0,
+            p: { md: 2.5, xs: 1.5 },
           }}
         >
-          {[
-            { label: 'Upcoming Orders', value: 'upcoming' as const },
-            { label: 'Past Orders', value: 'past' as const },
-          ].map((tab) => (
-            <Box
-              component="button"
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
-              sx={{
-                backgroundColor: activeTab === tab.value ? '#ffffff' : 'transparent',
-                border: 0,
-                borderRadius: 999,
-                boxShadow: activeTab === tab.value ? `0 8px 18px ${alpha(storefrontColors.navyDark, 0.1)}` : 'none',
-                cursor: 'pointer',
-                px: 2.4,
-                py: 1,
-              }}
-            >
-              <Typography sx={{ color: storefrontColors.navy, fontSize: '0.98rem', fontWeight: 900 }}>
-                {tab.label}
-              </Typography>
-            </Box>
-          ))}
-        </Stack>
-
-        <TextField
-          fullWidth
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search by order number, status, payment, or address"
-          slotProps={{
-            input: {
-              endAdornment: <SearchRoundedIcon sx={{ color: storefrontColors.navy }} />,
-            },
-          }}
-          sx={{ mt: 3 }}
-          value={search}
-        />
-
-        {ordersQuery.isLoading ? (
-          <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 3 }}>
-            Loading your orders…
-          </Typography>
-        ) : visibleOrders.length ? (
-          <Stack spacing={1.5} sx={{ mt: 3 }}>
-            {visibleOrders.map((order) => (
-              <Box
-                aria-label={`View details for order ${order.orderNumber}`}
-                component="button"
-                key={order.id}
-                onClick={() => setSelectedOrder(order)}
-                sx={{
-                  backgroundColor: '#ffffff',
-                  border: `1px solid ${storefrontColors.border}`,
-                  borderRadius: 1.5,
-                  boxShadow: `0 10px 24px ${alpha(storefrontColors.navyDark, 0.05)}`,
-                  color: 'inherit',
-                  cursor: 'pointer',
-                  p: { md: 2.2, xs: 1.5 },
-                  textAlign: 'left',
-                  transition: 'border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease',
-                  width: '100%',
-                  '&:hover': {
-                    borderColor: alpha(storefrontColors.navy, 0.45),
-                    boxShadow: `0 14px 30px ${alpha(storefrontColors.navyDark, 0.1)}`,
-                    transform: 'translateY(-1px)',
-                  },
-                  '&:focus-visible': {
-                    outline: `3px solid ${alpha(storefrontColors.navy, 0.25)}`,
-                    outlineOffset: 2,
-                  },
-                }}
-              >
-                <Stack direction={{ md: 'row', xs: 'column' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
-                  <Stack spacing={0.7}>
-                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.05rem', fontWeight: 900 }}>
-                        {order.orderNumber}
-                      </Typography>
-                      <OrderStatusChip status={order.status} />
-                    </Stack>
-                    <Typography sx={{ color: storefrontColors.muted, fontSize: '0.88rem', fontWeight: 700 }}>
-                      Placed {formatDate(order.createdAt)} · {order.itemCount} item{order.itemCount === 1 ? '' : 's'}
-                    </Typography>
-                    {order.deliveryAddress ? (
-                      <Typography sx={{ color: '#55565c', fontSize: '0.9rem' }}>
-                        {order.deliveryAddress}
-                      </Typography>
-                    ) : null}
-                  </Stack>
-                  <Stack spacing={0.5} sx={{ alignItems: { md: 'flex-end', xs: 'flex-start' } }}>
-                    <Typography sx={{ color: storefrontColors.navy, fontSize: '1.1rem', fontWeight: 900 }}>
-                      {formatCurrency(order.totalAmount, order.currency)}
-                    </Typography>
-                    <Typography sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 700 }}>
-                      {order.paymentMethod === 'wallet' ? 'Wallet' : 'Cash on delivery'}
-                      {order.paymentStatus ? ` · ${order.paymentStatus}` : ''}
-                    </Typography>
-                  </Stack>
-                </Stack>
-              </Box>
-            ))}
-          </Stack>
-        ) : (
           <Box
-            sx={{
-              alignItems: 'center',
-              backgroundColor: '#ffffff',
-              border: `1px solid ${storefrontColors.border}`,
-              borderRadius: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              mt: 3,
-              minHeight: 300,
-              px: 2,
-              py: 5,
-              textAlign: 'center',
-            }}
-          >
-          <Box
-            sx={{
-              alignItems: 'center',
-              backgroundColor: alpha(storefrontColors.navy, 0.08),
-              borderRadius: '50%',
-              color: storefrontColors.navy,
-              display: 'flex',
-              height: 86,
-              justifyContent: 'center',
-              mb: 2,
-              width: 86,
-            }}
-          >
-            <Inventory2OutlinedIcon sx={{ fontSize: 42 }} />
-          </Box>
-
-          <Typography sx={{ color: storefrontColors.navy, fontSize: { md: '1.45rem', xs: '1.2rem' }, fontWeight: 900 }}>
-            {normalizedSearch ? 'No matching orders' : `No ${activeTab} orders`}
-          </Typography>
-          <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, lineHeight: 1.55, maxWidth: 480, mt: 1 }}>
-            When you place an order, delivery updates, payment details, and support options will appear here.
-          </Typography>
-
-          {!normalizedSearch && orders.length === 0 ? <Stack
-            direction={{ sm: 'row', xs: 'column' }}
-            spacing={1.4}
-            sx={{ alignItems: 'center', justifyContent: 'center', mt: 3, width: '100%' }}
-          >
-            <Button
-              component={Link}
-              to={routePaths.catalog}
-              sx={{
-                backgroundColor: storefrontColors.navy,
-                borderRadius: 999,
-                color: '#ffffff',
-                fontWeight: 900,
-                minHeight: 48,
-                px: 3.5,
-                textTransform: 'none',
-                width: { sm: 'auto', xs: '100%' },
-                '&:hover': { backgroundColor: storefrontColors.navyDark },
-              }}
-            >
-              Start shopping
-            </Button>
-            <Button
-              component={Link}
-              to={routePaths.accountFavourites}
-              sx={{
-                border: `1px solid ${storefrontColors.border}`,
-                borderRadius: 999,
-                color: storefrontColors.navy,
-                fontWeight: 900,
-                minHeight: 48,
-                px: 3,
-                textTransform: 'none',
-                width: { sm: 'auto', xs: '100%' },
-                '&:hover': { backgroundColor: alpha(storefrontColors.navy, 0.06) },
-              }}
-            >
-              View favourites
-            </Button>
-          </Stack> : null}
-
-          {!normalizedSearch && orders.length === 0 ? <Box
             sx={{
               display: 'grid',
-              gap: 1.2,
+              gap: 1.5,
               gridTemplateColumns: { md: 'repeat(3, minmax(0, 1fr))', xs: '1fr' },
-              maxWidth: 720,
-              mt: 4,
-              width: '100%',
+              mb: 3,
             }}
           >
-            {['Shop products', 'Checkout securely', 'Track delivery'].map((label, index) => (
-              <Stack
-                direction="row"
-                key={label}
-                spacing={1}
+            {[
+              {
+                label: 'Upcoming',
+                value: String(upcomingOrders.length),
+                helper: 'Active orders and deliveries',
+              },
+              {
+                label: 'Past orders',
+                value: String(pastOrders.length),
+                helper: 'Completed and cancelled orders',
+              },
+              { label: 'Support tickets', value: '0', helper: 'No order issues reported' },
+            ].map((item) => (
+              <Box
+                key={item.label}
                 sx={{
-                  alignItems: 'center',
                   backgroundColor: '#f7f8fb',
                   border: `1px solid ${storefrontColors.border}`,
                   borderRadius: 1,
-                  px: 1.5,
-                  py: 1.2,
+                  px: 2,
+                  py: 1.7,
                 }}
               >
-                <Box
+                <Typography
+                  sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 800 }}
+                >
+                  {item.label}
+                </Typography>
+                <Typography
                   sx={{
-                    alignItems: 'center',
-                    backgroundColor: alpha(storefrontColors.navy, 0.1),
-                    borderRadius: '50%',
                     color: storefrontColors.navy,
-                    display: 'flex',
-                    flexShrink: 0,
-                    fontSize: '0.82rem',
+                    fontSize: '1.8rem',
                     fontWeight: 900,
-                    height: 28,
-                    justifyContent: 'center',
-                    width: 28,
+                    lineHeight: 1.1,
+                    mt: 0.4,
                   }}
                 >
-                  {index + 1}
-                </Box>
-                <Typography sx={{ color: '#4f535b', fontSize: '0.9rem', fontWeight: 800 }}>
-                  {label}
+                  {item.value}
                 </Typography>
-              </Stack>
-            ))}
-          </Box> : null}
-        </Box>
-        )}
-      </Box>
-    </Box>
-    <Dialog
-      fullWidth
-      maxWidth="sm"
-      onClose={() => setSelectedOrder(null)}
-      open={Boolean(selectedOrder)}
-    >
-      <DialogTitle sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
-        Order details
-      </DialogTitle>
-      <DialogContent>
-        {selectedOrder ? (
-          <Stack spacing={2.5} sx={{ pt: 1 }}>
-            <Stack
-              direction={{ sm: 'row', xs: 'column' }}
-              spacing={1}
-              sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}
-            >
-              <Box>
-                <Typography sx={{ fontSize: '1.15rem', fontWeight: 900 }}>
-                  {selectedOrder.orderNumber}
-                </Typography>
-                <Typography color="text.secondary" variant="body2">
-                  Placed {formatDate(selectedOrder.createdAt)}
+                <Typography
+                  sx={{ color: '#697180', fontSize: '0.85rem', fontWeight: 700, mt: 0.5 }}
+                >
+                  {item.helper}
                 </Typography>
               </Box>
-              <OrderStatusChip status={selectedOrder.status} />
+            ))}
+          </Box>
+
+          <Stack
+            direction={{ sm: 'row', xs: 'column' }}
+            spacing={1}
+            sx={{
+              backgroundColor: '#f2f3f8',
+              borderRadius: 999,
+              p: 0.7,
+              width: 'fit-content',
+            }}
+          >
+            {[
+              { label: 'Upcoming Orders', value: 'upcoming' as const },
+              { label: 'Past Orders', value: 'past' as const },
+            ].map((tab) => (
+              <Box
+                component="button"
+                key={tab.value}
+                onClick={() => setActiveTab(tab.value)}
+                sx={{
+                  backgroundColor: activeTab === tab.value ? '#ffffff' : 'transparent',
+                  border: 0,
+                  borderRadius: 999,
+                  boxShadow:
+                    activeTab === tab.value
+                      ? `0 8px 18px ${alpha(storefrontColors.navyDark, 0.1)}`
+                      : 'none',
+                  cursor: 'pointer',
+                  px: 2.4,
+                  py: 1,
+                }}
+              >
+                <Typography
+                  sx={{ color: storefrontColors.navy, fontSize: '0.98rem', fontWeight: 900 }}
+                >
+                  {tab.label}
+                </Typography>
+              </Box>
+            ))}
+          </Stack>
+
+          <TextField
+            fullWidth
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search by order number, status, payment, or address"
+            slotProps={{
+              input: {
+                endAdornment: <SearchRoundedIcon sx={{ color: storefrontColors.navy }} />,
+              },
+            }}
+            sx={{ mt: 3 }}
+            value={search}
+          />
+
+          {ordersQuery.isLoading ? (
+            <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 3 }}>
+              Loading your orders…
+            </Typography>
+          ) : visibleOrders.length ? (
+            <Stack spacing={1.5} sx={{ mt: 3 }}>
+              {visibleOrders.map((order) => (
+                <Box
+                  aria-label={`View details for order ${order.orderNumber}`}
+                  component="button"
+                  key={order.id}
+                  onClick={() => setSelectedOrder(order)}
+                  sx={{
+                    backgroundColor: '#ffffff',
+                    border: `1px solid ${storefrontColors.border}`,
+                    borderRadius: 1.5,
+                    boxShadow: `0 10px 24px ${alpha(storefrontColors.navyDark, 0.05)}`,
+                    color: 'inherit',
+                    cursor: 'pointer',
+                    p: { md: 2.2, xs: 1.5 },
+                    textAlign: 'left',
+                    transition:
+                      'border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease',
+                    width: '100%',
+                    '&:hover': {
+                      borderColor: alpha(storefrontColors.navy, 0.45),
+                      boxShadow: `0 14px 30px ${alpha(storefrontColors.navyDark, 0.1)}`,
+                      transform: 'translateY(-1px)',
+                    },
+                    '&:focus-visible': {
+                      outline: `3px solid ${alpha(storefrontColors.navy, 0.25)}`,
+                      outlineOffset: 2,
+                    },
+                  }}
+                >
+                  <Stack
+                    direction={{ md: 'row', xs: 'column' }}
+                    spacing={2}
+                    sx={{ justifyContent: 'space-between' }}
+                  >
+                    <Stack spacing={0.7}>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        sx={{ alignItems: 'center', flexWrap: 'wrap' }}
+                      >
+                        <Typography
+                          sx={{
+                            color: storefrontColors.navy,
+                            fontSize: '1.05rem',
+                            fontWeight: 900,
+                          }}
+                        >
+                          {order.orderNumber}
+                        </Typography>
+                        <OrderStatusChip status={order.status} />
+                      </Stack>
+                      <Typography
+                        sx={{ color: storefrontColors.muted, fontSize: '0.88rem', fontWeight: 700 }}
+                      >
+                        Placed {formatDate(order.createdAt)} · {order.itemCount} item
+                        {order.itemCount === 1 ? '' : 's'}
+                      </Typography>
+                      {order.deliveryAddress ? (
+                        <Typography sx={{ color: '#55565c', fontSize: '0.9rem' }}>
+                          {order.deliveryAddress}
+                        </Typography>
+                      ) : null}
+                    </Stack>
+                    <Stack spacing={0.5} sx={{ alignItems: { md: 'flex-end', xs: 'flex-start' } }}>
+                      <Typography
+                        sx={{ color: storefrontColors.navy, fontSize: '1.1rem', fontWeight: 900 }}
+                      >
+                        {formatCurrency(order.totalAmount, order.currency)}
+                      </Typography>
+                      <Typography
+                        sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 700 }}
+                      >
+                        {order.paymentMethod === 'wallet' ? 'Wallet' : 'Cash on delivery'}
+                        {order.paymentStatus ? ` · ${order.paymentStatus}` : ''}
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                </Box>
+              ))}
             </Stack>
-            <Grid container spacing={2}>
-              {[
-                { label: 'Customer', value: selectedOrder.customerName },
-                { label: 'Email', value: selectedOrder.customerEmail ?? 'N/A' },
-                { label: 'Phone', value: selectedOrder.customerPhone ?? 'N/A' },
-                {
-                  label: 'Payment method',
-                  value:
-                    selectedOrder.paymentMethod === 'wallet'
-                      ? 'Wallet'
-                      : 'Cash on delivery',
-                },
-                {
-                  label: 'Payment status',
-                  value: selectedOrder.paymentStatus ?? 'Pending',
-                },
-                {
-                  label: 'Items',
-                  value: `${selectedOrder.itemCount} item${selectedOrder.itemCount === 1 ? '' : 's'}`,
-                },
-                {
-                  label: 'Region / Township',
-                  value: [selectedOrder.region, selectedOrder.township].filter(Boolean).join(' / ') || 'N/A',
-                },
-                {
-                  label: 'Order total',
-                  value: formatCurrency(selectedOrder.totalAmount, selectedOrder.currency),
-                },
-              ].map((detail) => (
-                <Grid key={detail.label} size={{ sm: 6, xs: 12 }}>
-                  <Typography color="text.secondary" variant="caption">
-                    {detail.label}
+          ) : (
+            <Box
+              sx={{
+                alignItems: 'center',
+                backgroundColor: '#ffffff',
+                border: `1px solid ${storefrontColors.border}`,
+                borderRadius: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                mt: 3,
+                minHeight: 300,
+                px: 2,
+                py: 5,
+                textAlign: 'center',
+              }}
+            >
+              <Box
+                sx={{
+                  alignItems: 'center',
+                  backgroundColor: alpha(storefrontColors.navy, 0.08),
+                  borderRadius: '50%',
+                  color: storefrontColors.navy,
+                  display: 'flex',
+                  height: 86,
+                  justifyContent: 'center',
+                  mb: 2,
+                  width: 86,
+                }}
+              >
+                <Inventory2OutlinedIcon sx={{ fontSize: 42 }} />
+              </Box>
+
+              <Typography
+                sx={{
+                  color: storefrontColors.navy,
+                  fontSize: { md: '1.45rem', xs: '1.2rem' },
+                  fontWeight: 900,
+                }}
+              >
+                {normalizedSearch ? 'No matching orders' : `No ${activeTab} orders`}
+              </Typography>
+              <Typography
+                sx={{
+                  color: storefrontColors.muted,
+                  fontWeight: 700,
+                  lineHeight: 1.55,
+                  maxWidth: 480,
+                  mt: 1,
+                }}
+              >
+                When you place an order, delivery updates, payment details, and support options will
+                appear here.
+              </Typography>
+
+              {!normalizedSearch && orders.length === 0 ? (
+                <Stack
+                  direction={{ sm: 'row', xs: 'column' }}
+                  spacing={1.4}
+                  sx={{ alignItems: 'center', justifyContent: 'center', mt: 3, width: '100%' }}
+                >
+                  <Button
+                    component={Link}
+                    to={routePaths.catalog}
+                    sx={{
+                      backgroundColor: storefrontColors.navy,
+                      borderRadius: 999,
+                      color: '#ffffff',
+                      fontWeight: 900,
+                      minHeight: 48,
+                      px: 3.5,
+                      textTransform: 'none',
+                      width: { sm: 'auto', xs: '100%' },
+                      '&:hover': { backgroundColor: storefrontColors.navyDark },
+                    }}
+                  >
+                    Start shopping
+                  </Button>
+                  <Button
+                    component={Link}
+                    to={routePaths.accountFavourites}
+                    sx={{
+                      border: `1px solid ${storefrontColors.border}`,
+                      borderRadius: 999,
+                      color: storefrontColors.navy,
+                      fontWeight: 900,
+                      minHeight: 48,
+                      px: 3,
+                      textTransform: 'none',
+                      width: { sm: 'auto', xs: '100%' },
+                      '&:hover': { backgroundColor: alpha(storefrontColors.navy, 0.06) },
+                    }}
+                  >
+                    View favourites
+                  </Button>
+                </Stack>
+              ) : null}
+
+              {!normalizedSearch && orders.length === 0 ? (
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gap: 1.2,
+                    gridTemplateColumns: { md: 'repeat(3, minmax(0, 1fr))', xs: '1fr' },
+                    maxWidth: 720,
+                    mt: 4,
+                    width: '100%',
+                  }}
+                >
+                  {['Shop products', 'Checkout securely', 'Track delivery'].map((label, index) => (
+                    <Stack
+                      direction="row"
+                      key={label}
+                      spacing={1}
+                      sx={{
+                        alignItems: 'center',
+                        backgroundColor: '#f7f8fb',
+                        border: `1px solid ${storefrontColors.border}`,
+                        borderRadius: 1,
+                        px: 1.5,
+                        py: 1.2,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          alignItems: 'center',
+                          backgroundColor: alpha(storefrontColors.navy, 0.1),
+                          borderRadius: '50%',
+                          color: storefrontColors.navy,
+                          display: 'flex',
+                          flexShrink: 0,
+                          fontSize: '0.82rem',
+                          fontWeight: 900,
+                          height: 28,
+                          justifyContent: 'center',
+                          width: 28,
+                        }}
+                      >
+                        {index + 1}
+                      </Box>
+                      <Typography sx={{ color: '#4f535b', fontSize: '0.9rem', fontWeight: 800 }}>
+                        {label}
+                      </Typography>
+                    </Stack>
+                  ))}
+                </Box>
+              ) : null}
+            </Box>
+          )}
+        </Box>
+      </Box>
+      <Dialog
+        fullWidth
+        maxWidth="sm"
+        onClose={() => setSelectedOrder(null)}
+        open={Boolean(selectedOrder)}
+      >
+        <DialogTitle sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
+          Order details
+        </DialogTitle>
+        <DialogContent>
+          {selectedOrder ? (
+            <Stack spacing={2.5} sx={{ pt: 1 }}>
+              <Stack
+                direction={{ sm: 'row', xs: 'column' }}
+                spacing={1}
+                sx={{
+                  alignItems: { sm: 'center', xs: 'flex-start' },
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Box>
+                  <Typography sx={{ fontSize: '1.15rem', fontWeight: 900 }}>
+                    {selectedOrder.orderNumber}
                   </Typography>
-                  <Typography sx={{ fontWeight: 700, overflowWrap: 'anywhere' }}>
-                    {detail.value}
+                  <Typography color="text.secondary" variant="body2">
+                    Placed {formatDate(selectedOrder.createdAt)}
+                  </Typography>
+                </Box>
+                <OrderStatusChip status={selectedOrder.status} />
+              </Stack>
+              <Grid container spacing={2}>
+                {[
+                  { label: 'Customer', value: selectedOrder.customerName },
+                  { label: 'Email', value: selectedOrder.customerEmail ?? 'N/A' },
+                  { label: 'Phone', value: selectedOrder.customerPhone ?? 'N/A' },
+                  {
+                    label: 'Payment method',
+                    value: selectedOrder.paymentMethod === 'wallet' ? 'Wallet' : 'Cash on delivery',
+                  },
+                  {
+                    label: 'Payment status',
+                    value: selectedOrder.paymentStatus ?? 'Pending',
+                  },
+                  {
+                    label: 'Items',
+                    value: `${selectedOrder.itemCount} item${selectedOrder.itemCount === 1 ? '' : 's'}`,
+                  },
+                  {
+                    label: 'Region / Township',
+                    value:
+                      [selectedOrder.region, selectedOrder.township].filter(Boolean).join(' / ') ||
+                      'N/A',
+                  },
+                  {
+                    label: 'Order total',
+                    value: formatCurrency(selectedOrder.totalAmount, selectedOrder.currency),
+                  },
+                ].map((detail) => (
+                  <Grid key={detail.label} size={{ sm: 6, xs: 12 }}>
+                    <Typography color="text.secondary" variant="caption">
+                      {detail.label}
+                    </Typography>
+                    <Typography sx={{ fontWeight: 700, overflowWrap: 'anywhere' }}>
+                      {detail.value}
+                    </Typography>
+                  </Grid>
+                ))}
+                <Grid size={{ xs: 12 }}>
+                  <Typography color="text.secondary" variant="caption">
+                    Delivery address
+                  </Typography>
+                  <Typography sx={{ fontWeight: 700 }}>
+                    {selectedOrder.deliveryAddress ?? 'N/A'}
                   </Typography>
                 </Grid>
-              ))}
-              <Grid size={{ xs: 12 }}>
-                <Typography color="text.secondary" variant="caption">
-                  Delivery address
-                </Typography>
-                <Typography sx={{ fontWeight: 700 }}>
-                  {selectedOrder.deliveryAddress ?? 'N/A'}
-                </Typography>
               </Grid>
-            </Grid>
-          </Stack>
-        ) : null}
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2.5 }}>
-        <Button
-          onClick={() => setSelectedOrder(null)}
-          sx={{ color: storefrontColors.navy, fontWeight: 800, textTransform: 'none' }}
-        >
-          Close
-        </Button>
-      </DialogActions>
-    </Dialog>
-  </Box>
+            </Stack>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            onClick={() => setSelectedOrder(null)}
+            sx={{ color: storefrontColors.navy, fontWeight: 800, textTransform: 'none' }}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 
@@ -1843,14 +2287,19 @@ const getAddressFormDefaults = (user: RootState['auth']['user']): CustomerAddres
 });
 
 const AddressContent = () => {
-  const { addresses, createAddress, deleteAddress, isLoading, isSaving, updateAddress } = useAddresses();
+  const { addresses, createAddress, deleteAddress, isLoading, isSaving, updateAddress } =
+    useAddresses();
   const locationsQuery = useMyanmarLocations();
   const user = useSelector((state: RootState) => state.auth.user);
   const [editingAddress, setEditingAddress] = useState<CustomerAddress | null>(null);
   const [form, setForm] = useState<CustomerAddressPayload>(() => getAddressFormDefaults(user));
   const hasAddresses = addresses.length > 0;
-  const myanmarLocations = locationsQuery.data?.length ? locationsQuery.data : myanmarLocationFallback;
-  const selectedLocation = myanmarLocations.find((locationOption) => locationOption.region === form.region);
+  const myanmarLocations = locationsQuery.data?.length
+    ? locationsQuery.data
+    : myanmarLocationFallback;
+  const selectedLocation = myanmarLocations.find(
+    (locationOption) => locationOption.region === form.region,
+  );
   const cityOptions = selectedLocation?.cities ?? [];
   const townshipOptions = selectedLocation?.townships ?? [];
 
@@ -1892,7 +2341,9 @@ const AddressContent = () => {
     value: CustomerAddressPayload[TKey],
   ) => setForm((current) => ({ ...current, [key]: value }));
   const setRegion = (region: string) => {
-    const nextLocation = myanmarLocations.find((locationOption) => locationOption.region === region);
+    const nextLocation = myanmarLocations.find(
+      (locationOption) => locationOption.region === region,
+    );
     const cityNames = nextLocation?.cities.map((cityOption) => cityOption.name) ?? [];
 
     setForm((current) => ({
@@ -1920,9 +2371,15 @@ const AddressContent = () => {
 
   return (
     <Box sx={{ maxWidth: 1120, mt: 4.8 }}>
-      <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.5} sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}>
+      <Stack
+        direction={{ sm: 'row', xs: 'column' }}
+        spacing={1.5}
+        sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}
+      >
         <Box>
-          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>My Addresses</Typography>
+          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>
+            My Addresses
+          </Typography>
           <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 0.7 }}>
             Save delivery locations and choose the default address used at checkout.
           </Typography>
@@ -1930,18 +2387,57 @@ const AddressContent = () => {
         <Chip color={hasAddresses ? 'success' : 'default'} label={`${addresses.length} saved`} />
       </Stack>
 
-      <Box sx={{ backgroundColor: '#ffffff', border: `1px solid ${storefrontColors.border}`, borderRadius: 2, display: 'grid', gap: 2, gridTemplateColumns: { lg: '0.95fr 1.05fr', xs: '1fr' }, mt: 3, p: { md: 3, xs: 2 } }}>
+      <Box
+        sx={{
+          backgroundColor: '#ffffff',
+          border: `1px solid ${storefrontColors.border}`,
+          borderRadius: 2,
+          display: 'grid',
+          gap: 2,
+          gridTemplateColumns: { lg: '0.95fr 1.05fr', xs: '1fr' },
+          mt: 3,
+          p: { md: 3, xs: 2 },
+        }}
+      >
         <Stack spacing={2}>
-          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.08rem', fontWeight: 900 }}>{editingAddress ? 'Edit delivery address' : 'Add delivery address'}</Typography>
-          <TextField label="Recipient name" onChange={(event) => setField('recipientName', event.target.value)} required value={form.recipientName} />
-          <TextField label="Mobile number" onChange={(event) => setField('phone', event.target.value)} required value={form.phone} />
-          <TextField label="Address label" onChange={(event) => setField('label', event.target.value as CustomerAddressPayload['label'])} select value={form.label}>
+          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.08rem', fontWeight: 900 }}>
+            {editingAddress ? 'Edit delivery address' : 'Add delivery address'}
+          </Typography>
+          <TextField
+            label="Recipient name"
+            onChange={(event) => setField('recipientName', event.target.value)}
+            required
+            value={form.recipientName}
+          />
+          <TextField
+            label="Mobile number"
+            onChange={(event) => setField('phone', event.target.value)}
+            required
+            value={form.phone}
+          />
+          <TextField
+            label="Address label"
+            onChange={(event) =>
+              setField('label', event.target.value as CustomerAddressPayload['label'])
+            }
+            select
+            value={form.label}
+          >
             <MenuItem value="home">Home</MenuItem>
             <MenuItem value="work">Work</MenuItem>
             <MenuItem value="other">Other</MenuItem>
           </TextField>
-          <TextField label="Address line 1" onChange={(event) => setField('addressLine1', event.target.value)} required value={form.addressLine1} />
-          <TextField label="Address line 2" onChange={(event) => setField('addressLine2', event.target.value)} value={form.addressLine2} />
+          <TextField
+            label="Address line 1"
+            onChange={(event) => setField('addressLine1', event.target.value)}
+            required
+            value={form.addressLine1}
+          />
+          <TextField
+            label="Address line 2"
+            onChange={(event) => setField('addressLine2', event.target.value)}
+            value={form.addressLine2}
+          />
           <Box
             sx={{
               alignItems: 'stretch',
@@ -1953,68 +2449,204 @@ const AddressContent = () => {
               },
             }}
           >
-            <TextField fullWidth label="Region / State" onChange={(event) => setRegion(event.target.value)} required select value={form.region}>
+            <TextField
+              fullWidth
+              label="Region / State"
+              onChange={(event) => setRegion(event.target.value)}
+              required
+              select
+              value={form.region}
+            >
               {myanmarLocations.map((locationOption) => (
                 <MenuItem key={locationOption.region} value={locationOption.region}>
                   {locationOption.region}
                 </MenuItem>
               ))}
             </TextField>
-            <TextField disabled={!form.region} fullWidth label="City" onChange={(event) => setCity(event.target.value)} required select value={form.city}>
+            <TextField
+              disabled={!form.region}
+              fullWidth
+              label="City"
+              onChange={(event) => setCity(event.target.value)}
+              required
+              select
+              value={form.city}
+            >
               {cityOptions.map((city) => (
                 <MenuItem key={city.name} value={city.name}>
                   {city.name}
                 </MenuItem>
               ))}
             </TextField>
-            <TextField disabled={!form.region} fullWidth label="Township" onChange={(event) => setField('township', event.target.value)} required select value={form.township}>
+            <TextField
+              disabled={!form.region}
+              fullWidth
+              label="Township"
+              onChange={(event) => setField('township', event.target.value)}
+              required
+              select
+              value={form.township}
+            >
               {townshipOptions.map((township) => (
                 <MenuItem key={township} value={township}>
                   {township}
                 </MenuItem>
               ))}
             </TextField>
-            <TextField fullWidth label="Nearby landmark" onChange={(event) => setField('landmark', event.target.value)} value={form.landmark} />
+            <TextField
+              fullWidth
+              label="Nearby landmark"
+              onChange={(event) => setField('landmark', event.target.value)}
+              value={form.landmark}
+            />
           </Box>
-          <TextField label="Delivery instructions" minRows={3} multiline onChange={(event) => setField('deliveryInstructions', event.target.value)} value={form.deliveryInstructions} />
-          <FormControlLabel control={<Switch checked={form.isDefault} onChange={(event) => setField('isDefault', event.target.checked)} />} label="Use as default delivery address" />
+          <TextField
+            label="Delivery instructions"
+            minRows={3}
+            multiline
+            onChange={(event) => setField('deliveryInstructions', event.target.value)}
+            value={form.deliveryInstructions}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={form.isDefault}
+                onChange={(event) => setField('isDefault', event.target.checked)}
+              />
+            }
+            label="Use as default delivery address"
+          />
           <Stack direction="row" spacing={1.5}>
-            <Button disabled={isSaving || !form.recipientName || !form.phone || !form.addressLine1 || !form.region || !form.city || !form.township} onClick={() => void handleSubmit()} sx={{ backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#ffffff', fontWeight: 900, px: 3.5, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+            <Button
+              disabled={
+                isSaving ||
+                !form.recipientName ||
+                !form.phone ||
+                !form.addressLine1 ||
+                !form.region ||
+                !form.city ||
+                !form.township
+              }
+              onClick={() => void handleSubmit()}
+              sx={{
+                backgroundColor: storefrontColors.navy,
+                borderRadius: 999,
+                color: '#ffffff',
+                fontWeight: 900,
+                px: 3.5,
+                textTransform: 'none',
+                '&:hover': { backgroundColor: storefrontColors.navyDark },
+              }}
+            >
               {editingAddress ? 'Save address' : 'Add address'}
             </Button>
-            {editingAddress ? <Button onClick={resetForm} sx={{ borderRadius: 999, fontWeight: 800, textTransform: 'none' }}>Cancel</Button> : null}
+            {editingAddress ? (
+              <Button
+                onClick={resetForm}
+                sx={{ borderRadius: 999, fontWeight: 800, textTransform: 'none' }}
+              >
+                Cancel
+              </Button>
+            ) : null}
           </Stack>
         </Stack>
 
         <Stack spacing={1.5}>
-          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.08rem', fontWeight: 900 }}>Saved addresses</Typography>
+          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.08rem', fontWeight: 900 }}>
+            Saved addresses
+          </Typography>
           {isLoading ? (
-            <Typography sx={{ color: storefrontColors.muted, fontWeight: 700 }}>Loading addresses...</Typography>
+            <Typography sx={{ color: storefrontColors.muted, fontWeight: 700 }}>
+              Loading addresses...
+            </Typography>
           ) : hasAddresses ? (
             addresses.map((address) => (
-              <Box key={address.id} sx={{ border: `1px solid ${storefrontColors.border}`, borderRadius: 1.5, p: 2 }}>
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box
+                key={address.id}
+                sx={{ border: `1px solid ${storefrontColors.border}`, borderRadius: 1.5, p: 2 }}
+              >
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ alignItems: 'center', justifyContent: 'space-between' }}
+                >
                   <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                     <Chip label={address.label} size="small" />
-                    {address.isDefault ? <Chip color="success" label="Default" size="small" /> : null}
+                    {address.isDefault ? (
+                      <Chip color="success" label="Default" size="small" />
+                    ) : null}
                   </Stack>
                   <Stack direction="row" spacing={1}>
-                    {!address.isDefault ? <Button onClick={() => void updateAddress({ id: address.id, payload: { isDefault: true } })} size="small" sx={{ textTransform: 'none' }}>Set default</Button> : null}
-                    <Button onClick={() => startEdit(address)} size="small" sx={{ textTransform: 'none' }}>Edit</Button>
-                    <Button color="error" onClick={() => void deleteAddress(address.id)} size="small" sx={{ textTransform: 'none' }}>Delete</Button>
+                    {!address.isDefault ? (
+                      <Button
+                        onClick={() =>
+                          void updateAddress({ id: address.id, payload: { isDefault: true } })
+                        }
+                        size="small"
+                        sx={{ textTransform: 'none' }}
+                      >
+                        Set default
+                      </Button>
+                    ) : null}
+                    <Button
+                      onClick={() => startEdit(address)}
+                      size="small"
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      color="error"
+                      onClick={() => void deleteAddress(address.id)}
+                      size="small"
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Delete
+                    </Button>
                   </Stack>
                 </Stack>
-                <Typography sx={{ color: storefrontColors.navy, fontWeight: 900, mt: 1.3 }}>{address.recipientName}</Typography>
+                <Typography sx={{ color: storefrontColors.navy, fontWeight: 900, mt: 1.3 }}>
+                  {address.recipientName}
+                </Typography>
                 <Typography sx={{ color: '#4b5563', fontWeight: 700 }}>{address.phone}</Typography>
-                <Typography sx={{ color: '#4b5563', mt: 0.8 }}>{[address.addressLine1, address.addressLine2, address.township, address.city, address.region].filter(Boolean).join(', ')}</Typography>
-                {address.landmark ? <Typography sx={{ color: storefrontColors.muted, mt: 0.5 }}>Landmark: {address.landmark}</Typography> : null}
-                {address.deliveryInstructions ? <Typography sx={{ color: storefrontColors.muted, mt: 0.5 }}>Instructions: {address.deliveryInstructions}</Typography> : null}
+                <Typography sx={{ color: '#4b5563', mt: 0.8 }}>
+                  {[
+                    address.addressLine1,
+                    address.addressLine2,
+                    address.township,
+                    address.city,
+                    address.region,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
+                </Typography>
+                {address.landmark ? (
+                  <Typography sx={{ color: storefrontColors.muted, mt: 0.5 }}>
+                    Landmark: {address.landmark}
+                  </Typography>
+                ) : null}
+                {address.deliveryInstructions ? (
+                  <Typography sx={{ color: storefrontColors.muted, mt: 0.5 }}>
+                    Instructions: {address.deliveryInstructions}
+                  </Typography>
+                ) : null}
               </Box>
             ))
           ) : (
-            <Box sx={{ backgroundColor: '#f6f8fc', border: `1px dashed ${storefrontColors.border}`, borderRadius: 1.5, p: 3 }}>
-              <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>No addresses saved</Typography>
-              <Typography sx={{ color: storefrontColors.muted, mt: 0.7 }}>Add your first delivery address to speed up checkout.</Typography>
+            <Box
+              sx={{
+                backgroundColor: '#f6f8fc',
+                border: `1px dashed ${storefrontColors.border}`,
+                borderRadius: 1.5,
+                p: 3,
+              }}
+            >
+              <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
+                No addresses saved
+              </Typography>
+              <Typography sx={{ color: storefrontColors.muted, mt: 0.7 }}>
+                Add your first delivery address to speed up checkout.
+              </Typography>
             </Box>
           )}
         </Stack>
@@ -2057,7 +2689,10 @@ const ProfileContent = ({ activePage }: { activePage: AccountPageConfig }) => {
     },
   });
 
-  const setProfileField = <TKey extends keyof UpdateProfilePayload>(key: TKey, value: UpdateProfilePayload[TKey]) => {
+  const setProfileField = <TKey extends keyof UpdateProfilePayload>(
+    key: TKey,
+    value: UpdateProfilePayload[TKey],
+  ) => {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
@@ -2106,9 +2741,15 @@ const ProfileContent = ({ activePage }: { activePage: AccountPageConfig }) => {
 
   return (
     <Box sx={{ maxWidth: 980, mt: 4.8 }}>
-      <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.5} sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}>
+      <Stack
+        direction={{ sm: 'row', xs: 'column' }}
+        spacing={1.5}
+        sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}
+      >
         <Box>
-          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>{activePage.title}</Typography>
+          <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>
+            {activePage.title}
+          </Typography>
           <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 0.7 }}>
             Review your logged-in account details before making profile changes.
           </Typography>
@@ -2128,24 +2769,82 @@ const ProfileContent = ({ activePage }: { activePage: AccountPageConfig }) => {
           p: { md: 3, xs: 2 },
         }}
       >
-        <TextField disabled={!isEditing || mutation.isPending} label="Full name" onChange={(event) => setProfileField('name', event.target.value)} required value={form.name} />
-        <TextField disabled={!isEditing || mutation.isPending} label="Email address" onChange={(event) => setProfileField('email', event.target.value)} required type="email" value={form.email} />
-        <TextField disabled={!isEditing || mutation.isPending} label="Mobile number" helperText={isEditing ? 'Use country code, for example +959123456789.' : undefined} onChange={(event) => setProfileField('phone', event.target.value)} required value={form.phone} />
+        <TextField
+          disabled={!isEditing || mutation.isPending}
+          label="Full name"
+          onChange={(event) => setProfileField('name', event.target.value)}
+          required
+          value={form.name}
+        />
+        <TextField
+          disabled={!isEditing || mutation.isPending}
+          label="Email address"
+          onChange={(event) => setProfileField('email', event.target.value)}
+          required
+          type="email"
+          value={form.email}
+        />
+        <TextField
+          disabled={!isEditing || mutation.isPending}
+          label="Mobile number"
+          helperText={isEditing ? 'Use country code, for example +959123456789.' : undefined}
+          onChange={(event) => setProfileField('phone', event.target.value)}
+          required
+          value={form.phone}
+        />
         <TextField disabled label="Account type" required value={formatRoleLabel(user?.role)} />
       </Box>
 
       <Stack direction="row" spacing={1.5} sx={{ mt: 3 }}>
         {isEditing ? (
           <>
-            <Button disabled={mutation.isPending} onClick={openConfirmation} sx={{ backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#ffffff', fontSize: '1rem', fontWeight: 800, px: 4.5, py: 1.2, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+            <Button
+              disabled={mutation.isPending}
+              onClick={openConfirmation}
+              sx={{
+                backgroundColor: storefrontColors.navy,
+                borderRadius: 999,
+                color: '#ffffff',
+                fontSize: '1rem',
+                fontWeight: 800,
+                px: 4.5,
+                py: 1.2,
+                textTransform: 'none',
+                '&:hover': { backgroundColor: storefrontColors.navyDark },
+              }}
+            >
               Save profile
             </Button>
-            <Button disabled={mutation.isPending} onClick={cancelEdit} sx={{ borderRadius: 999, fontSize: '1rem', fontWeight: 800, px: 3.5, py: 1.2, textTransform: 'none' }}>
+            <Button
+              disabled={mutation.isPending}
+              onClick={cancelEdit}
+              sx={{
+                borderRadius: 999,
+                fontSize: '1rem',
+                fontWeight: 800,
+                px: 3.5,
+                py: 1.2,
+                textTransform: 'none',
+              }}
+            >
               Cancel
             </Button>
           </>
         ) : (
-          <Button onClick={() => setIsEditing(true)} sx={{ backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#ffffff', fontSize: '1rem', fontWeight: 800, px: 4.5, py: 1.2, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+          <Button
+            onClick={() => setIsEditing(true)}
+            sx={{
+              backgroundColor: storefrontColors.navy,
+              borderRadius: 999,
+              color: '#ffffff',
+              fontSize: '1rem',
+              fontWeight: 800,
+              px: 4.5,
+              py: 1.2,
+              textTransform: 'none',
+              '&:hover': { backgroundColor: storefrontColors.navyDark },
+            }}
+          >
             Edit profile
           </Button>
         )}
@@ -2159,10 +2858,24 @@ const ProfileContent = ({ activePage }: { activePage: AccountPageConfig }) => {
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button disabled={mutation.isPending} onClick={() => setConfirmOpen(false)} sx={{ textTransform: 'none' }}>
+          <Button
+            disabled={mutation.isPending}
+            onClick={() => setConfirmOpen(false)}
+            sx={{ textTransform: 'none' }}
+          >
             Cancel
           </Button>
-          <Button disabled={mutation.isPending} onClick={submitProfile} sx={{ backgroundColor: storefrontColors.navy, color: '#ffffff', fontWeight: 800, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+          <Button
+            disabled={mutation.isPending}
+            onClick={submitProfile}
+            sx={{
+              backgroundColor: storefrontColors.navy,
+              color: '#ffffff',
+              fontWeight: 800,
+              textTransform: 'none',
+              '&:hover': { backgroundColor: storefrontColors.navyDark },
+            }}
+          >
             {mutation.isPending ? 'Updating...' : 'Confirm update'}
           </Button>
         </DialogActions>
@@ -2238,19 +2951,70 @@ const ChangePasswordContent = ({ activePage }: { activePage: AccountPageConfig }
 
   return (
     <Box sx={{ maxWidth: 980, mt: 4.8 }}>
-      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>{activePage.title}</Typography>
-      <Box sx={{ backgroundColor: '#ffffff', border: `1px solid ${storefrontColors.border}`, borderRadius: 2, mt: 3, p: { md: 3.5, xs: 2.2 } }}>
+      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>
+        {activePage.title}
+      </Typography>
+      <Box
+        sx={{
+          backgroundColor: '#ffffff',
+          border: `1px solid ${storefrontColors.border}`,
+          borderRadius: 2,
+          mt: 3,
+          p: { md: 3.5, xs: 2.2 },
+        }}
+      >
         <Stack spacing={2.2} sx={{ maxWidth: 620 }}>
           <Box>
-            <Typography sx={{ color: storefrontColors.navy, fontSize: '1.08rem', fontWeight: 900 }}>Secure password update</Typography>
+            <Typography sx={{ color: storefrontColors.navy, fontSize: '1.08rem', fontWeight: 900 }}>
+              Secure password update
+            </Typography>
             <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 0.7 }}>
               Enter your current password before setting a new account password.
             </Typography>
           </Box>
-          <TextField autoComplete="current-password" label="Current password" onChange={(event) => setPasswordField('currentPassword', event.target.value)} required sx={passwordFieldSx} type="password" value={form.currentPassword} />
-          <TextField autoComplete="new-password" helperText="Use at least 8 characters." label="New password" onChange={(event) => setPasswordField('newPassword', event.target.value)} required sx={passwordFieldSx} type="password" value={form.newPassword} />
-          <TextField autoComplete="new-password" label="Confirm new password" onChange={(event) => setPasswordField('confirmPassword', event.target.value)} required sx={passwordFieldSx} type="password" value={form.confirmPassword} />
-          <Button disabled={mutation.isPending} onClick={openConfirmation} sx={{ alignSelf: 'flex-start', backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#ffffff', fontWeight: 900, px: 4, py: 1.15, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+          <TextField
+            autoComplete="current-password"
+            label="Current password"
+            onChange={(event) => setPasswordField('currentPassword', event.target.value)}
+            required
+            sx={passwordFieldSx}
+            type="password"
+            value={form.currentPassword}
+          />
+          <TextField
+            autoComplete="new-password"
+            helperText="Use at least 8 characters."
+            label="New password"
+            onChange={(event) => setPasswordField('newPassword', event.target.value)}
+            required
+            sx={passwordFieldSx}
+            type="password"
+            value={form.newPassword}
+          />
+          <TextField
+            autoComplete="new-password"
+            label="Confirm new password"
+            onChange={(event) => setPasswordField('confirmPassword', event.target.value)}
+            required
+            sx={passwordFieldSx}
+            type="password"
+            value={form.confirmPassword}
+          />
+          <Button
+            disabled={mutation.isPending}
+            onClick={openConfirmation}
+            sx={{
+              alignSelf: 'flex-start',
+              backgroundColor: storefrontColors.navy,
+              borderRadius: 999,
+              color: '#ffffff',
+              fontWeight: 900,
+              px: 4,
+              py: 1.15,
+              textTransform: 'none',
+              '&:hover': { backgroundColor: storefrontColors.navyDark },
+            }}
+          >
             Update password
           </Button>
         </Stack>
@@ -2264,10 +3028,24 @@ const ChangePasswordContent = ({ activePage }: { activePage: AccountPageConfig }
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button disabled={mutation.isPending} onClick={() => setConfirmOpen(false)} sx={{ textTransform: 'none' }}>
+          <Button
+            disabled={mutation.isPending}
+            onClick={() => setConfirmOpen(false)}
+            sx={{ textTransform: 'none' }}
+          >
             Cancel
           </Button>
-          <Button disabled={mutation.isPending} onClick={submitPasswordChange} sx={{ backgroundColor: storefrontColors.navy, color: '#ffffff', fontWeight: 800, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+          <Button
+            disabled={mutation.isPending}
+            onClick={submitPasswordChange}
+            sx={{
+              backgroundColor: storefrontColors.navy,
+              color: '#ffffff',
+              fontWeight: 800,
+              textTransform: 'none',
+              '&:hover': { backgroundColor: storefrontColors.navyDark },
+            }}
+          >
             {mutation.isPending ? 'Updating...' : 'Confirm update'}
           </Button>
         </DialogActions>
@@ -2313,24 +3091,79 @@ const DeleteAccountContent = ({ activePage }: { activePage: AccountPageConfig })
 
   return (
     <Box sx={{ maxWidth: 980, mt: 4.8 }}>
-      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>{activePage.title}</Typography>
-      <Box sx={{ backgroundColor: '#ffffff', border: `1px solid ${storefrontColors.border}`, borderRadius: 2, mt: 3, p: { md: 3.5, xs: 2.2 } }}>
+      <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>
+        {activePage.title}
+      </Typography>
+      <Box
+        sx={{
+          backgroundColor: '#ffffff',
+          border: `1px solid ${storefrontColors.border}`,
+          borderRadius: 2,
+          mt: 3,
+          p: { md: 3.5, xs: 2.2 },
+        }}
+      >
         <Stack spacing={2.2} sx={{ maxWidth: 680 }}>
           <Box>
-            <Typography sx={{ color: storefrontColors.navy, fontSize: '1.08rem', fontWeight: 900 }}>Close this customer account</Typography>
+            <Typography sx={{ color: storefrontColors.navy, fontSize: '1.08rem', fontWeight: 900 }}>
+              Close this customer account
+            </Typography>
             <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 0.7 }}>
-              This disables your login and signs you out immediately. Saved customer access will no longer be available.
+              This disables your login and signs you out immediately. Saved customer access will no
+              longer be available.
             </Typography>
           </Box>
-          <Box sx={{ backgroundColor: '#fff4f2', border: '1px solid #f6c7c1', borderRadius: 1.5, p: 2 }}>
-            <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>Account selected for deletion</Typography>
+          <Box
+            sx={{
+              backgroundColor: '#fff4f2',
+              border: '1px solid #f6c7c1',
+              borderRadius: 1.5,
+              p: 2,
+            }}
+          >
+            <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
+              Account selected for deletion
+            </Typography>
             <Typography sx={{ color: '#4b5563', fontWeight: 700, mt: 0.5 }}>
               {user ? `${getUserFullName(user)} (${user.email})` : 'Current logged-in account'}
             </Typography>
           </Box>
-          <TextField autoComplete="current-password" label="Password" onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} required sx={passwordFieldSx} type="password" value={form.password} />
-          <TextField helperText="Type DELETE exactly to enable account deletion." label="Confirmation" onChange={(event) => setForm((current) => ({ ...current, confirmation: event.target.value }))} required value={form.confirmation} />
-          <Button disabled={mutation.isPending || !canRequestDeletion} onClick={openConfirmation} sx={{ alignSelf: 'flex-start', backgroundColor: storefrontColors.navy, borderRadius: 999, color: '#ffffff', fontWeight: 900, px: 4, py: 1.15, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark }, '&.Mui-disabled': { backgroundColor: '#c9cdd6', color: '#ffffff' } }}>
+          <TextField
+            autoComplete="current-password"
+            label="Password"
+            onChange={(event) =>
+              setForm((current) => ({ ...current, password: event.target.value }))
+            }
+            required
+            sx={passwordFieldSx}
+            type="password"
+            value={form.password}
+          />
+          <TextField
+            helperText="Type DELETE exactly to enable account deletion."
+            label="Confirmation"
+            onChange={(event) =>
+              setForm((current) => ({ ...current, confirmation: event.target.value }))
+            }
+            required
+            value={form.confirmation}
+          />
+          <Button
+            disabled={mutation.isPending || !canRequestDeletion}
+            onClick={openConfirmation}
+            sx={{
+              alignSelf: 'flex-start',
+              backgroundColor: storefrontColors.navy,
+              borderRadius: 999,
+              color: '#ffffff',
+              fontWeight: 900,
+              px: 4,
+              py: 1.15,
+              textTransform: 'none',
+              '&:hover': { backgroundColor: storefrontColors.navyDark },
+              '&.Mui-disabled': { backgroundColor: '#c9cdd6', color: '#ffffff' },
+            }}
+          >
             Request deletion
           </Button>
         </Stack>
@@ -2340,14 +3173,29 @@ const DeleteAccountContent = ({ activePage }: { activePage: AccountPageConfig })
         <DialogTitle>Delete account?</DialogTitle>
         <DialogContent>
           <Typography sx={{ color: '#4b5563', fontWeight: 700 }}>
-            This action will disable your account and sign you out. Confirm only if you want to continue.
+            This action will disable your account and sign you out. Confirm only if you want to
+            continue.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button disabled={mutation.isPending} onClick={() => setConfirmOpen(false)} sx={{ textTransform: 'none' }}>
+          <Button
+            disabled={mutation.isPending}
+            onClick={() => setConfirmOpen(false)}
+            sx={{ textTransform: 'none' }}
+          >
             Cancel
           </Button>
-          <Button disabled={mutation.isPending} onClick={submitDeletion} sx={{ backgroundColor: storefrontColors.navy, color: '#ffffff', fontWeight: 800, textTransform: 'none', '&:hover': { backgroundColor: storefrontColors.navyDark } }}>
+          <Button
+            disabled={mutation.isPending}
+            onClick={submitDeletion}
+            sx={{
+              backgroundColor: storefrontColors.navy,
+              color: '#ffffff',
+              fontWeight: 800,
+              textTransform: 'none',
+              '&:hover': { backgroundColor: storefrontColors.navyDark },
+            }}
+          >
             {mutation.isPending ? 'Deleting...' : 'Delete account'}
           </Button>
         </DialogActions>
@@ -2358,7 +3206,9 @@ const DeleteAccountContent = ({ activePage }: { activePage: AccountPageConfig })
 
 const InfoContent = ({ activePage }: { activePage: AccountPageConfig }) => (
   <Box sx={{ maxWidth: 980, mt: 4.8 }}>
-    <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>{activePage.title}</Typography>
+    <Typography sx={{ color: storefrontColors.navy, fontSize: '1.45rem', fontWeight: 900 }}>
+      {activePage.title}
+    </Typography>
     <Box
       sx={{
         backgroundColor: '#ffffff',
@@ -2387,7 +3237,9 @@ const InfoContent = ({ activePage }: { activePage: AccountPageConfig }) => (
         {activePage.icon}
       </Box>
       <Stack spacing={2}>
-        <Typography sx={{ color: '#4b5563', fontSize: '1.05rem', fontWeight: 700, lineHeight: 1.7 }}>
+        <Typography
+          sx={{ color: '#4b5563', fontSize: '1.05rem', fontWeight: 700, lineHeight: 1.7 }}
+        >
           {activePage.description}
         </Typography>
         <Box
@@ -2399,7 +3251,9 @@ const InfoContent = ({ activePage }: { activePage: AccountPageConfig }) => (
             py: 1.5,
           }}
         >
-          <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>Current status</Typography>
+          <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
+            Current status
+          </Typography>
           <Typography sx={{ color: storefrontColors.muted, mt: 0.5 }}>
             This section is ready for live account data and API integration.
           </Typography>
@@ -2492,7 +3346,12 @@ export const AccountMenuPage = () => {
           Home /{' '}
           <Typography
             component="span"
-            sx={{ color: storefrontColors.navy, fontSize: '1rem', fontWeight: 800, textDecoration: 'underline' }}
+            sx={{
+              color: storefrontColors.navy,
+              fontSize: '1rem',
+              fontWeight: 800,
+              textDecoration: 'underline',
+            }}
           >
             {activePage.title}
           </Typography>

@@ -46,10 +46,14 @@ export type AdminCategory = {
   itemCount: number;
   name: string;
   slug: string;
+  sortOrder: number;
   subcategories: string[];
 };
 
-export type AdminCategoryPayload = Pick<AdminCategory, 'color' | 'icon' | 'name' | 'slug'> & {
+export type AdminCategoryPayload = Pick<
+  AdminCategory,
+  'color' | 'icon' | 'name' | 'slug' | 'sortOrder'
+> & {
   subcategories?: string[];
 };
 
@@ -75,7 +79,21 @@ export type AdminOrderStatus =
   | 'fulfilled'
   | 'cancelled';
 
+export type AdminOrderLineItem = {
+  categoryId?: string;
+  categoryName?: string;
+  imageUrl?: string;
+  lineTotal: number;
+  name: string;
+  productId: string;
+  quantity: number;
+  sku: string;
+  subcategory?: string;
+  unitPrice: number;
+};
+
 export type AdminOrder = {
+  categoryIds?: string[];
   createdAt: string;
   currency: string;
   customerEmail?: string;
@@ -84,11 +102,14 @@ export type AdminOrder = {
   deliveryAddress?: string;
   id: string;
   itemCount: number;
+  lineItems?: AdminOrderLineItem[];
   orderNumber: string;
   placedAt: string;
+  productIds?: string[];
   paymentMethod?: string;
   region?: string;
   status: AdminOrderStatus;
+  subcategories?: string[];
   totalAmount: number;
   township?: string;
 };

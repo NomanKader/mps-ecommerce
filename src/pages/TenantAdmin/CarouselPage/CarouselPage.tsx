@@ -1,3 +1,4 @@
+import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
@@ -9,7 +10,6 @@ import {
   Alert,
   Box,
   Chip,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,

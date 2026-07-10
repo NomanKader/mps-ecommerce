@@ -1,3 +1,4 @@
+import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
@@ -6,7 +7,6 @@ import {
   Box,
   Chip,
   Divider,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,

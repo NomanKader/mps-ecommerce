@@ -1,3 +1,4 @@
+import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
@@ -10,7 +11,6 @@ import {
   Box,
   Alert,
   Chip,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -112,7 +112,11 @@ const optionalBulkColumns = [
   'Image URL',
 ];
 
-const normalizeHeader = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+const normalizeHeader = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 
 const splitCsvLine = (line: string) => {
   const values: string[] = [];
@@ -149,7 +153,10 @@ const splitCsvLine = (line: string) => {
 
 const parseTags = (value: unknown): string[] => {
   if (Array.isArray(value)) {
-    return value.map(String).map((tag) => tag.trim()).filter(Boolean);
+    return value
+      .map(String)
+      .map((tag) => tag.trim())
+      .filter(Boolean);
   }
 
   if (typeof value !== 'string') {
@@ -637,7 +644,9 @@ export const ProductsPage = () => {
 
       setBulkProducts(productsToImport);
     } catch {
-      setBulkUploadError('Could not read this file. Upload an Excel or CSV file with a header row.');
+      setBulkUploadError(
+        'Could not read this file. Upload an Excel or CSV file with a header row.',
+      );
     }
   };
 

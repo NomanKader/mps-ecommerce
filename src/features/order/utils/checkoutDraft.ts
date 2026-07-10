@@ -2,7 +2,7 @@ import type { CreateOrderPayload } from '@features/order/api/orderApi';
 
 const CHECKOUT_DRAFT_KEY = 'mps.checkout-draft.v2';
 
-export type CheckoutDraft = Omit<CreateOrderPayload, 'paymentMethod'> & {
+export type CheckoutDraft = Omit<CreateOrderPayload, 'items' | 'paymentMethod' | 'productIds'> & {
   currency: string;
 };
 

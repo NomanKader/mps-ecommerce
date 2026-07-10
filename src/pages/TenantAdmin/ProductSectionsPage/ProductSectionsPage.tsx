@@ -1,3 +1,4 @@
+import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
@@ -6,7 +7,6 @@ import {
   Box,
   Checkbox,
   Chip,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -575,7 +575,9 @@ export const ProductSectionsPage = ({
                               setForm((current) => ({
                                 ...current,
                                 productIds: checked
-                                  ? current.productIds.filter((productId) => productId !== product.id)
+                                  ? current.productIds.filter(
+                                      (productId) => productId !== product.id,
+                                    )
                                   : [...current.productIds, product.id],
                               }))
                             }

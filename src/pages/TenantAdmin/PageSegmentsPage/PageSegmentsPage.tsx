@@ -1,3 +1,4 @@
+import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
@@ -8,7 +9,6 @@ import {
   Avatar,
   Box,
   Chip,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -93,8 +93,7 @@ const revokeCarouselPreviews = (slots: CarouselSlot[]) => {
   slots.forEach((slot) => revokeImagePreview(slot.imagePreviewUrl));
 };
 
-const getCarouselSlots = (form: SegmentForm, carouselKey: CarouselKey) =>
-  form[carouselKey] ?? [];
+const getCarouselSlots = (form: SegmentForm, carouselKey: CarouselKey) => form[carouselKey] ?? [];
 
 const displaySlotLabels: Record<SegmentDisplaySlot, string> = {
   'after-new-in-season': 'After New In Season',
@@ -298,8 +297,7 @@ export const PageSegmentsPage = () => {
     queryKey: ['categories'],
   });
   const pageSegmentsQuery = useQuery({
-    queryFn: ({ signal }) =>
-      merchandisingApi.listAdminPageSegments({ status: 'all' }, { signal }),
+    queryFn: ({ signal }) => merchandisingApi.listAdminPageSegments({ status: 'all' }, { signal }),
     queryKey: ['admin', 'page-segments'],
   });
   const [deleteTarget, setDeleteTarget] = useState<StorefrontPageSegment | null>(null);
@@ -441,10 +439,7 @@ export const PageSegmentsPage = () => {
     });
   };
 
-  const clearCarouselImage = (
-    carouselKey: CarouselKey,
-    index: number,
-  ) => {
+  const clearCarouselImage = (carouselKey: CarouselKey, index: number) => {
     setForm((current) => ({
       ...current,
       [carouselKey]: getCarouselSlots(current, carouselKey).map((slot, slotIndex) => {
@@ -465,11 +460,7 @@ export const PageSegmentsPage = () => {
     }));
   };
 
-  const setCarouselImage = (
-    carouselKey: CarouselKey,
-    index: number,
-    file: File,
-  ) => {
+  const setCarouselImage = (carouselKey: CarouselKey, index: number, file: File) => {
     if (!validateImageFileSelection(file, 'page segment slide image')) {
       return;
     }
@@ -683,7 +674,13 @@ export const PageSegmentsPage = () => {
                     After New In Season - split image/text card design
                   </MenuItem>
                 </TextField>
-                <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { sm: '1fr 1fr', xs: '1fr' } }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gap: 2,
+                    gridTemplateColumns: { sm: '1fr 1fr', xs: '1fr' },
+                  }}
+                >
                   <TextField
                     fullWidth
                     label="Sort order"
@@ -778,8 +775,16 @@ export const PageSegmentsPage = () => {
                   <Box sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
                     Upload the image used by the selected page segment design.
                   </Box>
-                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                    <AppButton component="span" size="small" startIcon={<CloudUploadOutlinedIcon />}>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: 'center', flexWrap: 'wrap' }}
+                  >
+                    <AppButton
+                      component="span"
+                      size="small"
+                      startIcon={<CloudUploadOutlinedIcon />}
+                    >
                       Choose image
                     </AppButton>
                     {form.imageFileName ? (
@@ -845,7 +850,10 @@ export const PageSegmentsPage = () => {
               <Stack
                 direction={{ sm: 'row', xs: 'column' }}
                 spacing={1}
-                sx={{ alignItems: { sm: 'center', xs: 'stretch' }, justifyContent: 'space-between' }}
+                sx={{
+                  alignItems: { sm: 'center', xs: 'stretch' },
+                  justifyContent: 'space-between',
+                }}
               >
                 <Box>
                   <Typography sx={{ fontWeight: 900 }}>Top page carousel</Typography>
@@ -900,7 +908,10 @@ export const PageSegmentsPage = () => {
               <Stack
                 direction={{ sm: 'row', xs: 'column' }}
                 spacing={1}
-                sx={{ alignItems: { sm: 'center', xs: 'stretch' }, justifyContent: 'space-between' }}
+                sx={{
+                  alignItems: { sm: 'center', xs: 'stretch' },
+                  justifyContent: 'space-between',
+                }}
               >
                 <Box>
                   <Typography sx={{ fontWeight: 900 }}>After New Products carousel</Typography>
@@ -936,7 +947,9 @@ export const PageSegmentsPage = () => {
                   index={index}
                   key={`after-new-products-carousel-${index}`}
                   onClearImage={() => clearCarouselImage('afterNewProductsCarousel', index)}
-                  onImageChange={(file) => setCarouselImage('afterNewProductsCarousel', index, file)}
+                  onImageChange={(file) =>
+                    setCarouselImage('afterNewProductsCarousel', index, file)
+                  }
                   onRemove={() => removeCarouselSlide('afterNewProductsCarousel', index)}
                   onTextChange={(text) => setCarouselText('afterNewProductsCarousel', index, text)}
                   slide={slide}
@@ -955,7 +968,10 @@ export const PageSegmentsPage = () => {
               <Stack
                 direction={{ sm: 'row', xs: 'column' }}
                 spacing={1}
-                sx={{ alignItems: { sm: 'center', xs: 'stretch' }, justifyContent: 'space-between' }}
+                sx={{
+                  alignItems: { sm: 'center', xs: 'stretch' },
+                  justifyContent: 'space-between',
+                }}
               >
                 <Box>
                   <Typography sx={{ fontWeight: 900 }}>Have You Seen cards</Typography>

@@ -1,5 +1,6 @@
 export type Product = {
   categoryId: string;
+  categoryName?: string;
   currency: string;
   description: string;
   id: string;
@@ -10,6 +11,7 @@ export type Product = {
   rating: number;
   sku: string;
   slug: string;
+  subcategory?: string;
   tags: string[];
   tenantId: string;
 };

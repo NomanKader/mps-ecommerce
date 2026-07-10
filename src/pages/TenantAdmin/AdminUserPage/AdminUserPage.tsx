@@ -1,3 +1,4 @@
+import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
@@ -9,7 +10,6 @@ import {
   Avatar,
   Box,
   Chip,
-  Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
@@ -257,7 +257,8 @@ export const AdminUserPage = () => {
           />
         );
       },
-      valueGetter: (_value, row) => getRoleDefinition(row.dashboardRole ?? 'operations_manager').label,
+      valueGetter: (_value, row) =>
+        getRoleDefinition(row.dashboardRole ?? 'operations_manager').label,
     },
     {
       field: 'responsibilities',
@@ -462,7 +463,12 @@ export const AdminUserPage = () => {
         }}
       />
 
-      <Dialog fullWidth maxWidth="md" onClose={() => setIsUserDialogOpen(false)} open={isUserDialogOpen}>
+      <Dialog
+        fullWidth
+        maxWidth="md"
+        onClose={() => setIsUserDialogOpen(false)}
+        open={isUserDialogOpen}
+      >
         <DialogTitle>{editingId ? 'Edit User' : 'Create User'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2.25} sx={{ pt: 1 }}>
@@ -622,7 +628,12 @@ export const AdminUserPage = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog fullWidth maxWidth="sm" onClose={() => setDetailUser(null)} open={Boolean(detailUser)}>
+      <Dialog
+        fullWidth
+        maxWidth="sm"
+        onClose={() => setDetailUser(null)}
+        open={Boolean(detailUser)}
+      >
         <DialogTitle>User Responsibilities</DialogTitle>
         <DialogContent>
           {detailUser ? (
@@ -676,7 +687,12 @@ export const AdminUserPage = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog fullWidth maxWidth="xs" onClose={() => setDeleteTarget(null)} open={Boolean(deleteTarget)}>
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        onClose={() => setDeleteTarget(null)}
+        open={Boolean(deleteTarget)}
+      >
         <DialogTitle>Delete User?</DialogTitle>
         <DialogContent>
           <Typography color="text.secondary">

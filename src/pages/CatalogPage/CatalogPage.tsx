@@ -2821,6 +2821,22 @@ export const CatalogPage = () => {
     'Catalog';
   const catalogProducts = data;
 
+  const searchTerms = useMemo(
+    () =>
+      search
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .map((term) => (term.length > 3 && term.endsWith('s') ? term.slice(0, -1) : term))
+        .filter(Boolean),
+    [search],
+  );
+  const categoryById = useMemo(
+    () => new Map(categories.map((item) => [item.id, item])),
+    [categories],
+  );
+
   const filteredProducts = useMemo(
     () =>
       catalogProducts.filter((product) => {
@@ -2829,16 +2845,30 @@ export const CatalogPage = () => {
         }
 
         const matchesCategory = category === 'all' || product.categoryId === category;
-        const matchesSearch =
-          search.length === 0 ||
-          [product.name, product.description, product.sku, ...product.tags]
-            .join(' ')
-            .toLowerCase()
-            .includes(search.toLowerCase());
+        const productCategory = categoryById.get(product.categoryId);
+        const searchableTerms = [
+          product.name,
+          product.categoryName,
+          product.subcategory,
+          productCategory?.name,
+          productCategory?.slug,
+          product.description,
+          product.sku,
+          ...product.tags,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .normalize('NFKD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .split(/[^a-z0-9]+/)
+          .map((term) => (term.length > 3 && term.endsWith('s') ? term.slice(0, -1) : term));
+        const searchableValue = searchableTerms.join(' ');
+        const matchesSearch = searchTerms.every((term) => searchableValue.includes(term));
 
         return matchesCategory && matchesSearch;
       }),
-    [catalogProducts, category, search, selectedProductIds],
+    [catalogProducts, category, categoryById, searchTerms, selectedProductIds],
   );
   const visibleCatalogProducts = selectedProductIds.length
     ? filteredProducts.slice(0, 5)
