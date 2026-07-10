@@ -882,6 +882,21 @@ const run = async (): Promise<void> => {
     })
   );
 
+  const createOrderLineItem = (product: (typeof products)[number], quantity: number) => ({
+    categoryId: String(product.categoryId ?? ''),
+    categoryName: product.categoryName,
+    imageUrl: product.imageUrl,
+    lineTotal: product.price * quantity,
+    name: product.name,
+    productId: String(product._id),
+    quantity,
+    sku: product.sku,
+    subcategory: product.subcategory,
+    unitPrice: product.price
+  });
+  const firstDemoProducts = products.slice(0, 3);
+  const secondDemoProducts = products.slice(3, 6);
+
   await Promise.all(
     [
       {
@@ -896,6 +911,12 @@ const run = async (): Promise<void> => {
         township: 'Bahan',
         itemCount: 5,
         itemsCount: 5,
+        lineItems: firstDemoProducts.map((product, index) =>
+          createOrderLineItem(product, index < 2 ? 2 : 1)
+        ),
+        productIds: firstDemoProducts.map((product) => String(product._id)),
+        categoryIds: [...new Set(firstDemoProducts.map((product) => String(product.categoryId)))],
+        subcategories: [...new Set(firstDemoProducts.map((product) => product.subcategory))],
         subtotalAmount: 42500,
         deliveryFee: 0,
         totalAmount: 42500,
@@ -916,6 +937,10 @@ const run = async (): Promise<void> => {
         township: 'Sanchaung',
         itemCount: 3,
         itemsCount: 3,
+        lineItems: secondDemoProducts.map((product) => createOrderLineItem(product, 1)),
+        productIds: secondDemoProducts.map((product) => String(product._id)),
+        categoryIds: [...new Set(secondDemoProducts.map((product) => String(product.categoryId)))],
+        subcategories: [...new Set(secondDemoProducts.map((product) => product.subcategory))],
         subtotalAmount: 28000,
         deliveryFee: 5000,
         totalAmount: 33000,
@@ -953,6 +978,7 @@ const run = async (): Promise<void> => {
       const status = (
         ['pending', 'processing', 'shipped', 'delivered', 'fulfilled', 'cancelled'] as const
       )[index % 6];
+      const lineItems = product ? [createOrderLineItem(product, itemCount)] : [];
 
       return OrderModel.findOneAndUpdate(
         { tenantId, orderNumber: `DEMO-BULK-${String(index + 1).padStart(4, '0')}` },
@@ -969,6 +995,10 @@ const run = async (): Promise<void> => {
           township,
           itemCount,
           itemsCount: itemCount,
+          lineItems,
+          productIds: lineItems.map((item) => item.productId),
+          categoryIds: lineItems.map((item) => item.categoryId).filter(Boolean),
+          subcategories: lineItems.map((item) => item.subcategory).filter(Boolean),
           subtotalAmount,
           deliveryFee,
           totalAmount: subtotalAmount + deliveryFee,

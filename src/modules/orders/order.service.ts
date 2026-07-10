@@ -2,7 +2,7 @@ import { BaseService } from '@core/base/BaseService';
 import { getTenantModels } from '@core/database/tenant-database';
 import { HTTP_STATUS } from '@core/response/http-status';
 import { OrderRepository } from '@modules/orders/order.repository';
-import { Order } from '@modules/orders/order.types';
+import { Order, OrderLineItem } from '@modules/orders/order.types';
 import { ApiError } from '@utils/ApiError';
 
 type CreateOrderInput = Pick<
@@ -14,10 +14,13 @@ type CreateOrderInput = Pick<
   | 'deliveryAddress'
   | 'itemCount'
   | 'paymentMethod'
+  | 'productIds'
   | 'region'
   | 'subtotalAmount'
   | 'township'
->;
+> & {
+  items: Array<{ productId: string; quantity: number }>;
+};
 
 type DeliveryQuoteInput = {
   city: string;
@@ -120,7 +123,8 @@ export class OrderService extends BaseService {
     const itemCount = payload.itemCount;
     const orderNumber = `ORD-${Date.now()}`;
     const isWalletPayment = payload.paymentMethod === 'wallet';
-    const { CustomerWalletModel, UserModel } = getTenantModels(tenantId);
+    const { CategoryModel, CustomerWalletModel, ProductModel, UserModel } =
+      getTenantModels(tenantId);
     const user = await UserModel.findOne({
       _id: userId,
       tenantId,
@@ -133,6 +137,64 @@ export class OrderService extends BaseService {
     }
 
     const customerName = `${user.firstName} ${user.lastName}`.trim();
+    const requestedItems = payload.items.length
+      ? payload.items
+      : payload.productIds.map((productId) => ({ productId, quantity: 1 }));
+    const requestedProductIds = [...new Set(requestedItems.map((item) => item.productId))];
+    const products = await ProductModel.find({
+      _id: { $in: requestedProductIds },
+      tenantId,
+      isDeleted: { $ne: true }
+    })
+      .select('_id categoryId categoryName imageUrl name price sku subcategory')
+      .lean();
+    const productById = new Map(products.map((product) => [String(product._id), product]));
+
+    if (productById.size !== requestedProductIds.length) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'One or more ordered products are unavailable');
+    }
+
+    const orderedCategoryIds = [
+      ...new Set(products.map((product) => String(product.categoryId ?? '')).filter(Boolean))
+    ];
+    const orderedCategories = await CategoryModel.find({
+      _id: { $in: orderedCategoryIds },
+      tenantId,
+      isDeleted: { $ne: true }
+    })
+      .select('_id name')
+      .lean();
+    const categoryNameById = new Map(
+      orderedCategories.map((category) => [String(category._id), category.name])
+    );
+
+    const lineItems: OrderLineItem[] = requestedItems.map(({ productId, quantity }) => {
+      const product = productById.get(productId);
+
+      if (!product) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'An ordered product is unavailable');
+      }
+
+      return {
+        categoryId: product.categoryId ? String(product.categoryId) : undefined,
+        categoryName:
+          categoryNameById.get(String(product.categoryId ?? '')) ?? product.categoryName,
+        imageUrl: product.imageUrl ?? undefined,
+        lineTotal: product.price * quantity,
+        name: product.name,
+        productId,
+        quantity,
+        sku: product.sku,
+        subcategory: product.subcategory,
+        unitPrice: product.price
+      };
+    });
+    const categoryIds = [
+      ...new Set(products.map((product) => String(product.categoryId ?? '')).filter(Boolean))
+    ];
+    const subcategories = [
+      ...new Set(products.map((product) => String(product.subcategory ?? '')).filter(Boolean))
+    ];
 
     if (isWalletPayment) {
       const wallet = await CustomerWalletModel.findOneAndUpdate(
@@ -174,14 +236,18 @@ export class OrderService extends BaseService {
         customerName,
         customerPhone: user.phone ?? payload.customerPhone,
         currency: 'MMK',
+        categoryIds,
         deliveryFee: quote.deliveryFee,
         itemCount,
         itemsCount: itemCount,
+        lineItems,
         orderNumber,
         paymentStatus: isWalletPayment ? 'paid' : 'pending',
+        productIds: requestedProductIds,
         placedAt: new Date(),
         status: 'pending',
         subtotalAmount: payload.subtotalAmount,
+        subcategories,
         tenantId,
         totalAmount: quote.totalAmount,
         userId

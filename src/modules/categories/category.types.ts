@@ -7,6 +7,7 @@ export interface Category {
   icon?: string;
   color?: string;
   itemCount: number;
+  sortOrder: number;
   subcategories: string[];
   isDeleted: boolean;
   createdAt: Date;

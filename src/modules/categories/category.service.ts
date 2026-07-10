@@ -9,6 +9,9 @@ export class CategoryService extends BaseService {
 
   async listCategories(tenantId?: string): Promise<Category[]> {
     if (!tenantId) return [];
-    return new CategoryRepository(tenantId).find({ tenantId, isDeleted: { $ne: true } });
+    return new CategoryRepository(tenantId).findSorted({
+      tenantId,
+      isDeleted: { $ne: true }
+    });
   }
 }

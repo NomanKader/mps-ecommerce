@@ -116,6 +116,7 @@ export const categoryBodySchema = z.object({
     slug: z.string().min(1).optional(),
     icon: z.string().optional(),
     color: z.string().optional(),
+    sortOrder: z.coerce.number().int().nonnegative().optional(),
     subcategories: stringArraySchema
   })
 });
@@ -347,6 +348,8 @@ export const orderQuerySchema = z.object({
     status: z.string().optional(),
     region: z.string().optional(),
     township: z.string().optional(),
+    categoryId: z.string().optional(),
+    subcategory: z.string().optional(),
     from: optionalDateQuery,
     to: optionalDateQuery,
     startDate: optionalDateQuery,

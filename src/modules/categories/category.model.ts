@@ -12,6 +12,7 @@ export const categorySchema = new Schema<Category>(
     icon: { type: String },
     color: { type: String, trim: true },
     itemCount: { type: Number, default: 0, min: 0 },
+    sortOrder: { type: Number, default: 0, min: 0, index: true },
     subcategories: [{ type: String }]
   },
   baseSchemaOptions
@@ -19,3 +20,4 @@ export const categorySchema = new Schema<Category>(
 
 addSoftDeleteFields(categorySchema);
 categorySchema.index({ tenantId: 1, slug: 1 }, { unique: true });
+categorySchema.index({ tenantId: 1, sortOrder: 1, name: 1 });

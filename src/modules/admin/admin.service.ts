@@ -2141,7 +2141,7 @@ export class AdminService {
       const regex = new RegExp(escapeRegex(query.search), 'i');
       filter.$or = [{ name: regex }, { slug: regex }, { icon: regex }, { subcategories: regex }];
     }
-    const categories = await CategoryModel.find(filter).sort({ name: 1 }).lean();
+    const categories = await CategoryModel.find(filter).sort({ sortOrder: 1, name: 1 }).lean();
     return this.categoriesWithItemCounts(scopedTenant, categories);
   }
 
@@ -2358,6 +2358,10 @@ export class AdminService {
     if (typeof query.status === 'string' && query.status) filter.status = query.status;
     if (typeof query.region === 'string' && query.region) filter.region = query.region;
     if (typeof query.township === 'string' && query.township) filter.township = query.township;
+    if (typeof query.categoryId === 'string' && query.categoryId)
+      filter.categoryIds = query.categoryId;
+    if (typeof query.subcategory === 'string' && query.subcategory)
+      filter.subcategories = query.subcategory;
     const from = query.from || query.startDate;
     const to = query.to || query.endDate;
     if (from || to)

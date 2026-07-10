@@ -12,6 +12,7 @@ export const orderSchema = new Schema<Order>(
     customerEmail: { type: String, trim: true, lowercase: true },
     customerPhone: { type: String, trim: true },
     city: { type: String, trim: true },
+    categoryIds: { type: [String], default: [], index: true },
     deliveryAddress: { type: String, trim: true },
     paymentMethod: {
       type: String,
@@ -29,6 +30,25 @@ export const orderSchema = new Schema<Order>(
     township: { type: String, trim: true },
     itemCount: { type: Number, default: 0, min: 0 },
     itemsCount: { type: Number, default: 0, min: 0 },
+    lineItems: {
+      type: [
+        {
+          categoryId: { type: String },
+          categoryName: { type: String, trim: true },
+          imageUrl: { type: String, trim: true },
+          lineTotal: { type: Number, required: true, min: 0 },
+          name: { type: String, required: true, trim: true },
+          productId: { type: String, required: true },
+          quantity: { type: Number, required: true, min: 1 },
+          sku: { type: String, required: true, trim: true },
+          subcategory: { type: String, trim: true },
+          unitPrice: { type: Number, required: true, min: 0 }
+        }
+      ],
+      default: []
+    },
+    productIds: { type: [String], default: [] },
+    subcategories: { type: [String], default: [], index: true },
     subtotalAmount: { type: Number, required: true, min: 0 },
     deliveryFee: { type: Number, required: true, min: 0, default: 0 },
     totalAmount: { type: Number, required: true },
