@@ -14,6 +14,13 @@ export interface OrderLineItem {
   unitPrice: number;
 }
 
+export interface OrderProductSummary {
+  imageUrl?: string;
+  name: string;
+  productId: string;
+  sku: string;
+}
+
 export interface Order {
   _id: string;
   tenantId: string;
@@ -35,6 +42,7 @@ export interface Order {
   itemsCount: number;
   lineItems: OrderLineItem[];
   productIds: string[];
+  productDetails?: OrderProductSummary[];
   subcategories: string[];
   totalAmount: number;
   currency: string;

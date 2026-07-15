@@ -51,10 +51,51 @@ export class OrderService extends BaseService {
       throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'User session is no longer active');
     }
 
-    return new OrderRepository(tenantId).find({
+    const orders = await new OrderRepository(tenantId).findNewestFirst({
       customerEmail: user.email.trim().toLowerCase(),
       tenantId,
       userId
+    });
+    const legacyProductIds = [
+      ...new Set(
+        orders
+          .filter((order) => !order.lineItems?.length)
+          .flatMap((order) => order.productIds ?? [])
+          .map(String)
+      )
+    ];
+
+    if (legacyProductIds.length === 0) return orders;
+
+    const { ProductModel } = getTenantModels(tenantId);
+    const products = await ProductModel.find({
+      _id: { $in: legacyProductIds },
+      tenantId,
+      isDeleted: { $ne: true }
+    })
+      .select('_id imageUrl name sku')
+      .lean();
+    const productById = new Map(products.map((product) => [String(product._id), product]));
+
+    return orders.map((order) => {
+      if (order.lineItems?.length) return order;
+
+      return {
+        ...order,
+        productDetails: [...new Set(order.productIds ?? [])].flatMap((productId) => {
+          const product = productById.get(String(productId));
+          return product
+            ? [
+                {
+                  imageUrl: product.imageUrl ?? undefined,
+                  name: product.name,
+                  productId: String(product._id),
+                  sku: product.sku
+                }
+              ]
+            : [];
+        })
+      };
     });
   }
 
