@@ -101,25 +101,6 @@ const phoneInputSx = {
       backgroundColor: '#eef3fb',
     },
   },
-  '& .react-tel-input .country-list': {
-    borderRadius: 1.5,
-    boxShadow: '0 12px 34px rgba(29, 35, 48, 0.18)',
-    color: '#30343c',
-    maxWidth: { sm: 380, xs: 280 },
-    width: 'max-content',
-  },
-  '& .react-tel-input .country-list .search': {
-    backgroundColor: storefrontColors.surface,
-    px: 1.2,
-    py: 1,
-  },
-  '& .react-tel-input .country-list .search-box': {
-    border: '1px solid #dde3ee',
-    borderRadius: 1,
-    fontFamily: 'inherit',
-    ml: 0,
-    width: 'calc(100% - 10px)',
-  },
 };
 
 const SocialAuthButton = ({
@@ -229,7 +210,6 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
     isOtpRequesting,
     isRegistering,
     onSubmit: onRegisterSubmit,
-    otpSecondsRemaining,
     register: registerRegisterField,
     requestOtp,
     reset: resetRegister,
@@ -456,11 +436,9 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
                         name="phone"
                         render={({ field }) => (
                           <PhoneInput
-                            autocompleteSearch
-                            country="ae"
+                            country="mm"
                             countryCodeEditable={false}
-                            enableSearch
-                            enableTerritories
+                            disableDropdown
                             inputProps={{
                               autoComplete: 'tel',
                               name: field.name,
@@ -468,18 +446,7 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
                             onBlur={() => field.onBlur()}
                             onChange={setPhone}
                             placeholder="Enter phone number"
-                            preferredCountries={[
-                              'ae',
-                              'sa',
-                              'om',
-                              'qa',
-                              'bh',
-                              'kw',
-                              'in',
-                              'gb',
-                              'us',
-                            ]}
-                            searchPlaceholder="Search country"
+                            onlyCountries={['mm']}
                             value={field.value}
                           />
                         )}
@@ -502,11 +469,9 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
                     >
                       {isOtpRequesting
                         ? 'Sending...'
-                        : otpSecondsRemaining > 0
-                          ? `Resend in ${otpSecondsRemaining}s`
-                          : isOtpRequested
-                            ? 'Resend OTP'
-                            : 'Send OTP'}
+                        : isOtpRequested
+                          ? 'OTP Sent'
+                          : 'Send OTP'}
                     </Button>
                   </Stack>
                   {registerErrors.phone ? (

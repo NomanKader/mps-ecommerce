@@ -20,6 +20,8 @@ import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToPr
 import { productApi } from '@features/product/api/productApi';
 import { useProducts } from '@features/product/hooks/useProducts';
 import { EmptyState } from '@shared/components/ui/EmptyState/EmptyState';
+import { AppBackButton } from '@shared/components/ui/BackButton/AppBackButton';
+import { routePaths } from '@routes/routePaths';
 import { ProductGrid } from '@widgets/ProductGrid/ProductGrid';
 import {
   storefrontMutedPanelSx,
@@ -635,5 +637,10 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
 export const ProductDetailsPage = () => {
   const { productId = '' } = useParams();
 
-  return <ProductDetailsContent key={productId} productId={productId} />;
+  return (
+    <Stack spacing={2.5}>
+      <AppBackButton label="Back to products" to={routePaths.catalog} />
+      <ProductDetailsContent key={productId} productId={productId} />
+    </Stack>
+  );
 };

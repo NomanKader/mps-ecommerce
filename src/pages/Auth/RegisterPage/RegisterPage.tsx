@@ -14,7 +14,6 @@ export const RegisterPage = () => {
     isOtpRequesting,
     isRegistering,
     onSubmit,
-    otpSecondsRemaining,
     register,
     requestOtp,
     setPhone,
@@ -51,11 +50,9 @@ export const RegisterPage = () => {
           >
             {isOtpRequesting
               ? 'Sending...'
-              : otpSecondsRemaining > 0
-                ? `Resend in ${otpSecondsRemaining}s`
-                : isOtpRequested
-                  ? 'Resend OTP'
-                  : 'Send OTP'}
+              : isOtpRequested
+                ? 'OTP Sent'
+                : 'Send OTP'}
           </AppButton>
         </Stack>
         <AppTextField

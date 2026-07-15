@@ -49,7 +49,7 @@ describe('useRegister', () => {
 
   it('starts an OTP countdown after a successful request', async () => {
     vi.spyOn(authApi, 'requestOtp').mockResolvedValue({
-      data: { expiresInSeconds: 2 },
+      data: { developmentOtp: '123456', expiresInSeconds: 2 },
       message: 'Verification OTP created',
     });
     const { result } = renderHook(() => useRegister(), { wrapper: createWrapper() });
@@ -62,6 +62,7 @@ describe('useRegister', () => {
     });
 
     await waitFor(() => expect(result.current.otpSecondsRemaining).toBe(2));
+    expect(result.current.getValues('otp')).toBe('123456');
     await waitFor(() => expect(result.current.otpSecondsRemaining).toBe(1), { timeout: 1500 });
   });
 

@@ -69,6 +69,7 @@ import { walletApi } from '@features/wallet/api/walletApi';
 import { useWallet } from '@features/wallet/hooks/useWallet';
 import { routePaths } from '@routes/routePaths';
 import { toApiError } from '@shared/api/apiError';
+import { AppBackButton } from '@shared/components/ui/BackButton/AppBackButton';
 import { validateImageFileSelection } from '@shared/utils/imageFileValidation';
 import { useAppDispatch } from '@store/hooks';
 import type { RootState } from '@store/index';
@@ -444,16 +445,35 @@ const ProfileSummary = () => {
     queryKey: ['wallet', 'summary', user?.id],
     staleTime: 30_000,
   });
+  const ordersSummaryQuery = useQuery({
+    enabled: Boolean(user?.id),
+    queryFn: ({ signal }) => orderApi.getOrders({ signal }),
+    queryKey: ['orders', user?.id],
+    staleTime: 30_000,
+  });
   const serverWallet = walletSummaryQuery.data?.wallet;
   const availableBalance = serverWallet
     ? Math.max(0, serverWallet.balance - serverWallet.reservedBalance)
     : fallbackWallet.availableBalance;
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'Min Naing Min Naing';
   const email = user?.email ?? 'minnaingjokermm@gmail.com';
+  const orderCount = ordersSummaryQuery.data?.length ?? 0;
 
   const stats = [
-    { icon: <Inventory2OutlinedIcon />, label: 'My Orders', value: '' },
-    { label: 'Wallet', value: formatWalletAmount(availableBalance) },
+    {
+      caption: 'ORDERS',
+      label: 'My Orders',
+      path: routePaths.accountOrders,
+      prominent: true,
+      value: ordersSummaryQuery.isLoading ? '—' : orderCount.toLocaleString(),
+    },
+    {
+      caption: 'AVAILABLE',
+      label: 'Wallet',
+      path: routePaths.accountWallet,
+      prominent: false,
+      value: formatWalletAmount(availableBalance),
+    },
   ];
 
   return (
@@ -531,37 +551,89 @@ const ProfileSummary = () => {
       >
         {stats.map((stat) => (
           <Stack
+            aria-label={`Go to ${stat.label}`}
+            component={Link}
             key={stat.label}
             spacing={1}
-            sx={{ alignItems: 'center', color: storefrontColors.navy, textAlign: 'center' }}
+            sx={{
+              alignItems: 'center',
+              borderRadius: 1,
+              color: storefrontColors.navy,
+              textAlign: 'center',
+              textDecoration: 'none',
+              transition: 'transform 160ms ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                '& .profile-stat-circle': {
+                  boxShadow: `0 14px 30px ${alpha(storefrontColors.accent, 0.2)}`,
+                },
+              },
+              '&:focus-visible': {
+                outline: `2px solid ${storefrontColors.accent}`,
+                outlineOffset: 4,
+              },
+            }}
+            to={stat.path}
           >
             <Box
+              className="profile-stat-circle"
               sx={{
                 alignItems: 'center',
-                backgroundColor: '#f0f0f6',
+                background: stat.prominent
+                  ? `radial-gradient(circle at 35% 28%, #ffffff 0%, #fff4f1 42%, ${alpha(storefrontColors.accent, 0.14)} 100%)`
+                  : '#f0f0f6',
+                border: stat.prominent
+                  ? `1px solid ${alpha(storefrontColors.accent, 0.24)}`
+                  : '1px solid transparent',
                 borderRadius: '50%',
+                boxShadow: stat.prominent
+                  ? `0 9px 24px ${alpha(storefrontColors.accent, 0.12)}, inset 0 0 0 6px ${alpha('#ffffff', 0.68)}`
+                  : 'none',
                 color: storefrontColors.navy,
-                display: 'flex',
+                display: 'inline-flex',
+                flexDirection: 'column',
                 height: { md: 118, xs: 94 },
                 justifyContent: 'center',
+                transition: 'box-shadow 180ms ease',
                 width: { md: 118, xs: 94 },
               }}
             >
-              {stat.icon ? (
-                <Box sx={{ display: 'inline-flex', '& svg': { fontSize: 31 } }}>{stat.icon}</Box>
-              ) : (
-                <Typography
-                  sx={{
-                    color: '#e43224',
-                    fontSize: { md: '1rem', xs: '0.82rem' },
-                    fontWeight: 900,
-                  }}
-                >
-                  {stat.value}
-                </Typography>
-              )}
+              <Typography
+                sx={{
+                  color: '#e43224',
+                  fontSize: stat.prominent
+                    ? { md: '2.6rem', xs: '2.05rem' }
+                    : { md: '1rem', xs: '0.82rem' },
+                  fontVariantNumeric: 'tabular-nums',
+                  fontWeight: 950,
+                  letterSpacing: stat.prominent ? '-0.06em' : '-0.02em',
+                  lineHeight: 0.95,
+                }}
+              >
+                {stat.value}
+              </Typography>
+              <Typography
+                sx={{
+                  color: stat.prominent ? storefrontColors.navy : '#7a8190',
+                  fontSize: { md: '0.58rem', xs: '0.5rem' },
+                  fontWeight: 900,
+                  letterSpacing: '0.16em',
+                  lineHeight: 1,
+                  mt: stat.prominent ? 1 : 0.8,
+                }}
+              >
+                {stat.caption}
+              </Typography>
             </Box>
-            <Typography sx={{ fontSize: '0.95rem', fontWeight: 800 }}>{stat.label}</Typography>
+            <Typography
+              sx={{
+                fontSize: { md: '1rem', xs: '0.9rem' },
+                fontWeight: 900,
+                letterSpacing: '-0.025em',
+              }}
+            >
+              {stat.label}
+            </Typography>
           </Stack>
         ))}
       </Box>
@@ -1686,9 +1758,9 @@ const OrdersContent = () => {
     queryKey: ['orders', user?.id],
   });
   const loggedInEmail = user?.email.trim().toLowerCase() ?? '';
-  const orders = (ordersQuery.data ?? []).filter(
-    (order) => order.customerEmail?.trim().toLowerCase() === loggedInEmail,
-  );
+  const orders = (ordersQuery.data ?? [])
+    .filter((order) => order.customerEmail?.trim().toLowerCase() === loggedInEmail)
+    .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
   const upcomingOrders = orders.filter((order) => !completedOrderStatuses.has(order.status));
   const pastOrders = orders.filter((order) => completedOrderStatuses.has(order.status));
   const tabOrders = activeTab === 'upcoming' ? upcomingOrders : pastOrders;
@@ -2149,6 +2221,148 @@ const OrdersContent = () => {
                   </Typography>
                 </Grid>
               </Grid>
+              <Box
+                sx={{
+                  backgroundColor: '#fafbfe',
+                  border: `1px solid ${storefrontColors.border}`,
+                  borderRadius: 1.5,
+                  p: { sm: 2, xs: 1.5 },
+                }}
+              >
+                <Stack
+                  direction="row"
+                  sx={{ alignItems: 'baseline', justifyContent: 'space-between', mb: 1 }}
+                >
+                  <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
+                    Ordered items
+                  </Typography>
+                  <Typography color="text.secondary" variant="caption">
+                    {selectedOrder.itemCount} item{selectedOrder.itemCount === 1 ? '' : 's'}
+                  </Typography>
+                </Stack>
+                {selectedOrder.lineItems?.length ? (
+                  <Stack>
+                    {selectedOrder.lineItems.map((item, index) => (
+                      <Stack
+                        direction="row"
+                        key={`${item.productId}-${index}`}
+                        spacing={1.5}
+                        sx={{
+                          alignItems: 'center',
+                          borderTop:
+                            index === 0 ? 'none' : `1px solid ${storefrontColors.border}`,
+                          py: 1.25,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            alignItems: 'center',
+                            backgroundColor: '#ffffff',
+                            border: `1px solid ${storefrontColors.border}`,
+                            borderRadius: 1,
+                            display: 'flex',
+                            flexShrink: 0,
+                            height: 58,
+                            justifyContent: 'center',
+                            overflow: 'hidden',
+                            width: 58,
+                          }}
+                        >
+                          {item.imageUrl ? (
+                            <Box
+                              alt={item.name}
+                              component="img"
+                              src={item.imageUrl}
+                              sx={{ height: '100%', objectFit: 'contain', width: '100%' }}
+                            />
+                          ) : (
+                            <Inventory2OutlinedIcon
+                              sx={{ color: storefrontColors.muted, fontSize: 26 }}
+                            />
+                          )}
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography sx={{ fontWeight: 850, lineHeight: 1.25 }}>
+                            {item.name}
+                          </Typography>
+                          <Typography color="text.secondary" variant="caption">
+                            Qty {item.quantity} ×{' '}
+                            {formatCurrency(item.unitPrice, selectedOrder.currency)}
+                            {item.sku ? ` · SKU ${item.sku}` : ''}
+                          </Typography>
+                        </Box>
+                        <Typography
+                          sx={{ color: storefrontColors.accent, flexShrink: 0, fontWeight: 900 }}
+                        >
+                          {formatCurrency(item.lineTotal, selectedOrder.currency)}
+                        </Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                ) : selectedOrder.productDetails?.length ? (
+                  <Stack>
+                    {selectedOrder.productDetails.map((product, index) => (
+                      <Stack
+                        direction="row"
+                        key={product.productId}
+                        spacing={1.5}
+                        sx={{
+                          alignItems: 'center',
+                          borderTop:
+                            index === 0 ? 'none' : `1px solid ${storefrontColors.border}`,
+                          py: 1.25,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            alignItems: 'center',
+                            backgroundColor: '#ffffff',
+                            border: `1px solid ${storefrontColors.border}`,
+                            borderRadius: 1,
+                            display: 'flex',
+                            flexShrink: 0,
+                            height: 58,
+                            justifyContent: 'center',
+                            overflow: 'hidden',
+                            width: 58,
+                          }}
+                        >
+                          {product.imageUrl ? (
+                            <Box
+                              alt={product.name}
+                              component="img"
+                              src={product.imageUrl}
+                              sx={{ height: '100%', objectFit: 'contain', width: '100%' }}
+                            />
+                          ) : (
+                            <Inventory2OutlinedIcon
+                              sx={{ color: storefrontColors.muted, fontSize: 26 }}
+                            />
+                          )}
+                        </Box>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography sx={{ fontWeight: 850, lineHeight: 1.25 }}>
+                            {product.name}
+                          </Typography>
+                          {product.sku ? (
+                            <Typography color="text.secondary" variant="caption">
+                              SKU {product.sku}
+                            </Typography>
+                          ) : null}
+                        </Box>
+                      </Stack>
+                    ))}
+                    <Typography color="text.secondary" sx={{ pt: 1 }} variant="caption">
+                      Historical order quantities and item prices were not stored. The products
+                      shown are matched from this order’s saved product IDs.
+                    </Typography>
+                  </Stack>
+                ) : (
+                  <Typography color="text.secondary" sx={{ py: 1 }} variant="body2">
+                    These products are no longer available in the catalogue.
+                  </Typography>
+                )}
+              </Box>
             </Stack>
           ) : null}
         </DialogContent>
@@ -3342,6 +3556,11 @@ export const AccountMenuPage = () => {
     >
       <AccountSidebar activePath={activePage.path} />
       <Box component="main" sx={{ flex: 1, minWidth: 0, width: '100%' }}>
+        {activePage.path !== routePaths.account ? (
+          <Box sx={{ mb: 2 }}>
+            <AppBackButton label="Back to account" to={routePaths.account} />
+          </Box>
+        ) : null}
         <Typography sx={{ color: '#44474d', fontSize: '1rem', fontWeight: 700, mb: 2.5 }}>
           Home /{' '}
           <Typography

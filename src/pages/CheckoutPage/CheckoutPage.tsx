@@ -15,6 +15,7 @@ import { checkoutDraftStorage } from '@features/order/utils/checkoutDraft';
 import { routePaths } from '@routes/routePaths';
 import { toApiError } from '@shared/api/apiError';
 import { EmptyState } from '@shared/components/ui/EmptyState/EmptyState';
+import { AppBackButton } from '@shared/components/ui/BackButton/AppBackButton';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
 import type { RootState } from '@store/index';
 import { CheckoutSections, type CheckoutForm } from '@widgets/CheckoutSections/CheckoutSections';
@@ -197,6 +198,7 @@ export const CheckoutPage = () => {
 
   return (
     <Stack spacing={4}>
+      <AppBackButton label="Back to cart" to={routePaths.cart} />
       <PageSection
         description="Confirm your customer details and delivery address before placing the order."
         title="Checkout"

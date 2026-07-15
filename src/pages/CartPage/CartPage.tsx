@@ -14,6 +14,7 @@ import { useCart } from '@features/cart/hooks/useCart';
 import { useProducts } from '@features/product/hooks/useProducts';
 import { routePaths } from '@routes/routePaths';
 import { EmptyState } from '@shared/components/ui/EmptyState/EmptyState';
+import { AppBackButton } from '@shared/components/ui/BackButton/AppBackButton';
 import { storefrontColors } from '@app/providers/theme/tokens';
 import { formatCurrency } from '@utils/formatCurrency';
 
@@ -342,6 +343,7 @@ export const CartPage = () => {
   if (!items.length) {
     return (
       <Stack spacing={3}>
+        <AppBackButton label="Continue shopping" to={routePaths.catalog} />
         <Box
           sx={{
             backgroundColor: storefrontColors.navy,
@@ -363,6 +365,7 @@ export const CartPage = () => {
 
   return (
     <Stack spacing={3}>
+      <AppBackButton label="Continue shopping" to={routePaths.catalog} />
       <Box
         sx={{
           backgroundColor: storefrontColors.navy,

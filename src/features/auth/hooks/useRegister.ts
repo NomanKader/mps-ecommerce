@@ -63,8 +63,11 @@ export const useRegister = (options?: UseRegisterOptions) => {
       setOtpSecondsRemaining(result.data.expiresInSeconds);
       toast.success(result.message);
 
-      if (import.meta.env.DEV && result.data.developmentOtp) {
-        toast.success(`Development OTP: ${result.data.developmentOtp}`);
+      if (result.data.developmentOtp) {
+        form.setValue('otp', result.data.developmentOtp, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
       }
     },
     onError: (error) => {
