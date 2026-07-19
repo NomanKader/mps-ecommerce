@@ -1,12 +1,17 @@
 {
-  "name": "webview-app",
+  "name": "avs-store-mobile",
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@react-native-community/netinfo": "12.0.1",
     "expo": "~57.0.7",
+    "expo-splash-screen": "~57.0.4",
     "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.1",
     "react": "19.2.3",
-    "react-native": "0.86.0"
+    "react-native": "0.86.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-webview": "13.16.1"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
@@ -14,8 +19,13 @@
   },
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "start:clear": "expo start -c",
+    "android": "expo run:android",
+    "android:prebuild": "expo prebuild --platform android",
+    "android:apk": "cd android && GRADLE_USER_HOME=../.gradle-local ./gradlew assembleRelease",
+    "android:apk:debug": "cd android && GRADLE_USER_HOME=../.gradle-local ./gradlew assembleDebug",
+    "android:clean": "cd android && GRADLE_USER_HOME=../.gradle-local ./gradlew clean",
+    "ios": "expo run:ios",
     "web": "expo start --web"
   },
   "private": true
