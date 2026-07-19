@@ -465,18 +465,6 @@ const MobileHomeLanding = ({ activeSlideIndex, onSlideChange, slides }: MobileHo
         pt: 1,
       }}
     >
-      <Box
-        component={Link}
-        sx={{
-          border: `1px solid ${storefrontColors.border}`,
-          display: 'block',
-          height: 39,
-          textDecoration: 'none',
-          width: '100%',
-        }}
-        to={routePaths.catalog}
-      />
-
       <Box>
         <Box
           sx={{
@@ -487,7 +475,7 @@ const MobileHomeLanding = ({ activeSlideIndex, onSlideChange, slides }: MobileHo
           <Box
             sx={{
               display: 'flex',
-              transform: `translateX(-${activeSlideIndex * 100}%)`,
+              transform: `translateX(-${activeSlideIndex * (100 / slides.length)}%)`,
               transition: 'transform 260ms ease',
               width: `${slides.length * 100}%`,
             }}
@@ -1636,21 +1624,22 @@ export const HomePage = () => {
 
         <Box
           sx={{
-            ...storefrontPanelSx,
+            backgroundColor: { md: storefrontColors.surface, xs: '#eef4fb' },
+            border: { md: `1px solid ${storefrontColors.border}`, xs: 0 },
             borderRadius: 1,
             boxShadow: 'none',
-            px: { md: 1.3, xs: 0.9 },
-            py: { md: 1.5, xs: 1.1 },
+            px: { md: 1.3, xs: 2 },
+            py: { md: 1.5, xs: 2.6 },
           }}
         >
           <Box
             sx={{
-              alignItems: 'start',
-              columnGap: { md: 1.1, xs: 0.9 },
+              alignItems: 'stretch',
+              columnGap: { md: 1.1, xs: 1.5 },
               display: 'grid',
-              gridTemplateColumns: { md: 'repeat(16, minmax(0, 1fr))', xs: 'repeat(16, 96px)' },
+              gridTemplateColumns: { md: 'repeat(16, minmax(0, 1fr))', xs: 'repeat(2, minmax(0, 1fr))' },
               overflowX: { md: 'visible', xs: 'auto' },
-              rowGap: 1,
+              rowGap: { md: 1, xs: 1.7 },
             }}
           >
             {merchandisingHighlights.map((item) => {
@@ -1659,13 +1648,16 @@ export const HomePage = () => {
               return (
               <Stack
                 key={item.id}
-                spacing={0.75}
+                direction={{ md: 'column', xs: 'row' }}
+                spacing={{ md: 0.75, xs: 1.1 }}
                 sx={{
                   alignItems: 'center',
+                  color: storefrontColors.navy,
+                  display: 'flex',
                   minWidth: 0,
-                  pb: 1.2,
+                  pb: { md: 1.2, xs: 0 },
                   position: 'relative',
-                  textAlign: 'center',
+                  textAlign: { md: 'center', xs: 'left' },
                   transition: 'transform 180ms ease',
                   '&:hover': {
                     transform: 'translateY(-2px)',
@@ -1677,7 +1669,7 @@ export const HomePage = () => {
                   onClick={() => setActiveMerchandisingHighlightId(item.id)}
                   sx={{
                     alignItems: 'center',
-                    backgroundColor: item.color,
+                    backgroundColor: { md: item.color, xs: storefrontColors.success },
                     border: 0,
                     borderRadius: '50%',
                     boxShadow: 'none',
@@ -1685,16 +1677,17 @@ export const HomePage = () => {
                     cursor: 'pointer',
                     display: 'flex',
                     font: 'inherit',
-                    height: { md: 60, xs: 56 },
+                    flexShrink: 0,
+                    height: { md: 60, xs: 48 },
                     justifyContent: 'center',
                     m: 0,
                     p: 0,
                     position: 'relative',
                     transform: isActive ? 'translateY(-1px)' : 'none',
                     transition: 'box-shadow 180ms ease, transform 180ms ease',
-                    width: { md: 60, xs: 56 },
+                    width: { md: 60, xs: 48 },
                     '&::before': {
-                      border: '2px solid rgba(255,255,255,0.92)',
+                      border: { md: '2px solid rgba(255,255,255,0.92)', xs: 0 },
                       borderRadius: '50%',
                       content: '""',
                       inset: 7,
@@ -1716,18 +1709,18 @@ export const HomePage = () => {
                       zIndex: 1,
                     }}
                   >
-                    <Typography sx={{ color: '#ffffff', fontSize: '1.55rem', lineHeight: 1 }}>
+                    <Typography sx={{ color: '#ffffff', fontSize: { md: '1.55rem', xs: '1.35rem' }, lineHeight: 1 }}>
                       {item.icon}
                     </Typography>
                   </Box>
                 </Box>
                 <Typography
                   sx={{
-                    color: '#5d5d5d',
-                    fontSize: { md: '0.74rem', xs: '0.68rem' },
-                    fontWeight: 800,
-                    lineHeight: 1.35,
-                  maxWidth: { md: 88, xs: 92 },
+                    color: storefrontColors.navy,
+                    fontSize: { md: '0.74rem', xs: '0.96rem' },
+                    fontWeight: 900,
+                    lineHeight: { md: 1.35, xs: 1.35 },
+                    maxWidth: { md: 88, xs: 130 },
                   }}
                 >
                   {item.label}

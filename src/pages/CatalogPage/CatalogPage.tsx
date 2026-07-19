@@ -1736,7 +1736,7 @@ const FilterPanel = ({
       border: embedded ? 0 : `1px solid ${alpha('#dfe5ef', 0.95)}`,
       borderBottom: embedded ? `1px solid ${alpha('#dfe5ef', 0.95)}` : undefined,
       borderRadius: embedded ? 0 : 0.6,
-      overflow: 'hidden',
+      overflow: { md: 'hidden', xs: 'visible' },
       '&:last-of-type': {
         borderBottom: embedded ? 0 : undefined,
       },
@@ -1777,7 +1777,15 @@ const FilterPanel = ({
       )}
     </Stack>
     {expanded ? (
-      <Stack spacing={1.1} sx={{ p: 1.6 }}>
+      <Stack
+        spacing={1.1}
+        sx={{
+          maxHeight: { md: 360, xs: 'none' },
+          overflowY: { md: 'auto', xs: 'visible' },
+          p: 1.6,
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         {placeholder ? (
           <TextField
             placeholder={placeholder}
@@ -1946,8 +1954,8 @@ const CategoryFilterSidebar = ({
         backgroundColor: '#ffffff',
         border: `1px solid ${alpha('#dfe5ef', 0.95)}`,
         borderRadius: 1,
-        maxHeight: categorySidebarMaxHeight,
-        overflow: { md: 'auto', xs: 'hidden' },
+        maxHeight: { md: categorySidebarMaxHeight, xs: 'none' },
+        overflow: { md: 'auto', xs: 'visible' },
         overscrollBehavior: 'contain',
       }}
     >

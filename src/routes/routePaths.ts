@@ -37,6 +37,7 @@ export const routePaths = {
   payment: '/payment',
   pageSegmentDetails: '/page-segments/:segmentId',
   productDetails: '/products/:productId',
+  search: '/searchpage',
   sustainability: {
     awards: '/sustainable-grocery-shopping/awards',
     brand: '/sustainable-grocery-shopping/brand',

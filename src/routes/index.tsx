@@ -15,6 +15,7 @@ import { HomePage } from '@pages/HomePage/HomePage';
 import { NotFoundPage } from '@pages/NotFoundPage/NotFoundPage';
 import { PaymentPage } from '@pages/PaymentPage/PaymentPage';
 import { ProductDetailsPage } from '@pages/ProductDetailsPage/ProductDetailsPage';
+import { SearchPage } from '@pages/SearchPage/SearchPage';
 import { SustainabilityPage } from '@pages/SustainabilityPage/SustainabilityPage';
 import { AdminUserPage } from '@pages/TenantAdmin/AdminUserPage/AdminUserPage';
 import { CarouselPage } from '@pages/TenantAdmin/CarouselPage/CarouselPage';
@@ -88,6 +89,7 @@ export const router = createBrowserRouter([
           { element: <CatalogPage />, path: routePaths.catalog },
           { element: <CatalogPage />, path: routePaths.pageSegmentDetails },
           { element: <CartPage />, path: routePaths.cart },
+          { element: <SearchPage />, path: routePaths.search },
           { element: <ProductDetailsPage />, path: routePaths.productDetails },
           ...sustainableShoppingRoutes,
           ...legacySustainableShoppingRoutes.map((route) => ({

@@ -1,5 +1,6 @@
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
+import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 import KeyboardArrowUpRoundedIcon from '@mui/icons-material/KeyboardArrowUpRounded';
 import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
@@ -8,6 +9,7 @@ import { Box, Card, Fab, Grid, IconButton, Skeleton, Stack, Typography } from '@
 import { alpha } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
@@ -15,6 +17,7 @@ import type { Category } from '@entities/category/types/category.types';
 import type { Product } from '@entities/product/types/product.types';
 import { useCart } from '@features/cart/hooks/useCart';
 import { categoryApi } from '@features/category/api/categoryApi';
+import { useFavorites } from '@features/favorites/hooks/useFavorites';
 import type { StoreProduct } from '@features/home/types/home.types';
 import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
 import { productApi } from '@features/product/api/productApi';
@@ -151,10 +154,10 @@ const ProductDetailsSkeleton = () => (
     <Grid container spacing={{ md: 4, xs: 3 }}>
       <Grid size={{ md: 7, xs: 12 }}>
         <Stack spacing={2.5}>
-          <Card sx={{ ...storefrontPanelSx, borderRadius: 1, p: { md: 5, xs: 3 } }}>
+          <Card sx={{ ...storefrontPanelSx, borderRadius: 1, p: { md: 5, xs: 3 }, width: '100%' }}>
             <Skeleton
               animation="wave"
-              sx={{ borderRadius: 1, minHeight: { md: 620, xs: 360 } }}
+              sx={{ borderRadius: 1, minHeight: { md: 620, xs: 360 }, width: '100%' }}
               variant="rectangular"
             />
           </Card>
@@ -172,7 +175,7 @@ const ProductDetailsSkeleton = () => (
               <Skeleton
                 animation="wave"
                 key={item}
-                sx={{ borderRadius: 1, height: { md: 204, xs: 116 } }}
+                sx={{ borderRadius: 1, height: { md: 204, xs: 116 }, width: '100%' }}
                 variant="rectangular"
               />
             ))}
@@ -194,7 +197,7 @@ const ProductDetailsSkeleton = () => (
           </Stack>
           <Skeleton animation="wave" height={28} width="72%" />
           <Skeleton animation="wave" height={28} width="58%" />
-          <Card sx={{ ...storefrontPanelSx, borderRadius: 1, p: 2.25 }}>
+          <Card sx={{ ...storefrontPanelSx, borderRadius: 1, p: 2.25, width: '100%' }}>
             <Stack spacing={1.1}>
               <Skeleton animation="wave" height={32} width="40%" />
               <Skeleton animation="wave" height={24} width="56%" />
@@ -218,6 +221,7 @@ const ProductDetailsSkeleton = () => (
 
 const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
   const { addToCart } = useCart();
+  const { isFavorite, isToggling, toggleFavorite } = useFavorites();
   const allProductsQuery = useProducts();
   const productQuery = useQuery({
     enabled: Boolean(productId),
@@ -275,6 +279,7 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
   const categoryLabel = getProductCategoryLabel(product, categories);
   const relatedTitle = categoryLabel ? `More in ${categoryLabel}` : 'More products you may like';
   const productForCart = toGenericProduct(product);
+  const productIsFavorite = isFavorite(product.id);
   const origin = isStoreProduct(product) ? product.origin : 'Storefront';
   const unit = isStoreProduct(product) ? product.unit : detailContent.packLabel;
   const { oldPrice, qualifier } = isStoreProduct(product)
@@ -288,6 +293,31 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
 
   const handleDecreaseQuantity = () => {
     setQuantity((current) => Math.max(0, current - 1));
+  };
+
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    const shareData = {
+      text: product.description,
+      title: product.name,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('Product link copied');
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+
+      toast.error('Unable to share this product');
+    }
   };
 
   return (
@@ -324,10 +354,23 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
               ) : null}
 
               <Stack spacing={1} sx={{ position: 'absolute', right: 10, top: 12, zIndex: 1 }}>
-                <IconButton sx={{ color: '#d9d4cf' }}>
-                  <FavoriteBorderRoundedIcon sx={{ fontSize: 34 }} />
+                <IconButton
+                  aria-label={`${productIsFavorite ? 'Remove' : 'Save'} ${product.name}`}
+                  disabled={isToggling}
+                  onClick={() => toggleFavorite(product.id)}
+                  sx={{ color: productIsFavorite ? storefrontColors.navy : '#d9d4cf' }}
+                >
+                  {productIsFavorite ? (
+                    <FavoriteRoundedIcon sx={{ fontSize: 34 }} />
+                  ) : (
+                    <FavoriteBorderRoundedIcon sx={{ fontSize: 34 }} />
+                  )}
                 </IconButton>
-                <IconButton sx={{ color: storefrontColors.navy }}>
+                <IconButton
+                  aria-label={`Share ${product.name}`}
+                  onClick={() => void handleShare()}
+                  sx={{ color: storefrontColors.navy }}
+                >
                   <ShareRoundedIcon />
                 </IconButton>
               </Stack>
@@ -619,10 +662,12 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
         onClick={() => window.scrollTo({ behavior: 'smooth', top: 0 })}
         sx={{
           backgroundColor: alpha(storefrontColors.navyDark, 0.92),
-          bottom: 24,
+          bottom: { md: 24, xs: 'calc(72px + env(safe-area-inset-bottom, 0px) + 16px)' },
           color: storefrontColors.surface,
+          height: { md: 56, xs: 48 },
           position: 'fixed',
-          right: 24,
+          right: { md: 24, xs: 18 },
+          width: { md: 56, xs: 48 },
           '&:hover': {
             backgroundColor: storefrontColors.navyDark,
           },

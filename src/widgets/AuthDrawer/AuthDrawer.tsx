@@ -1,5 +1,4 @@
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import GoogleIcon from '@mui/icons-material/Google';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import {
@@ -15,9 +14,9 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { useEffect, useState } from 'react';
 import { Controller } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { useState, type ReactElement } from 'react';
 import PhoneInputModule from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 
@@ -54,10 +53,6 @@ const drawerTextFieldSx = {
     },
   },
 };
-
-const socialAuthButtons = [
-  { icon: <GoogleIcon sx={{ color: '#4285f4' }} />, id: 'google', label: 'Sign in with Google' },
-];
 
 const drawerButtonSx = {
   borderRadius: 999,
@@ -103,39 +98,6 @@ const phoneInputSx = {
   },
 };
 
-const SocialAuthButton = ({
-  icon,
-  label,
-  onClick,
-}: {
-  icon: ReactElement;
-  label: string;
-  onClick: () => void;
-}) => (
-  <Button
-    fullWidth
-    onClick={onClick}
-    startIcon={icon}
-    sx={{
-      ...drawerButtonSx,
-      backgroundColor: storefrontColors.surface,
-      border: `1px solid ${alpha(storefrontColors.navy, 0.14)}`,
-      color: '#30343c',
-      justifyContent: 'center',
-      '&:hover': {
-        backgroundColor: '#f8fafe',
-      },
-      '& .MuiButton-startIcon': {
-        left: 28,
-        position: 'absolute',
-      },
-    }}
-    variant="outlined"
-  >
-    {label}
-  </Button>
-);
-
 const LoginActions = ({
   isSubmitting,
   onRegister,
@@ -171,17 +133,6 @@ const LoginActions = ({
     >
       Register
     </Button>
-
-    <Stack spacing={2}>
-      {socialAuthButtons.map((button) => (
-        <SocialAuthButton
-          icon={button.icon}
-          key={button.id}
-          label={button.label}
-          onClick={() => toast('Google sign-in is coming soon.')}
-        />
-      ))}
-    </Stack>
   </Stack>
 );
 
@@ -217,6 +168,12 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
   } = registerUser;
   const rememberMe = watchLogin('rememberMe');
 
+  useEffect(() => {
+    if (open) {
+      setMode(initialMode);
+    }
+  }, [initialMode, open]);
+
   const handleClose = () => {
     onClose();
     setMode(initialMode);
@@ -239,16 +196,26 @@ export const AuthDrawer = ({ initialMode = 'login', onClose, open }: AuthDrawerP
       anchor="right"
       onClose={handleClose}
       open={open}
+      sx={{
+        zIndex: { md: 1300, xs: 1100 },
+      }}
       slotProps={{
         backdrop: {
           sx: {
             backgroundColor: alpha('#1d2330', 0.56),
+            bottom: { md: 0, xs: 'calc(72px + env(safe-area-inset-bottom, 0px))' },
           },
         },
         paper: {
           sx: {
             backgroundColor: storefrontColors.surface,
+            bottom: { md: 0, xs: 'calc(72px + env(safe-area-inset-bottom, 0px))' },
+            height: {
+              md: '100%',
+              xs: 'calc(100% - 72px - env(safe-area-inset-bottom, 0px))',
+            },
             maxWidth: '100vw',
+            top: 0,
             width: { md: 660, xs: '100%' },
           },
         },

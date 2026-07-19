@@ -1,5 +1,4 @@
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
-import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
@@ -136,6 +135,8 @@ const sustainableShoppingLinks = [
 const addressSummary = (address: CustomerAddress) =>
   [address.addressLine1, address.township, address.city].filter(Boolean).join(', ');
 
+type AuthDrawerMode = 'login' | 'register';
+
 export const Header = () => {
   const { totalItems } = useCart();
   const signOut = useSignOut();
@@ -143,8 +144,8 @@ export const Header = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const { addresses, isLoading: isLoadingAddresses } = useAddresses();
-  const [isAppPromptVisible, setIsAppPromptVisible] = useState(true);
   const [isAuthDrawerOpen, setIsAuthDrawerOpen] = useState(false);
+  const [authDrawerMode, setAuthDrawerMode] = useState<AuthDrawerMode>('login');
   const [isAddressShortcutOpen, setIsAddressShortcutOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [isSustainableMenuOpen, setIsSustainableMenuOpen] = useState(false);
@@ -217,6 +218,31 @@ export const Header = () => {
     location.pathname.startsWith(`${productDetailsPathPrefix}/`) ||
     location.pathname.startsWith(`${pageSegmentDetailsPathPrefix}/`);
 
+  const openAuthDrawer = (mode: AuthDrawerMode = 'login') => {
+    setAuthDrawerMode(mode);
+    setIsAuthDrawerOpen(true);
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const authMode = params.get('auth');
+
+    if (authMode !== 'login' && authMode !== 'register') {
+      return;
+    }
+
+    setAuthDrawerMode(authMode);
+    setIsAuthDrawerOpen(true);
+    params.delete('auth');
+    navigate(
+      {
+        pathname: location.pathname,
+        search: params.toString() ? `?${params.toString()}` : '',
+      },
+      { replace: true },
+    );
+  }, [location.pathname, location.search, navigate]);
+
   useEffect(() => {
     const updateScrolledState = () => {
       setIsScrolled(window.scrollY > 0);
@@ -249,7 +275,7 @@ export const Header = () => {
       }
     }
 
-    if (location.pathname === routePaths.catalog) {
+    if (location.pathname === routePaths.catalog || location.pathname === routePaths.search) {
       const nextSearchValue = new URLSearchParams(location.search).get('search') ?? '';
       const timeoutId = window.setTimeout(() => setSearchValue(nextSearchValue), 0);
 
@@ -268,12 +294,16 @@ export const Header = () => {
       params.set('title', `Search: ${normalizedSearch}`);
     }
 
-    navigate(`${routePaths.catalog}${params.toString() ? `?${params.toString()}` : ''}`);
+    const searchRoute = window.matchMedia('(max-width: 899px)').matches
+      ? routePaths.search
+      : routePaths.catalog;
+
+    navigate(`${searchRoute}${params.toString() ? `?${params.toString()}` : ''}`);
   };
 
   const handleAddressButtonClick = () => {
     if (!isAuthenticated) {
-      setIsAuthDrawerOpen(true);
+      openAuthDrawer();
       return;
     }
 
@@ -304,9 +334,14 @@ export const Header = () => {
           py: 1.4,
         }}
       >
-        <Stack direction="row" spacing={1.6} sx={{ alignItems: 'center' }}>
+        <Stack
+          component="form"
+          direction="row"
+          onSubmit={handleSearchSubmit}
+          spacing={1.6}
+          sx={{ alignItems: 'center' }}
+        >
           <Box
-            component={Link}
             sx={{
               alignItems: 'center',
               backgroundColor: storefrontColors.surface,
@@ -320,7 +355,6 @@ export const Header = () => {
               px: 1.65,
               textDecoration: 'none',
             }}
-            to={routePaths.catalog}
           >
             <Box
               alt="AV's Store"
@@ -328,27 +362,32 @@ export const Header = () => {
               src={appLogoUrl}
               sx={{ display: 'block', height: 28, objectFit: 'contain', width: 28 }}
             />
-            <Typography
+            <InputBase
+              fullWidth
+              inputProps={{ 'aria-label': 'Search products' }}
+              onChange={(event) => setSearchValue(event.target.value)}
+              placeholder="Search for fruits"
               sx={{
-                color: alpha(storefrontColors.navy, 0.42),
+                color: storefrontColors.navy,
                 fontSize: '1.02rem',
                 fontWeight: 800,
                 minWidth: 0,
+                '& input': {
+                  p: 0,
+                },
+                '& input::placeholder': {
+                  color: alpha(storefrontColors.navy, 0.58),
+                  fontWeight: 800,
+                  opacity: 1,
+                },
               }}
-            >
-              Search for fruits
-            </Typography>
+              value={searchValue}
+            />
           </Box>
           <IconButton
-            aria-label="Orders"
-            component={Link}
-            sx={{ color: '#ffffff', flexShrink: 0, height: 42, width: 42 }}
-            to={routePaths.accountOrders}
-          >
-            <ArticleOutlinedIcon sx={{ fontSize: 31 }} />
-          </IconButton>
-          <IconButton
             aria-label="Call support"
+            component="a"
+            href="tel:+959447188997"
             sx={{ color: '#ffffff', flexShrink: 0, height: 42, width: 42 }}
           >
             <PhoneInTalkOutlinedIcon sx={{ fontSize: 31 }} />
@@ -603,7 +642,7 @@ export const Header = () => {
               <Stack
                 component="button"
                 direction="row"
-                onClick={() => setIsAuthDrawerOpen(true)}
+                onClick={() => openAuthDrawer()}
                 spacing={1}
                 sx={{
                   alignItems: 'center',
@@ -985,7 +1024,12 @@ export const Header = () => {
         </Box>
       ) : null}
 
-      <AuthDrawer onClose={() => setIsAuthDrawerOpen(false)} open={isAuthDrawerOpen} />
+      <AuthDrawer
+        initialMode={authDrawerMode}
+        onClose={() => setIsAuthDrawerOpen(false)}
+        open={isAuthDrawerOpen}
+      />
+      {/*
       {isAppPromptVisible ? (
         <Box
           sx={{
@@ -1043,6 +1087,7 @@ export const Header = () => {
           </IconButton>
         </Box>
       ) : null}
+      */}
       <Box
         aria-label="Primary mobile navigation"
         component="nav"
@@ -1073,13 +1118,16 @@ export const Header = () => {
             icon: <FavoriteBorderRoundedIcon />,
             isActive: location.pathname === routePaths.accountFavourites,
             label: 'Favourites',
+            requiresAuth: true,
             to: routePaths.accountFavourites,
           },
           {
             icon: <SearchRoundedIcon />,
-            isActive: location.pathname.startsWith(routePaths.catalog),
+            isActive:
+              location.pathname === routePaths.search ||
+              location.pathname.startsWith(routePaths.catalog),
             label: 'Search',
-            to: routePaths.catalog,
+            to: routePaths.search,
           },
           {
             badge: totalItems,
@@ -1091,15 +1139,22 @@ export const Header = () => {
         ].map((item) => (
           <Box
             aria-label={item.label}
-            component={Link}
+            component={!isAuthenticated && item.requiresAuth ? 'button' : Link}
             key={item.label}
+            onClick={
+              !isAuthenticated && item.requiresAuth ? () => openAuthDrawer() : undefined
+            }
             sx={{
               alignItems: 'center',
+              background: 'transparent',
+              border: 0,
               color: '#ffffff',
+              cursor: 'pointer',
               display: 'flex',
               height: 56,
               justifyContent: 'center',
               minWidth: 0,
+              p: 0,
               position: 'relative',
               textDecoration: 'none',
               '& svg': {
@@ -1116,7 +1171,8 @@ export const Header = () => {
                 right: 0,
               },
             }}
-            to={item.to}
+            to={!isAuthenticated && item.requiresAuth ? undefined : item.to}
+            type={!isAuthenticated && item.requiresAuth ? 'button' : undefined}
           >
             {item.icon}
             {item.badge ? (
@@ -1179,7 +1235,7 @@ export const Header = () => {
           <Box
             aria-label={isCustomer ? 'Wallet account' : 'Account login'}
             component={isCustomer ? Link : 'button'}
-            onClick={isCustomer ? undefined : () => setIsAuthDrawerOpen(true)}
+            onClick={isCustomer ? undefined : () => openAuthDrawer()}
             sx={{
               alignItems: 'center',
               background: 'transparent',

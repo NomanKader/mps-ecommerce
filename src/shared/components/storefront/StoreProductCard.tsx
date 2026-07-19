@@ -142,7 +142,9 @@ export const StoreProductCardSkeleton = () => (
     sx={{
       borderRadius: 1,
       height: '100%',
+      minWidth: 0,
       overflow: 'hidden',
+      width: '100%',
     }}
   >
     <Box sx={{ height: 180, position: 'relative' }}>

@@ -10,6 +10,23 @@ type ProtectedRouteProps = {
   allowedRoles?: Role[];
 };
 
+const lastStorefrontPathKey = 'avs:last-storefront-path';
+
+const getMobileAuthRedirectPath = () => {
+  const fallbackPath = sessionStorage.getItem(lastStorefrontPathKey) || routePaths.home;
+  const hashSplit = fallbackPath.split('#');
+  const pathWithSearch = hashSplit[0] || routePaths.home;
+  const hash = hashSplit[1] || '';
+  const searchSplit = pathWithSearch.split('?');
+  const pathname = searchSplit[0] || routePaths.home;
+  const search = searchSplit[1] || '';
+  const params = new URLSearchParams(search);
+
+  params.set('auth', 'login');
+
+  return `${pathname || routePaths.home}?${params.toString()}${hash ? `#${hash}` : ''}`;
+};
+
 export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   const location = useLocation();
   const { isAuthenticated, isInitializing, user } = useSelector((state: RootState) => state.auth);
@@ -19,6 +36,10 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   }
 
   if (!isAuthenticated) {
+    if (window.matchMedia('(max-width: 899px)').matches) {
+      return <Navigate replace to={getMobileAuthRedirectPath()} />;
+    }
+
     return <Navigate replace state={{ from: location }} to={routePaths.auth.login} />;
   }
 
