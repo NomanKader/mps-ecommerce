@@ -49,6 +49,7 @@ export const StoreProductCard = ({ disableNavigation = false, onAddToCart, produ
       <Box sx={{ position: 'relative' }}>
         <Box
           component={imageComponent}
+          state={disableNavigation ? undefined : { product }}
           to={disableNavigation ? undefined : path}
           sx={{
             alignItems: 'center',
@@ -98,6 +99,7 @@ export const StoreProductCard = ({ disableNavigation = false, onAddToCart, produ
         <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', minWidth: 0 }}>
           <Typography
             component={titleComponent}
+            state={disableNavigation ? undefined : { product }}
             sx={{
               color: 'text.primary',
               fontWeight: 700,

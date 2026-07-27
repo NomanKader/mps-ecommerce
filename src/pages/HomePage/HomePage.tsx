@@ -453,23 +453,33 @@ type FeaturedHighlightTile = StorefrontHighlightItem & {
 };
 
 const MobileHomeLanding = ({ activeSlideIndex, onSlideChange, slides }: MobileHomeLandingProps) => {
+  const showCarouselControls = slides.length > 1;
+  const goToPreviousSlide = () => {
+    onSlideChange(activeSlideIndex === 0 ? slides.length - 1 : activeSlideIndex - 1);
+  };
+  const goToNextSlide = () => {
+    onSlideChange(activeSlideIndex === slides.length - 1 ? 0 : activeSlideIndex + 1);
+  };
+
   return (
     <Stack
-      spacing={2.7}
+      spacing={2.5}
       sx={{
         backgroundColor: storefrontColors.surface,
         display: { md: 'none', xs: 'flex' },
         mx: -2,
         pb: 1,
-        px: 2.4,
-        pt: 1,
+        px: 2,
+        pt: 0.75,
       }}
     >
       <Box>
         <Box
           sx={{
-            borderRadius: 0.6,
+            borderRadius: 2,
+            boxShadow: '0 14px 32px rgba(6, 19, 54, 0.16)',
             overflow: 'hidden',
+            position: 'relative',
           }}
         >
           <Box
@@ -485,12 +495,9 @@ const MobileHomeLanding = ({ activeSlideIndex, onSlideChange, slides }: MobileHo
                 component={Link}
                 key={slide.id}
                 sx={{
-                  background: storefrontGradients.hero,
                   color: '#ffffff',
-                  display: 'grid',
                   flex: `0 0 ${100 / slides.length}%`,
-                  gridTemplateColumns: '1.03fr 0.97fr',
-                  minHeight: 292,
+                  height: 'clamp(290px, 78vw, 390px)',
                   overflow: 'hidden',
                   position: 'relative',
                   textDecoration: 'none',
@@ -502,101 +509,172 @@ const MobileHomeLanding = ({ activeSlideIndex, onSlideChange, slides }: MobileHo
                   component="img"
                   src={slide.imageUrl}
                   sx={{
-                    borderRadius: 1,
-                    bottom: 32,
-                    boxShadow: '0 14px 24px rgba(0, 0, 0, 0.24)',
-                    height: 108,
-                    left: 30,
+                    height: '100%',
+                    inset: 0,
                     objectFit: 'cover',
                     position: 'absolute',
-                    width: 182,
+                    width: '100%',
                   }}
                 />
                 <Box
                   sx={{
-                    border: '5px solid rgba(255,255,255,0.88)',
-                    borderLeftColor: 'transparent',
-                    borderRadius: '50%',
-                    height: 150,
-                    left: 16,
+                    background:
+                      'linear-gradient(180deg, rgba(5, 15, 38, 0.08) 16%, rgba(5, 15, 38, 0.42) 50%, rgba(5, 15, 38, 0.92) 100%)',
+                    inset: 0,
                     position: 'absolute',
-                    top: 58,
-                    transform: 'rotate(-28deg)',
-                    width: 150,
                   }}
                 />
-                <Box sx={{ minWidth: 0, position: 'relative' }} />
                 <Stack
-                  spacing={1.35}
+                  spacing={0.7}
                   sx={{
                     alignItems: 'flex-start',
-                    justifyContent: 'center',
+                    bottom: 0,
+                    left: 0,
                     minWidth: 0,
-                    p: { xs: 2.4 },
-                    position: 'relative',
+                    p: 2.25,
+                    position: 'absolute',
+                    right: 0,
                     zIndex: 1,
                   }}
                 >
-                  <Typography sx={{ fontSize: '3.15rem', fontWeight: 300, lineHeight: 0.9 }}>
-                    {slide.metric}
-                  </Typography>
                   <Typography
                     sx={{
-                      fontSize: '1.36rem',
-                      fontWeight: 900,
-                      letterSpacing: '0.08em',
+                      color: alpha('#ffffff', 0.78),
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.12em',
                       lineHeight: 1,
                       textTransform: 'uppercase',
                     }}
                   >
-                    {slide.headline}
+                    {slide.eyebrow}
                   </Typography>
-                  <Box sx={{ backgroundColor: storefrontColors.accent, height: 3, width: 128 }} />
-                  <Typography sx={{ fontSize: '1rem', fontWeight: 900, lineHeight: 1.1 }}>
+                  <Typography
+                    sx={{
+                      display: '-webkit-box',
+                      fontSize: 'clamp(1.9rem, 8vw, 2.75rem)',
+                      fontWeight: 900,
+                      letterSpacing: '-0.045em',
+                      lineHeight: 0.98,
+                      maxWidth: '92%',
+                      overflow: 'hidden',
+                      textWrap: 'balance',
+                      WebkitBoxOrient: 'vertical',
+                      WebkitLineClamp: 2,
+                    }}
+                  >
+                    {slide.metric} {slide.headline}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      color: alpha('#ffffff', 0.84),
+                      fontSize: '0.88rem',
+                      fontWeight: 700,
+                      lineHeight: 1.25,
+                      pb: 0.65,
+                    }}
+                  >
                     {slide.partner}
                   </Typography>
                   <Box
                     component="span"
                     sx={{
+                      alignItems: 'center',
                       backgroundColor: storefrontColors.surface,
+                      borderRadius: 999,
                       color: storefrontColors.navy,
                       display: 'inline-flex',
-                      fontSize: '0.8rem',
+                      fontSize: '0.78rem',
                       fontWeight: 900,
-                      px: 1.45,
-                      py: 0.75,
+                      minHeight: 40,
+                      px: 1.75,
                       textTransform: 'uppercase',
                     }}
                   >
                     {slide.cta}
+                    <ArrowForwardRoundedIcon sx={{ fontSize: 17, ml: 0.65 }} />
                   </Box>
                 </Stack>
               </Box>
             ))}
           </Box>
+          {showCarouselControls ? (
+            <>
+              <IconButton
+                aria-label="Previous banner"
+                onClick={goToPreviousSlide}
+                sx={{
+                  backdropFilter: 'blur(8px)',
+                  backgroundColor: alpha(storefrontColors.navy, 0.5),
+                  color: storefrontColors.surface,
+                  height: 44,
+                  left: 8,
+                  position: 'absolute',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: 44,
+                  zIndex: 2,
+                  '&:hover': { backgroundColor: alpha(storefrontColors.navy, 0.68) },
+                }}
+              >
+                <ChevronLeftRoundedIcon />
+              </IconButton>
+              <IconButton
+                aria-label="Next banner"
+                onClick={goToNextSlide}
+                sx={{
+                  backdropFilter: 'blur(8px)',
+                  backgroundColor: alpha(storefrontColors.navy, 0.5),
+                  color: storefrontColors.surface,
+                  height: 44,
+                  position: 'absolute',
+                  right: 8,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: 44,
+                  zIndex: 2,
+                  '&:hover': { backgroundColor: alpha(storefrontColors.navy, 0.68) },
+                }}
+              >
+                <ChevronRightRoundedIcon />
+              </IconButton>
+            </>
+          ) : null}
         </Box>
-        <Stack direction="row" spacing={1.2} sx={{ justifyContent: 'center', pt: 1.8 }}>
-          {slides.map((slide, dot) => (
-            <Box
-              aria-label={`Go to banner ${dot + 1}`}
-              component="button"
-              key={slide.id}
-              onClick={() => onSlideChange(dot)}
-              sx={{
-                backgroundColor:
-                  dot === activeSlideIndex
-                    ? storefrontColors.navy
-                    : alpha(storefrontColors.navy, 0.22),
-                border: 0,
-                cursor: 'pointer',
-                height: 3,
-                p: 0,
-                transition: 'background-color 180ms ease',
-                width: 30,
-              }}
-            />
-          ))}
-        </Stack>
+        {showCarouselControls ? (
+          <Stack direction="row" spacing={0.25} sx={{ justifyContent: 'center', pt: 0.75 }}>
+            {slides.map((slide, dot) => (
+              <Box
+                aria-label={`Go to banner ${dot + 1}`}
+                component="button"
+                key={slide.id}
+                onClick={() => onSlideChange(dot)}
+                sx={{
+                  alignItems: 'center',
+                  backgroundColor: 'transparent',
+                  border: 0,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  height: 36,
+                  justifyContent: 'center',
+                  p: 0,
+                  width: 36,
+                  '&::after': {
+                    backgroundColor:
+                      dot === activeSlideIndex
+                        ? storefrontColors.navy
+                        : alpha(storefrontColors.navy, 0.22),
+                    borderRadius: 999,
+                    content: '""',
+                    height: 4,
+                    transition: 'width 180ms ease, background-color 180ms ease',
+                    width: dot === activeSlideIndex ? 24 : 8,
+                  },
+                }}
+              />
+            ))}
+          </Stack>
+        ) : null}
       </Box>
 
       <Stack spacing={1.4}>

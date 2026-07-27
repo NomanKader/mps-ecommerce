@@ -17,6 +17,8 @@ import { storefrontColors } from '@app/providers/theme/tokens';
 import { categoryApi } from '@features/category/api/categoryApi';
 import { useCart } from '@features/cart/hooks/useCart';
 import { productApi } from '@features/product/api/productApi';
+import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
+import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
 import { routePaths } from '@routes/routePaths';
 import { formatCurrency } from '@utils/formatCurrency';
 
@@ -35,20 +37,31 @@ const categoryPath = (categoryId: string, title: string, search?: string) => {
 const productPath = (productId: string) =>
   routePaths.productDetails.replace(':productId', productId);
 
-const matchesProduct = (product: Product, search: string) => {
-  const text = [
-    product.name,
-    product.description,
-    product.categoryName,
-    product.subcategory,
-    product.sku,
-    ...product.tags,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+const normalizeSearchTerms = (value: string) =>
+  value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .map((term) => (term.length > 3 && term.endsWith('s') ? term.slice(0, -1) : term))
+    .filter(Boolean);
 
-  return text.includes(search);
+const matchesProduct = (product: Product, search: string) => {
+  const productTerms = normalizeSearchTerms(
+    [
+      product.name,
+      product.description,
+      product.categoryName,
+      product.subcategory,
+      product.sku,
+      ...product.tags,
+    ]
+      .filter(Boolean)
+      .join(' '),
+  );
+  const searchableValue = productTerms.join(' ');
+
+  return normalizeSearchTerms(search).every((term) => searchableValue.includes(term));
 };
 
 const toCartProduct = (product: Product) => ({
@@ -83,8 +96,19 @@ export const SearchPage = () => {
     queryFn: ({ signal }) => productApi.getProducts({ signal }),
     queryKey: ['searchpage', 'products'],
   });
-  const categories = categoriesQuery.data ?? [];
-  const products = productsQuery.data ?? [];
+  const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
+  const products = useMemo(() => {
+    const productsById = new Map(
+      allStorefrontProducts.map((product) => [
+        product.id,
+        mapHomeProductToProduct(product),
+      ]),
+    );
+
+    (productsQuery.data ?? []).forEach((product) => productsById.set(product.id, product));
+
+    return [...productsById.values()];
+  }, [productsQuery.data]);
   const matchedProducts = useMemo(() => {
     if (!normalizedSearch) {
       return products.slice(0, 8);
@@ -237,6 +261,7 @@ export const SearchPage = () => {
                       />
                       <Box
                         component={Link}
+                        state={{ product }}
                         sx={{ color: 'inherit', minWidth: 0, textDecoration: 'none' }}
                         to={productPath(product.id)}
                       >

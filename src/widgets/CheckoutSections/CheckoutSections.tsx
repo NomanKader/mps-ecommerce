@@ -1,9 +1,11 @@
 import AddLocationAltOutlinedIcon from '@mui/icons-material/AddLocationAltOutlined';
 import {
   Alert,
+  Box,
   Card,
   CardContent,
   Checkbox,
+  Divider,
   FormControlLabel,
   Grid,
   MenuItem,
@@ -14,6 +16,7 @@ import {
 
 import type { AddressLabel, CustomerAddress } from '@entities/address/types/address.types';
 import type { MyanmarLocationOption } from '@entities/location/types/location.types';
+import type { DeliveryQuote } from '@features/order/api/orderApi';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppTextField } from '@shared/components/ui/Input/AppTextField';
 import { formatCurrency } from '@utils/formatCurrency';
@@ -36,9 +39,12 @@ export type CheckoutForm = {
 type CheckoutSectionsProps = {
   addresses: CustomerAddress[];
   currency: string;
+  deliveryQuote?: DeliveryQuote;
+  deliveryQuoteError?: string;
   form: CheckoutForm;
   isAddingAddress: boolean;
   isLoadingAddresses?: boolean;
+  isLoadingDeliveryQuote?: boolean;
   isSubmitting?: boolean;
   locations: MyanmarLocationOption[];
   onAddAddress: () => void;
@@ -47,7 +53,7 @@ type CheckoutSectionsProps = {
   onSelectAddress: (addressId: string) => void;
   onSubmit: () => void;
   selectedAddressId: string;
-  totalAmount: number;
+  subtotalAmount: number;
 };
 
 const addressSummary = (address: CustomerAddress) =>
@@ -58,9 +64,12 @@ const addressSummary = (address: CustomerAddress) =>
 export const CheckoutSections = ({
   addresses,
   currency,
+  deliveryQuote,
+  deliveryQuoteError,
   form,
   isAddingAddress,
   isLoadingAddresses,
+  isLoadingDeliveryQuote,
   isSubmitting,
   locations,
   onAddAddress,
@@ -69,7 +78,7 @@ export const CheckoutSections = ({
   onSelectAddress,
   onSubmit,
   selectedAddressId,
-  totalAmount,
+  subtotalAmount,
 }: CheckoutSectionsProps) => {
   const selectedRegion = locations.find((location) => location.region === form.region);
   const cityOptions = selectedRegion?.cities.map((city) => city.name) ?? [];
@@ -269,12 +278,49 @@ export const CheckoutSections = ({
               </>
             )}
 
-            <AppTextField
-              disabled
-              label="Order total"
-              value={formatCurrency(totalAmount, currency)}
-            />
-            <AppButton disabled={isSubmitting || isLoadingAddresses} onClick={onSubmit}>
+            <Divider />
+            <Stack spacing={1.15}>
+              <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                <Typography color="text.secondary">Items subtotal</Typography>
+                <Typography>{formatCurrency(subtotalAmount, currency)}</Typography>
+              </Stack>
+              <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary">Delivery charge</Typography>
+                  {deliveryQuote?.eta ? (
+                    <Typography color="text.secondary" variant="caption">
+                      Estimated delivery: {deliveryQuote.eta}
+                    </Typography>
+                  ) : null}
+                </Box>
+                <Typography>
+                  {isLoadingDeliveryQuote
+                    ? 'Calculating…'
+                    : deliveryQuote
+                      ? deliveryQuote.freeDeliveryApplied
+                        ? 'Free'
+                        : formatCurrency(deliveryQuote.deliveryFee, currency)
+                      : 'Select address'}
+                </Typography>
+              </Stack>
+              <Divider />
+              <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                <Typography sx={{ fontWeight: 900 }}>Total payable</Typography>
+                <Typography sx={{ fontWeight: 900 }}>
+                  {formatCurrency(deliveryQuote?.totalAmount ?? subtotalAmount, currency)}
+                </Typography>
+              </Stack>
+            </Stack>
+            {deliveryQuoteError ? <Alert severity="error">{deliveryQuoteError}</Alert> : null}
+            <AppButton
+              disabled={
+                isSubmitting ||
+                isLoadingAddresses ||
+                isLoadingDeliveryQuote ||
+                Boolean(deliveryQuoteError)
+              }
+              onClick={onSubmit}
+            >
               {isSubmitting ? 'Placing order...' : 'Place order'}
             </AppButton>
           </CardContent>

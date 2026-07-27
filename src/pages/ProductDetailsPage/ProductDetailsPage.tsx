@@ -10,7 +10,7 @@ import { alpha } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
 import type { Category } from '@entities/category/types/category.types';
@@ -20,6 +20,7 @@ import { categoryApi } from '@features/category/api/categoryApi';
 import { useFavorites } from '@features/favorites/hooks/useFavorites';
 import type { StoreProduct } from '@features/home/types/home.types';
 import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
+import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
 import { productApi } from '@features/product/api/productApi';
 import { useProducts } from '@features/product/hooks/useProducts';
 import { EmptyState } from '@shared/components/ui/EmptyState/EmptyState';
@@ -220,6 +221,7 @@ const ProductDetailsSkeleton = () => (
 );
 
 const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
+  const location = useLocation();
   const { addToCart } = useCart();
   const { isFavorite, isToggling, toggleFavorite } = useFavorites();
   const allProductsQuery = useProducts();
@@ -233,7 +235,21 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
     queryFn: ({ signal }) => categoryApi.getCategories({ signal }),
     queryKey: ['categories'],
   });
-  const product = productQuery.data;
+  const fallbackProduct = useMemo(
+    () => {
+      const navigationProduct = (
+        location.state as { product?: StoreProduct | Product } | null
+      )?.product;
+
+      if (navigationProduct?.id === productId) {
+        return navigationProduct;
+      }
+
+      return allStorefrontProducts.find((item) => item.id === productId);
+    },
+    [location.state, productId],
+  );
+  const product = productQuery.data ?? fallbackProduct;
   const categories = categoriesQuery.data ?? [];
   const detailContent = useMemo(
     () => (product ? getProductDetailContent(product) : null),
@@ -241,7 +257,9 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
   );
   const relatedProducts = useMemo(
     () => {
-      const products = allProductsQuery.data ?? [];
+      const products = fallbackProduct && isStoreProduct(fallbackProduct)
+        ? allStorefrontProducts.map(mapHomeProductToProduct)
+        : (allProductsQuery.data ?? []);
 
       return product
         ? products
@@ -249,12 +267,14 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
             .slice(0, 4)
         : [];
     },
-    [allProductsQuery.data, product],
+    [allProductsQuery.data, fallbackProduct, product],
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(0);
-  const isLoadingProduct = productQuery.isLoading || productQuery.isFetching;
-  const isLoadingSupportingData = categoriesQuery.isLoading || allProductsQuery.isLoading;
+  const isLoadingProduct =
+    !fallbackProduct && (productQuery.isLoading || productQuery.isFetching);
+  const isLoadingSupportingData =
+    categoriesQuery.isLoading || (!fallbackProduct && allProductsQuery.isLoading);
 
   if (isLoadingProduct || isLoadingSupportingData) {
     return <ProductDetailsSkeleton />;

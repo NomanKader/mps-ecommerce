@@ -43,6 +43,7 @@ export const ProductCard = ({ onAddToCart, product }: ProductCardProps) => {
       <Box sx={{ position: 'relative' }}>
         <Box
           component={Link}
+          state={{ product }}
           to={productPath(product.id)}
           sx={{
             alignItems: 'center',
@@ -92,6 +93,7 @@ export const ProductCard = ({ onAddToCart, product }: ProductCardProps) => {
         <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between' }}>
           <Typography
             component={Link}
+            state={{ product }}
             sx={{ color: 'text.primary', fontWeight: 700, textDecoration: 'none' }}
             to={productPath(product.id)}
             variant="h6"

@@ -24,9 +24,22 @@ export const MainLayout = () => {
   }, [location.hash, location.pathname, location.search]);
 
   return (
-    <Box sx={{ ...storefrontShellSx, minHeight: '100vh', pb: { md: 0, xs: 16 } }}>
+    <Box
+      sx={{
+        ...storefrontShellSx,
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100dvh',
+        minWidth: 0,
+        overflowX: 'clip',
+        width: '100%',
+      }}
+    >
       <Header />
-      <PageContainer sx={{ py: { md: 4, xs: 2.5 } }}>
+      <PageContainer
+        component="main"
+        sx={{ flex: 1, minWidth: 0, py: { md: 4, xs: 2.5 }, width: '100%' }}
+      >
         <Outlet />
       </PageContainer>
       <Footer />

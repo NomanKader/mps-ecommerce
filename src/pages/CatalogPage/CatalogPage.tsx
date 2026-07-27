@@ -17,6 +17,7 @@ import {
   storefrontCategoryMenuItems,
 } from '@features/home/data/homePage.data';
 import type { FeatureHighlight, StoreProduct } from '@features/home/types/home.types';
+import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
 import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
 import { useProducts } from '@features/product/hooks/useProducts';
 import { routePaths } from '@routes/routePaths';
@@ -2827,7 +2828,15 @@ export const CatalogPage = () => {
     categories.find((item) => item.id === category)?.name ??
     categoryLabels[category] ??
     'Catalog';
-  const catalogProducts = data;
+  const catalogProducts = useMemo(() => {
+    const productsById = new Map(
+      allShowcaseProducts.map((product) => [product.id, mapHomeProductToProduct(product)]),
+    );
+
+    data.forEach((product) => productsById.set(product.id, product));
+
+    return [...productsById.values()];
+  }, [data]);
 
   const searchTerms = useMemo(
     () =>

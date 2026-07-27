@@ -1,4 +1,5 @@
 import { Stack } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useSelector } from 'react-redux';
@@ -11,6 +12,7 @@ import type {
 import { useAddresses } from '@features/addresses/hooks/useAddresses';
 import { useCart } from '@features/cart/hooks/useCart';
 import { useMyanmarLocations } from '@features/locations/hooks/useMyanmarLocations';
+import { orderApi } from '@features/order/api/orderApi';
 import { checkoutDraftStorage } from '@features/order/utils/checkoutDraft';
 import { routePaths } from '@routes/routePaths';
 import { toApiError } from '@shared/api/apiError';
@@ -97,6 +99,28 @@ export const CheckoutPage = () => {
     () => addresses.find((address) => address.id === selectedAddressId),
     [addresses, selectedAddressId],
   );
+  const hasDeliveryLocation = Boolean(
+    form.city.trim() && form.region.trim() && form.township.trim(),
+  );
+  const deliveryQuoteQuery = useQuery({
+    enabled: hasDeliveryLocation && totalPrice > 0,
+    queryFn: () =>
+      orderApi.getDeliveryQuote({
+        city: form.city.trim(),
+        region: form.region.trim(),
+        subtotalAmount: totalPrice,
+        township: form.township.trim(),
+      }),
+    queryKey: [
+      'orders',
+      'delivery-quote',
+      form.city,
+      form.region,
+      totalPrice,
+      form.township,
+    ],
+    retry: false,
+  });
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -167,6 +191,15 @@ export const CheckoutPage = () => {
       return;
     }
 
+    if (!deliveryQuoteQuery.data) {
+      toast.error(
+        deliveryQuoteQuery.isError
+          ? toApiError(deliveryQuoteQuery.error).message
+          : 'Please wait while the delivery charge is calculated.',
+      );
+      return;
+    }
+
     try {
       let checkoutForm = form;
 
@@ -210,6 +243,7 @@ export const CheckoutPage = () => {
             form={form}
             isAddingAddress={isAddingAddress}
             isLoadingAddresses={isLoadingAddresses}
+            isLoadingDeliveryQuote={deliveryQuoteQuery.isFetching}
             isSubmitting={isSaving}
             locations={locationsQuery.data ?? []}
             onAddAddress={handleAddAddress}
@@ -220,7 +254,13 @@ export const CheckoutPage = () => {
             onSelectAddress={handleSelectAddress}
             onSubmit={() => void handleSubmit()}
             selectedAddressId={selectedAddressId}
-            totalAmount={totalPrice}
+            deliveryQuote={deliveryQuoteQuery.data}
+            deliveryQuoteError={
+              deliveryQuoteQuery.isError
+                ? toApiError(deliveryQuoteQuery.error).message
+                : undefined
+            }
+            subtotalAmount={totalPrice}
           />
         ) : (
           <EmptyState

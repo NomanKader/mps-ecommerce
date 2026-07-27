@@ -1,9 +1,8 @@
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
-import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
 import FmdGoodOutlinedIcon from '@mui/icons-material/FmdGoodOutlined';
-import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
@@ -43,6 +42,11 @@ import { useSignOut } from '@features/auth/hooks/useSignOut';
 import { storefrontIconButtonSx } from '@shared/styles/storefront';
 import type { RootState } from '@store/index';
 import type { CustomerAddress } from '@entities/address/types/address.types';
+import type { Product } from '@entities/product/types/product.types';
+import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
+import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
+import { useProducts } from '@features/product/hooks/useProducts';
+import { formatCurrency } from '@utils/formatCurrency';
 
 const getCatalogPath = (categoryId: string, title: string, search?: string) => {
   const params = new URLSearchParams({
@@ -137,6 +141,101 @@ const addressSummary = (address: CustomerAddress) =>
 
 type AuthDrawerMode = 'login' | 'register';
 
+type SearchSuggestionsProps = {
+  onSelect: () => void;
+  products: Product[];
+};
+
+const SearchSuggestions = ({ onSelect, products }: SearchSuggestionsProps) => {
+  if (!products.length) return null;
+
+  return (
+    <Box
+      role="listbox"
+      sx={{
+        backgroundColor: storefrontColors.surface,
+        border: `1px solid ${storefrontColors.border}`,
+        borderRadius: 1.5,
+        boxShadow: `0 18px 48px ${alpha(storefrontColors.navyDark, 0.2)}`,
+        left: 0,
+        maxHeight: 'min(420px, 62vh)',
+        overflowY: 'auto',
+        position: 'absolute',
+        right: 0,
+        top: 'calc(100% + 8px)',
+        zIndex: 80,
+      }}
+    >
+      {products.map((product) => (
+        <Box
+          component={Link}
+          key={product.id}
+          onClick={onSelect}
+          role="option"
+          state={{ product }}
+          sx={{
+            alignItems: 'center',
+            borderBottom: `1px solid ${storefrontColors.border}`,
+            color: storefrontColors.navy,
+            display: 'grid',
+            gap: 1.25,
+            gridTemplateColumns: '52px minmax(0, 1fr) auto',
+            minHeight: 68,
+            p: 1,
+            textDecoration: 'none',
+            '&:last-of-type': { borderBottom: 0 },
+            '&:hover, &:focus-visible': {
+              backgroundColor: alpha(storefrontColors.navy, 0.06),
+              outline: 'none',
+            },
+          }}
+          to={routePaths.productDetails.replace(':productId', product.id)}
+        >
+          <Box
+            alt=""
+            component="img"
+            src={product.imageUrl}
+            sx={{
+              backgroundColor: alpha(storefrontColors.navy, 0.04),
+              borderRadius: 1,
+              height: 52,
+              objectFit: 'cover',
+              width: 52,
+            }}
+          />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontSize: '0.92rem',
+                fontWeight: 900,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {product.name}
+            </Typography>
+            <Typography
+              sx={{
+                color: storefrontColors.muted,
+                fontSize: '0.76rem',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {product.categoryName || product.subcategory || product.description}
+            </Typography>
+          </Box>
+          <Typography sx={{ fontSize: '0.82rem', fontWeight: 900, whiteSpace: 'nowrap' }}>
+            {formatCurrency(product.price, product.currency)}
+          </Typography>
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
 export const Header = () => {
   const { totalItems } = useCart();
   const signOut = useSignOut();
@@ -150,7 +249,9 @@ export const Header = () => {
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [isSustainableMenuOpen, setIsSustainableMenuOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [isSearchSuggestionsOpen, setIsSearchSuggestionsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const productsQuery = useProducts();
   const headerSettingsQuery = useQuery({
     queryFn: ({ signal }) => merchandisingApi.getHeaderSettings({ signal }),
     queryKey: ['storefront', 'header-settings'],
@@ -189,6 +290,42 @@ export const Header = () => {
       })),
     }));
   }, [storefrontCategoriesQuery.data]);
+  const searchableProducts = useMemo(() => {
+    const productsById = new Map(
+      allStorefrontProducts.map((product) => [product.id, mapHomeProductToProduct(product)]),
+    );
+
+    (productsQuery.data ?? []).forEach((product) => productsById.set(product.id, product));
+
+    return [...productsById.values()];
+  }, [productsQuery.data]);
+  const searchSuggestions = useMemo(() => {
+    const terms = searchValue
+      .trim()
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
+
+    if (!terms.length) return [];
+
+    return searchableProducts
+      .filter((product) => {
+        const searchableValue = [
+          product.name,
+          product.description,
+          product.categoryName,
+          product.subcategory,
+          product.sku,
+          ...product.tags,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        return terms.every((term) => searchableValue.includes(term));
+      })
+      .slice(0, 6);
+  }, [searchValue, searchableProducts]);
   const activeCategory = headerCategories.find((category) => category.id === activeCategoryId);
   const activeMenuItems = activeCategory?.menuItems ?? [];
   const isCustomer = isAuthenticated && user?.role === 'customer';
@@ -212,6 +349,15 @@ export const Header = () => {
     location.pathname !== routePaths.accountFavourites;
   const productDetailsPathPrefix = routePaths.productDetails.split('/:')[0];
   const pageSegmentDetailsPathPrefix = routePaths.pageSegmentDetails.split('/:')[0];
+  const isSearchNavigationActive =
+    location.pathname === routePaths.search ||
+    location.pathname.startsWith(routePaths.catalog) ||
+    location.pathname.startsWith(`${productDetailsPathPrefix}/`) ||
+    location.pathname.startsWith(`${pageSegmentDetailsPathPrefix}/`);
+  const isCartNavigationActive =
+    location.pathname.startsWith(routePaths.cart) ||
+    location.pathname.startsWith(routePaths.checkout) ||
+    location.pathname.startsWith(routePaths.payment);
   const shouldShowCategoryNavigation =
     location.pathname === routePaths.home ||
     location.pathname === routePaths.catalog ||
@@ -231,16 +377,20 @@ export const Header = () => {
       return;
     }
 
-    setAuthDrawerMode(authMode);
-    setIsAuthDrawerOpen(true);
-    params.delete('auth');
-    navigate(
-      {
-        pathname: location.pathname,
-        search: params.toString() ? `?${params.toString()}` : '',
-      },
-      { replace: true },
-    );
+    const timeoutId = window.setTimeout(() => {
+      setAuthDrawerMode(authMode);
+      setIsAuthDrawerOpen(true);
+      params.delete('auth');
+      navigate(
+        {
+          pathname: location.pathname,
+          search: params.toString() ? `?${params.toString()}` : '',
+        },
+        { replace: true },
+      );
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [location.pathname, location.search, navigate]);
 
   useEffect(() => {
@@ -285,6 +435,7 @@ export const Header = () => {
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsSearchSuggestionsOpen(false);
 
     const normalizedSearch = searchValue.trim();
     const params = new URLSearchParams();
@@ -334,65 +485,79 @@ export const Header = () => {
           py: 1.4,
         }}
       >
-        <Stack
-          component="form"
-          direction="row"
-          onSubmit={handleSearchSubmit}
-          spacing={1.6}
-          sx={{ alignItems: 'center' }}
-        >
-          <Box
-            sx={{
-              alignItems: 'center',
-              backgroundColor: storefrontColors.surface,
-              borderRadius: 1,
-              color: alpha(storefrontColors.navy, 0.42),
-              display: 'flex',
-              flex: 1,
-              gap: 1.5,
-              minHeight: 55,
-              minWidth: 0,
-              px: 1.65,
-              textDecoration: 'none',
-            }}
-          >
-            <Box
-              alt="AV's Store"
-              component="img"
-              src={appLogoUrl}
-              sx={{ display: 'block', height: 28, objectFit: 'contain', width: 28 }}
-            />
-            <InputBase
-              fullWidth
-              inputProps={{ 'aria-label': 'Search products' }}
-              onChange={(event) => setSearchValue(event.target.value)}
-              placeholder="Search for fruits"
-              sx={{
-                color: storefrontColors.navy,
-                fontSize: '1.02rem',
-                fontWeight: 800,
-                minWidth: 0,
-                '& input': {
-                  p: 0,
-                },
-                '& input::placeholder': {
-                  color: alpha(storefrontColors.navy, 0.58),
-                  fontWeight: 800,
-                  opacity: 1,
-                },
-              }}
-              value={searchValue}
-            />
+        <ClickAwayListener onClickAway={() => setIsSearchSuggestionsOpen(false)}>
+          <Box sx={{ position: 'relative' }}>
+            <Stack
+              component="form"
+              direction="row"
+              onSubmit={handleSearchSubmit}
+              spacing={1.6}
+              sx={{ alignItems: 'center' }}
+            >
+              <Box
+                sx={{
+                  alignItems: 'center',
+                  backgroundColor: storefrontColors.surface,
+                  borderRadius: 1,
+                  color: alpha(storefrontColors.navy, 0.42),
+                  display: 'flex',
+                  flex: 1,
+                  gap: 1.5,
+                  minHeight: 55,
+                  minWidth: 0,
+                  px: 1.65,
+                  textDecoration: 'none',
+                }}
+              >
+                <Box
+                  alt="AV's Store"
+                  component="img"
+                  src={appLogoUrl}
+                  sx={{ display: 'block', height: 28, objectFit: 'contain', width: 28 }}
+                />
+                <InputBase
+                  fullWidth
+                  inputProps={{ 'aria-label': 'Search products', autoComplete: 'off' }}
+                  onChange={(event) => {
+                    setSearchValue(event.target.value);
+                    setIsSearchSuggestionsOpen(true);
+                  }}
+                  onFocus={() => setIsSearchSuggestionsOpen(true)}
+                  placeholder="Search for fruits"
+                  sx={{
+                    color: storefrontColors.navy,
+                    fontSize: '1.02rem',
+                    fontWeight: 800,
+                    minWidth: 0,
+                    '& input': {
+                      p: 0,
+                    },
+                    '& input::placeholder': {
+                      color: alpha(storefrontColors.navy, 0.58),
+                      fontWeight: 800,
+                      opacity: 1,
+                    },
+                  }}
+                  value={searchValue}
+                />
+              </Box>
+              <IconButton
+                aria-label="Call support"
+                component="a"
+                href="tel:+959447188997"
+                sx={{ color: '#ffffff', flexShrink: 0, height: 42, width: 42 }}
+              >
+                <PhoneInTalkOutlinedIcon sx={{ fontSize: 31 }} />
+              </IconButton>
+            </Stack>
+            {isSearchSuggestionsOpen && searchValue.trim() ? (
+              <SearchSuggestions
+                onSelect={() => setIsSearchSuggestionsOpen(false)}
+                products={searchSuggestions}
+              />
+            ) : null}
           </Box>
-          <IconButton
-            aria-label="Call support"
-            component="a"
-            href="tel:+959447188997"
-            sx={{ color: '#ffffff', flexShrink: 0, height: 42, width: 42 }}
-          >
-            <PhoneInTalkOutlinedIcon sx={{ fontSize: 31 }} />
-          </IconButton>
-        </Stack>
+        </ClickAwayListener>
       </Box>
 
       <Box
@@ -686,59 +851,77 @@ export const Header = () => {
           />
         </Box>
 
-        <Stack
-          component="form"
-          direction="row"
-          onSubmit={handleSearchSubmit}
-          spacing={0}
-          sx={{
-            border: `1px solid ${storefrontColors.border}`,
-            borderRadius: 1,
-            display: { md: 'flex', xs: 'none' },
-            flex: 1,
-            maxWidth: 760,
-            minHeight: 58,
-            overflow: 'hidden',
-          }}
-        >
-          <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center', flex: 1, px: 2 }}>
-            <SearchRoundedIcon sx={{ color: '#97a4ba', fontSize: 28 }} />
-            <InputBase
-              fullWidth
-              inputProps={{ 'aria-label': 'Search products' }}
-              onChange={(event) => setSearchValue(event.target.value)}
-              placeholder="Search items, categories, or sub categories"
-              sx={{
-                color: storefrontColors.navy,
-                fontSize: { md: '1.05rem', lg: '1.1rem' },
-                fontWeight: 800,
-                minWidth: 0,
-                '& input::placeholder': {
-                  color: alpha(storefrontColors.navy, 0.34),
-                  fontWeight: 700,
-                  opacity: 1,
-                },
-              }}
-              value={searchValue}
-            />
-          </Stack>
-          <IconButton
-            aria-label="Search"
-            type="submit"
+        <ClickAwayListener onClickAway={() => setIsSearchSuggestionsOpen(false)}>
+          <Box
             sx={{
-              backgroundColor: storefrontColors.navy,
-              borderRadius: 0,
-              color: storefrontColors.surface,
-              minWidth: 84,
-              px: 2.5,
-              '&:hover': {
-                backgroundColor: storefrontColors.navyDark,
-              },
+              display: { md: 'block', xs: 'none' },
+              flex: 1,
+              maxWidth: 760,
+              position: 'relative',
             }}
           >
-            <SearchRoundedIcon />
-          </IconButton>
-        </Stack>
+            <Stack
+              component="form"
+              direction="row"
+              onSubmit={handleSearchSubmit}
+              spacing={0}
+              sx={{
+                border: `1px solid ${storefrontColors.border}`,
+                borderRadius: 1,
+                minHeight: 58,
+                overflow: 'hidden',
+              }}
+            >
+              <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center', flex: 1, px: 2 }}>
+                <SearchRoundedIcon sx={{ color: '#97a4ba', fontSize: 28 }} />
+                <InputBase
+                  fullWidth
+                  inputProps={{ 'aria-label': 'Search products', autoComplete: 'off' }}
+                  onChange={(event) => {
+                    setSearchValue(event.target.value);
+                    setIsSearchSuggestionsOpen(true);
+                  }}
+                  onFocus={() => setIsSearchSuggestionsOpen(true)}
+                  placeholder="Search items, categories, or sub categories"
+                  sx={{
+                    color: storefrontColors.navy,
+                    fontSize: { md: '1.05rem', lg: '1.1rem' },
+                    fontWeight: 800,
+                    minWidth: 0,
+                    '& input::placeholder': {
+                      color: alpha(storefrontColors.navy, 0.34),
+                      fontWeight: 700,
+                      opacity: 1,
+                    },
+                  }}
+                  value={searchValue}
+                />
+              </Stack>
+              <IconButton
+                aria-label="Search"
+                type="submit"
+                sx={{
+                  backgroundColor: storefrontColors.navy,
+                  borderRadius: 0,
+                  color: storefrontColors.surface,
+                  minWidth: 84,
+                  px: 2.5,
+                  '&:hover': {
+                    backgroundColor: storefrontColors.navyDark,
+                  },
+                }}
+              >
+                <SearchRoundedIcon />
+              </IconButton>
+            </Stack>
+            {isSearchSuggestionsOpen && searchValue.trim() ? (
+              <SearchSuggestions
+                onSelect={() => setIsSearchSuggestionsOpen(false)}
+                products={searchSuggestions}
+              />
+            ) : null}
+          </Box>
+        </ClickAwayListener>
 
         <Stack direction="row" spacing={1.1} sx={{ alignItems: 'center', flexShrink: 0 }}>
           {isCustomer ? (
@@ -1109,7 +1292,7 @@ export const Header = () => {
       >
         {[
           {
-            icon: <HomeRoundedIcon />,
+            icon: <HomeOutlinedIcon />,
             isActive: location.pathname === routePaths.home,
             label: 'Home',
             to: routePaths.home,
@@ -1123,21 +1306,20 @@ export const Header = () => {
           },
           {
             icon: <SearchRoundedIcon />,
-            isActive:
-              location.pathname === routePaths.search ||
-              location.pathname.startsWith(routePaths.catalog),
+            isActive: isSearchNavigationActive,
             label: 'Search',
             to: routePaths.search,
           },
           {
             badge: totalItems,
             icon: <ShoppingBagOutlinedIcon />,
-            isActive: location.pathname.startsWith(routePaths.cart),
+            isActive: isCartNavigationActive,
             label: 'Cart',
             to: routePaths.cart,
           },
         ].map((item) => (
           <Box
+            aria-current={item.isActive ? 'page' : undefined}
             aria-label={item.label}
             component={!isAuthenticated && item.requiresAuth ? 'button' : Link}
             key={item.label}
@@ -1146,35 +1328,54 @@ export const Header = () => {
             }
             sx={{
               alignItems: 'center',
-              background: 'transparent',
+              background: item.isActive
+                ? 'linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03))'
+                : 'transparent',
               border: 0,
-              color: '#ffffff',
+              color: item.isActive ? storefrontColors.accent : '#ffffff',
               cursor: 'pointer',
               display: 'flex',
-              height: 56,
+              flexDirection: 'column',
+              gap: 0.25,
+              height: 72,
               justifyContent: 'center',
               minWidth: 0,
               p: 0,
               position: 'relative',
               textDecoration: 'none',
               '& svg': {
-                fontSize: 35,
+                fontSize: item.isActive ? 31 : 29,
+                transform: item.isActive ? 'translateY(-1px)' : 'none',
+                transition: 'font-size 160ms ease, transform 160ms ease',
               },
               '&::after': {
                 backgroundColor: '#ff8c1a',
-                bottom: 0,
+                borderRadius: 999,
+                bottom: 4,
                 content: '""',
                 display: item.isActive ? 'block' : 'none',
-                height: 2,
-                left: 0,
+                height: 3,
+                left: '50%',
                 position: 'absolute',
-                right: 0,
+                transform: 'translateX(-50%)',
+                width: 28,
               },
             }}
             to={!isAuthenticated && item.requiresAuth ? undefined : item.to}
             type={!isAuthenticated && item.requiresAuth ? 'button' : undefined}
           >
             {item.icon}
+            <Typography
+              component="span"
+              sx={{
+                color: 'inherit',
+                fontSize: '0.64rem',
+                fontWeight: item.isActive ? 900 : 700,
+                lineHeight: 1,
+              }}
+            >
+              {item.label}
+            </Typography>
             {item.badge ? (
               <Box
                 sx={{
@@ -1200,73 +1401,109 @@ export const Header = () => {
         ))}
         {isTenantAdmin ? (
           <Box
+            aria-current={
+              location.pathname.startsWith(routePaths.tenantAdmin.dashboard) ? 'page' : undefined
+            }
             aria-label="Admin dashboard"
             component={Link}
             sx={{
               alignItems: 'center',
-              color: '#ffffff',
+              background: location.pathname.startsWith(routePaths.tenantAdmin.dashboard)
+                ? 'linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03))'
+                : 'transparent',
+              color: location.pathname.startsWith(routePaths.tenantAdmin.dashboard)
+                ? storefrontColors.accent
+                : '#ffffff',
               display: 'flex',
-              height: 56,
+              flexDirection: 'column',
+              gap: 0.25,
+              height: 72,
               justifyContent: 'center',
               minWidth: 0,
               position: 'relative',
               textDecoration: 'none',
               '& svg': {
-                fontSize: 35,
+                fontSize: location.pathname.startsWith(routePaths.tenantAdmin.dashboard) ? 31 : 29,
               },
               '&::after': {
                 backgroundColor: '#ff8c1a',
-                bottom: 0,
+                borderRadius: 999,
+                bottom: 4,
                 content: '""',
                 display: location.pathname.startsWith(routePaths.tenantAdmin.dashboard)
                   ? 'block'
                   : 'none',
-                height: 2,
-                left: 0,
+                height: 3,
+                left: '50%',
                 position: 'absolute',
-                right: 0,
+                transform: 'translateX(-50%)',
+                width: 28,
               },
             }}
             to={routePaths.tenantAdmin.dashboard}
           >
             <DashboardOutlinedIcon />
+            <Typography
+              component="span"
+              sx={{ color: 'inherit', fontSize: '0.64rem', fontWeight: 800, lineHeight: 1 }}
+            >
+              Admin
+            </Typography>
           </Box>
         ) : (
           <Box
+            aria-current={isAccountRoute ? 'page' : undefined}
             aria-label={isCustomer ? 'Wallet account' : 'Account login'}
             component={isCustomer ? Link : 'button'}
             onClick={isCustomer ? undefined : () => openAuthDrawer()}
             sx={{
               alignItems: 'center',
-              background: 'transparent',
+              background: isAccountRoute
+                ? 'linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03))'
+                : 'transparent',
               border: 0,
-              color: '#ffffff',
+              color: isAccountRoute ? storefrontColors.accent : '#ffffff',
               cursor: 'pointer',
               display: 'flex',
-              height: 56,
+              flexDirection: 'column',
+              gap: 0.25,
+              height: 72,
               justifyContent: 'center',
               minWidth: 0,
               p: 0,
               position: 'relative',
               textDecoration: 'none',
               '& svg': {
-                fontSize: 35,
+                fontSize: isAccountRoute ? 31 : 29,
               },
               '&::after': {
                 backgroundColor: '#ff8c1a',
-                bottom: 0,
+                borderRadius: 999,
+                bottom: 4,
                 content: '""',
                 display: isAccountRoute ? 'block' : 'none',
-                height: 2,
-                left: 0,
+                height: 3,
+                left: '50%',
                 position: 'absolute',
-                right: 0,
+                transform: 'translateX(-50%)',
+                width: 28,
               },
             }}
             to={isCustomer ? routePaths.accountWallet : undefined}
             type={isCustomer ? undefined : 'button'}
           >
             {isCustomer ? <AccountBalanceWalletOutlinedIcon /> : <PersonOutlineRoundedIcon />}
+            <Typography
+              component="span"
+              sx={{
+                color: 'inherit',
+                fontSize: '0.64rem',
+                fontWeight: isAccountRoute ? 900 : 700,
+                lineHeight: 1,
+              }}
+            >
+              {isCustomer ? 'Wallet' : 'Account'}
+            </Typography>
           </Box>
         )}
       </Box>
