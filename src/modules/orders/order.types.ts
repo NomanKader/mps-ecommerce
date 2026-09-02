@@ -1,5 +1,5 @@
-export type OrderPaymentMethod = 'wallet' | 'cash_on_delivery';
-export type OrderPaymentStatus = 'paid' | 'pending';
+export type OrderPaymentMethod = 'wallet' | 'cash_on_delivery' | 'mopayments';
+export type OrderPaymentStatus = 'paid' | 'pending' | 'failed' | 'expired' | 'timeout';
 
 export interface OrderLineItem {
   categoryId?: string;
@@ -34,6 +34,11 @@ export interface Order {
   deliveryAddress?: string;
   paymentMethod: OrderPaymentMethod;
   paymentStatus: OrderPaymentStatus;
+  paymentGateway?: string;
+  paymentGatewayStatus?: string;
+  paymentRedirectUrl?: string;
+  paymentToken?: string;
+  paymentTokenExpiresAt?: Date;
   subtotalAmount: number;
   deliveryFee: number;
   region?: string;

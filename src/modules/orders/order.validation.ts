@@ -25,7 +25,7 @@ export const createOrderSchema = z.object({
         })
       )
       .default([]),
-    paymentMethod: z.enum(['wallet', 'cash_on_delivery']),
+    paymentMethod: z.enum(['wallet', 'cash_on_delivery', 'mopayments']),
     productIds: z.array(z.string().min(1)).default([]),
     region: z.string().trim().optional(),
     township: z.string().trim().optional(),

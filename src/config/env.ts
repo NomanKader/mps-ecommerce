@@ -26,7 +26,13 @@ const envSchema = z.object({
   S3_SIGNED_URL_EXPIRES_IN_SECONDS: z.coerce.number().int().positive().default(3600),
   GOOGLE_DRIVE_PRODUCT_IMAGES_FOLDER_ID: z.string().default('1xSSxy-7Tk5NPj1ur5Gw8jCLx47Rl42Ym'),
   GOOGLE_SERVICE_ACCOUNT_EMAIL: z.string().optional(),
-  GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: z.string().optional()
+  GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: z.string().optional(),
+  PUBLIC_API_BASE_URL: z.string().url().optional(),
+  PUBLIC_APP_BASE_URL: z.string().url().optional(),
+  MOPAYMENTS_ENVIRONMENT: z.enum(['sandbox', 'live']).default('sandbox'),
+  MOPAYMENTS_MERCHANT_ID: z.string().optional(),
+  MOPAYMENTS_SECRET_KEY: z.string().optional(),
+  MOPAYMENTS_PREFERRED_GATEWAYS: z.string().optional()
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

@@ -1,8 +1,10 @@
 import { BaseService } from '@core/base/BaseService';
+import { env } from '@config/env';
 import { getTenantModels } from '@core/database/tenant-database';
 import { HTTP_STATUS } from '@core/response/http-status';
 import { OrderRepository } from '@modules/orders/order.repository';
 import { Order, OrderLineItem } from '@modules/orders/order.types';
+import { MoPaymentsService } from '@modules/payments/mopayments.service';
 import { ApiError } from '@utils/ApiError';
 
 type CreateOrderInput = Pick<
@@ -30,7 +32,7 @@ type DeliveryQuoteInput = {
 };
 
 export class OrderService extends BaseService {
-  constructor() {
+  constructor(private readonly moPaymentsService = new MoPaymentsService()) {
     super();
   }
 
@@ -164,6 +166,7 @@ export class OrderService extends BaseService {
     const itemCount = payload.itemCount;
     const orderNumber = `ORD-${Date.now()}`;
     const isWalletPayment = payload.paymentMethod === 'wallet';
+    const isMoPaymentsPayment = payload.paymentMethod === 'mopayments';
     const { CategoryModel, CustomerWalletModel, ProductModel, UserModel } =
       getTenantModels(tenantId);
     const user = await UserModel.findOne({
@@ -270,6 +273,49 @@ export class OrderService extends BaseService {
       }
     }
 
+    let moPaymentsToken:
+      | {
+          expireAt: number;
+          paymentUrl: string;
+          token: string;
+        }
+      | undefined;
+
+    if (isMoPaymentsPayment) {
+      if (!this.moPaymentsService.isConfigured()) {
+        throw new ApiError(
+          HTTP_STATUS.BAD_REQUEST,
+          'MoPayments is not configured. Add merchant id and secret key before using online payment.'
+        );
+      }
+
+      const publicApiBaseUrl = this.publicApiBaseUrl();
+      const publicAppBaseUrl = this.publicAppBaseUrl();
+
+      moPaymentsToken = await this.moPaymentsService.requestPaymentToken({
+        backendUrl: `${publicApiBaseUrl}/payments/mopayments/callback?tenantId=${encodeURIComponent(
+          tenantId
+        )}`,
+        discountAmount: 0,
+        frontendUrl: `${publicApiBaseUrl}/payments/mopayments/return?tenantId=${encodeURIComponent(
+          tenantId
+        )}&orderNumber=${encodeURIComponent(orderNumber)}&redirect=${encodeURIComponent(
+          `${publicAppBaseUrl}/payment/mopayments/return`
+        )}`,
+        merchantReferenceId: orderNumber,
+        paymentItems: lineItems.map((item) => ({
+          name: item.name,
+          price: item.unitPrice,
+          quantity: item.quantity,
+          total: item.lineTotal
+        })),
+        preferredGateways: this.moPaymentsService.getPreferredGateways(),
+        subTotal: payload.subtotalAmount,
+        taxAmount: 0,
+        total: quote.totalAmount
+      });
+    }
+
     try {
       return await new OrderRepository(tenantId).create({
         ...payload,
@@ -284,6 +330,11 @@ export class OrderService extends BaseService {
         lineItems,
         orderNumber,
         paymentStatus: isWalletPayment ? 'paid' : 'pending',
+        paymentGateway: isMoPaymentsPayment ? 'mopayments' : undefined,
+        paymentGatewayStatus: isMoPaymentsPayment ? 'PROCESSING' : undefined,
+        paymentRedirectUrl: moPaymentsToken?.paymentUrl,
+        paymentToken: moPaymentsToken?.token,
+        paymentTokenExpiresAt: moPaymentsToken ? new Date(moPaymentsToken.expireAt) : undefined,
         productIds: requestedProductIds,
         placedAt: new Date(),
         status: 'pending',
@@ -311,5 +362,31 @@ export class OrderService extends BaseService {
 
       throw error;
     }
+  }
+
+  private publicApiBaseUrl(): string {
+    const configured = env.PUBLIC_API_BASE_URL?.replace(/\/$/, '');
+
+    if (!configured) {
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        'PUBLIC_API_BASE_URL is required for MoPayments callback URLs'
+      );
+    }
+
+    return configured.endsWith(env.API_PREFIX) ? configured : `${configured}${env.API_PREFIX}`;
+  }
+
+  private publicAppBaseUrl(): string {
+    const configured = env.PUBLIC_APP_BASE_URL?.replace(/\/$/, '');
+
+    if (!configured) {
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        'PUBLIC_APP_BASE_URL is required for MoPayments return URLs'
+      );
+    }
+
+    return configured;
   }
 }

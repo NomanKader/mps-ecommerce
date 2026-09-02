@@ -16,16 +16,21 @@ export const orderSchema = new Schema<Order>(
     deliveryAddress: { type: String, trim: true },
     paymentMethod: {
       type: String,
-      enum: ['wallet', 'cash_on_delivery'],
+      enum: ['wallet', 'cash_on_delivery', 'mopayments'],
       default: 'cash_on_delivery',
       required: true
     },
     paymentStatus: {
       type: String,
-      enum: ['paid', 'pending'],
+      enum: ['paid', 'pending', 'failed', 'expired', 'timeout'],
       default: 'pending',
       required: true
     },
+    paymentGateway: { type: String, trim: true },
+    paymentGatewayStatus: { type: String, trim: true },
+    paymentRedirectUrl: { type: String, trim: true },
+    paymentToken: { type: String, trim: true, index: true },
+    paymentTokenExpiresAt: { type: Date },
     region: { type: String, trim: true, index: true },
     township: { type: String, trim: true },
     itemCount: { type: Number, default: 0, min: 0 },
