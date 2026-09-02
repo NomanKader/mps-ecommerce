@@ -1,5 +1,6 @@
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import CreditCardOutlinedIcon from '@mui/icons-material/CreditCardOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import {
   Alert,
@@ -49,6 +50,12 @@ const paymentOptions: Array<{
     icon: LocalShippingOutlinedIcon,
     method: 'cash_on_delivery',
     title: 'Cash on delivery',
+  },
+  {
+    description: 'Pay securely online through the MoPayments gateway.',
+    icon: CreditCardOutlinedIcon,
+    method: 'mopayments',
+    title: 'MoPayments online payment',
   },
 ];
 
@@ -114,6 +121,17 @@ export const PaymentPage = () => {
         queryClient.invalidateQueries({ queryKey: ['orders'] }),
         queryClient.invalidateQueries({ queryKey: ['wallet', 'summary'] }),
       ]);
+
+      if (paymentMethod === 'mopayments') {
+        if (!order.paymentRedirectUrl) {
+          toast.error('MoPayments did not return a payment URL. Please contact support.');
+          return;
+        }
+
+        window.location.assign(order.paymentRedirectUrl);
+        return;
+      }
+
       toast.success(`Order ${order.orderNumber} placed successfully.`);
       navigate(routePaths.accountOrders, { replace: true });
     },
@@ -288,7 +306,11 @@ export const PaymentPage = () => {
                 <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                   <Typography color="text.secondary">Payment method</Typography>
                   <Typography sx={{ fontWeight: 700 }}>
-                    {paymentMethod === 'wallet' ? 'Wallet' : 'Cash on delivery'}
+                    {paymentMethod === 'wallet'
+                      ? 'Wallet'
+                      : paymentMethod === 'mopayments'
+                        ? 'MoPayments'
+                        : 'Cash on delivery'}
                   </Typography>
                 </Stack>
                 <Divider />
@@ -312,7 +334,9 @@ export const PaymentPage = () => {
                     ? 'Processing payment…'
                     : paymentMethod === 'wallet'
                       ? 'Pay and place order'
-                      : 'Confirm cash on delivery'}
+                      : paymentMethod === 'mopayments'
+                        ? 'Continue to MoPayments'
+                        : 'Confirm cash on delivery'}
                 </AppButton>
               </Stack>
             </CardContent>

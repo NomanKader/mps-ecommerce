@@ -24,8 +24,12 @@ export type Order = {
   customerName: string;
   deliveryAddress?: string;
   deliveryFee?: number;
+  paymentGateway?: string;
+  paymentGatewayStatus?: string;
   paymentMethod?: string;
-  paymentStatus?: 'paid' | 'pending';
+  paymentRedirectUrl?: string;
+  paymentStatus?: 'paid' | 'pending' | 'failed' | 'expired' | 'timeout';
+  paymentToken?: string;
   id: string;
   itemCount: number;
   lineItems?: OrderLineItem[];

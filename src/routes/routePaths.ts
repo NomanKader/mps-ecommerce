@@ -35,6 +35,7 @@ export const routePaths = {
   home: '/',
   notFound: '*',
   payment: '/payment',
+  paymentMoPaymentsReturn: '/payment/mopayments/return',
   pageSegmentDetails: '/page-segments/:segmentId',
   productDetails: '/products/:productId',
   search: '/searchpage',

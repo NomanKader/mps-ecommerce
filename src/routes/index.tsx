@@ -13,6 +13,7 @@ import { CheckoutPage } from '@pages/CheckoutPage/CheckoutPage';
 import { AccountMenuPage } from '@pages/FavouritesPage/FavouritesPage';
 import { HomePage } from '@pages/HomePage/HomePage';
 import { NotFoundPage } from '@pages/NotFoundPage/NotFoundPage';
+import { MoPaymentsReturnPage } from '@pages/PaymentPage/MoPaymentsReturnPage';
 import { PaymentPage } from '@pages/PaymentPage/PaymentPage';
 import { ProductDetailsPage } from '@pages/ProductDetailsPage/ProductDetailsPage';
 import { SearchPage } from '@pages/SearchPage/SearchPage';
@@ -119,6 +120,7 @@ export const router = createBrowserRouter([
             children: [
               { element: <CheckoutPage />, path: routePaths.checkout },
               { element: <PaymentPage />, path: routePaths.payment },
+              { element: <MoPaymentsReturnPage />, path: routePaths.paymentMoPaymentsReturn },
             ],
           },
         ],

@@ -21,7 +21,7 @@ export type CreateOrderPayload = {
   deliveryAddress: string;
   itemCount: number;
   items: Array<{ productId: string; quantity: number }>;
-  paymentMethod: 'wallet' | 'cash_on_delivery';
+  paymentMethod: 'wallet' | 'cash_on_delivery' | 'mopayments';
   productIds: string[];
   region?: string;
   township?: string;
