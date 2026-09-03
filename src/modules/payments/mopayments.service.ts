@@ -40,6 +40,19 @@ export type MoPaymentsStatusResponse = {
   transactionAmount?: number;
 };
 
+export type MoPaymentsCallbackPayload = {
+  gateway_service_fee?: string;
+  gateway_type?: string;
+  merchant_ref_id?: string;
+  payment_date?: string;
+  payment_id?: string;
+  platform_service_fee?: string;
+  settlement_amount?: string;
+  signature?: string;
+  status?: Exclude<MoPaymentsStatus, 'PROCESSING' | 'EXPIRED'>;
+  transaction_amount?: string;
+};
+
 const requestApiBaseUrls = {
   live: 'https://live.mopayments.com.mm/request_api',
   sandbox: 'https://sandbox.mopayments.com.mm/request_api'
@@ -126,6 +139,74 @@ export class MoPaymentsService {
     const hmacKey = keyHash.subarray(16, 32);
 
     return crypto.createHmac('sha256', hmacKey).update(verifyingText, 'utf8').digest('hex');
+  }
+
+  createCallbackSignature(
+    payload: MoPaymentsCallbackPayload,
+    secretKey = env.MOPAYMENTS_SECRET_KEY
+  ): string {
+    if (!secretKey) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'MoPayments secret key is not configured');
+    }
+
+    const verifyingText = this.createCallbackVerifyingText(payload);
+    const keyHash = crypto.createHash('sha256').update(secretKey).digest();
+    const hmacKey = keyHash.subarray(16, 32);
+
+    return crypto.createHmac('sha256', hmacKey).update(verifyingText, 'utf8').digest('hex');
+  }
+
+  createCallbackVerifyingText(payload: MoPaymentsCallbackPayload): string {
+    const requiredFields = [
+      payload.payment_id,
+      payload.merchant_ref_id,
+      payload.status,
+      payload.gateway_type
+    ];
+
+    if (requiredFields.some((field) => !field)) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'MoPayments callback is missing required fields');
+    }
+
+    const params = requiredFields.map(String);
+
+    if (payload.status === 'SUCCESS') {
+      const successFields = [
+        payload.settlement_amount,
+        payload.gateway_service_fee,
+        payload.platform_service_fee,
+        payload.transaction_amount,
+        payload.payment_date
+      ];
+
+      if (successFields.some((field) => !field)) {
+        throw new ApiError(
+          HTTP_STATUS.BAD_REQUEST,
+          'MoPayments success callback is missing settlement fields'
+        );
+      }
+
+      params.push(...successFields.map(String));
+    }
+
+    return sortAndJoin(params);
+  }
+
+  verifyCallbackSignature(
+    payload: MoPaymentsCallbackPayload,
+    secretKey = env.MOPAYMENTS_SECRET_KEY
+  ): boolean {
+    if (!payload.signature) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'MoPayments callback signature is required');
+    }
+
+    const expectedSignature = this.createCallbackSignature(payload, secretKey);
+    const providedSignature = payload.signature.toLowerCase();
+
+    return (
+      expectedSignature.length === providedSignature.length &&
+      crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(providedSignature))
+    );
   }
 
   createVerifyingText(request: MoPaymentsTokenRequest): string {

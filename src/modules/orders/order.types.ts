@@ -35,10 +35,13 @@ export interface Order {
   paymentMethod: OrderPaymentMethod;
   paymentStatus: OrderPaymentStatus;
   paymentGateway?: string;
+  paymentGatewayReferenceId?: string;
   paymentGatewayStatus?: string;
   paymentRedirectUrl?: string;
+  paymentSettlementAmount?: number;
   paymentToken?: string;
   paymentTokenExpiresAt?: Date;
+  paymentTransactionAmount?: number;
   subtotalAmount: number;
   deliveryFee: number;
   region?: string;

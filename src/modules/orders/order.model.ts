@@ -27,10 +27,13 @@ export const orderSchema = new Schema<Order>(
       required: true
     },
     paymentGateway: { type: String, trim: true },
+    paymentGatewayReferenceId: { type: String, trim: true },
     paymentGatewayStatus: { type: String, trim: true },
     paymentRedirectUrl: { type: String, trim: true },
+    paymentSettlementAmount: { type: Number, min: 0 },
     paymentToken: { type: String, trim: true, index: true },
     paymentTokenExpiresAt: { type: Date },
+    paymentTransactionAmount: { type: Number, min: 0 },
     region: { type: String, trim: true, index: true },
     township: { type: String, trim: true },
     itemCount: { type: Number, default: 0, min: 0 },

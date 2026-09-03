@@ -1,14 +1,7 @@
 import { getTenantModels } from '@core/database/tenant-database';
 import { HTTP_STATUS } from '@core/response/http-status';
-import { MoPaymentsService, MoPaymentsStatus } from '@modules/payments/mopayments.service';
+import { MoPaymentsCallbackPayload, MoPaymentsService } from '@modules/payments/mopayments.service';
 import { ApiError } from '@utils/ApiError';
-
-type MoPaymentsCallbackPayload = {
-  gateway_type?: string;
-  merchant_ref_id?: string;
-  payment_id?: string;
-  status?: MoPaymentsStatus;
-};
 
 const paymentStatusByGatewayStatus = {
   EXPIRED: 'expired',
@@ -29,6 +22,10 @@ export class PaymentService {
     const orderNumber = payload.merchant_ref_id;
     if (!orderNumber) {
       throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'merchant_ref_id is required');
+    }
+
+    if (!this.moPaymentsService.verifyCallbackSignature(payload)) {
+      throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'MoPayments callback signature is invalid');
     }
 
     const { OrderModel } = getTenantModels(tenantId);
@@ -52,8 +49,15 @@ export class PaymentService {
       { tenantId, orderNumber },
       {
         paymentGateway: 'mopayments',
+        paymentGatewayReferenceId: payload.payment_id,
         paymentGatewayStatus: gatewayStatus.paymentStatus,
         paymentStatus,
+        paymentSettlementAmount: payload.settlement_amount
+          ? Number(payload.settlement_amount)
+          : undefined,
+        paymentTransactionAmount: payload.transaction_amount
+          ? Number(payload.transaction_amount)
+          : gatewayStatus.transactionAmount,
         status: paymentStatus === 'paid' ? 'processing' : order.status
       }
     );
