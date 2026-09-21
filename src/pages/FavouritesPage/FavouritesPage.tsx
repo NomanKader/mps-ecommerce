@@ -53,6 +53,7 @@ import type {
   CustomerAddressPayload,
 } from '@entities/address/types/address.types';
 import type { Order } from '@entities/order/types/order.types';
+import { paymentMethodLabel } from '@entities/order/lib/paymentMethodLabel';
 import { OrderStatusChip } from '@entities/order/ui/OrderStatusChip';
 import { useAddresses } from '@features/addresses/hooks/useAddresses';
 import { authApi } from '@features/auth/api/authApi';
@@ -1987,7 +1988,7 @@ const OrdersContent = () => {
                       <Typography
                         sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 700 }}
                       >
-                        {order.paymentMethod === 'wallet' ? 'Wallet' : 'Cash on delivery'}
+                        {paymentMethodLabel(order)}
                         {order.paymentStatus ? ` · ${order.paymentStatus}` : ''}
                       </Typography>
                     </Stack>
@@ -2182,7 +2183,7 @@ const OrdersContent = () => {
                   { label: 'Phone', value: selectedOrder.customerPhone ?? 'N/A' },
                   {
                     label: 'Payment method',
-                    value: selectedOrder.paymentMethod === 'wallet' ? 'Wallet' : 'Cash on delivery',
+                    value: paymentMethodLabel(selectedOrder),
                   },
                   {
                     label: 'Payment status',

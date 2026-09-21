@@ -27,8 +27,8 @@ export const MoPaymentsReturnPage = () => {
       <Stack spacing={2}>
         <Alert severity="info">
           {orderNumber
-            ? `MoPayments returned for order ${orderNumber}. Your order history will show the latest status.`
-            : "MoPayments returned to Av's Store. Your order history will show the latest status."}
+            ? `Checking online payment for order ${orderNumber}. Your order history will show the latest status.`
+            : 'Your order history will show the latest online payment status.'}
         </Alert>
         <Typography color="text.secondary">
           You will be redirected to your order history automatically.

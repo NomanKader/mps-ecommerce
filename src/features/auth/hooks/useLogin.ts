@@ -26,7 +26,7 @@ export const useLogin = (options?: UseLoginOptions) => {
     defaultValues: {
       email: '',
       password: '',
-      rememberMe: false,
+      rememberMe: true,
     },
     resolver: zodResolver(loginSchema),
   });

@@ -75,6 +75,7 @@ describe('authentication actions', () => {
     act(() => {
       result.current.setValue('email', 'customer@example.com');
       result.current.setValue('password', 'password123');
+      result.current.setValue('rememberMe', false);
     });
     await act(async () => {
       await result.current.onSubmit();

@@ -50,6 +50,21 @@ const statusFilterOptions: Array<{ label: string; value: AdminOrderStatus | 'all
   ...orderStatusOptions,
 ];
 
+const paymentStatusOptions = [
+  { value: 'paid', label: 'Paid', color: 'success' },
+  { value: 'pending', label: 'Pending', color: 'warning' },
+  { value: 'failed', label: 'Failed', color: 'error' },
+  { value: 'expired', label: 'Expired', color: 'default' },
+  { value: 'timeout', label: 'Timed out', color: 'error' },
+] as const;
+
+const PaymentStatus = ({ status }: { status: AdminOrder['paymentStatus'] }) => {
+  const option = paymentStatusOptions.find((item) => item.value === status);
+  return (
+    <Chip color={option?.color ?? 'default'} label={option?.label ?? 'Unknown'} size="small" />
+  );
+};
+
 const orderStatusColorMap: Record<
   AdminOrderStatus,
   { background: string; border: string; color: string }
@@ -93,7 +108,8 @@ const statusSelectSx = (status: AdminOrderStatus) => {
 
 export const OrdersManagementPage = () => {
   const queryClient = useQueryClient();
-  const [detailOrder, setDetailOrder] = useState<AdminOrder | null>(null);
+  const [selectedOrder, setDetailOrder] = useState<AdminOrder | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [endDate, setEndDate] = useState('');
   const [search, setSearch] = useState('');
@@ -116,6 +132,7 @@ export const OrdersManagementPage = () => {
   );
   const subcategoryOptions = selectedCategory?.subcategories ?? [];
   const ordersQuery = useQuery({
+    refetchInterval: 15000,
     queryFn: ({ signal }) =>
       adminApi.listOrders(
         {
@@ -144,14 +161,20 @@ export const OrdersManagementPage = () => {
     queryKey: ['admin', 'orders', 'stats'],
   });
   const orders = ordersQuery.data ?? [];
+  const detailOrder = orders.find((order) => order.id === selectedOrder?.id) ?? selectedOrder;
+  const visibleOrders =
+    paymentFilter === 'all'
+      ? orders
+      : orders.filter((order) => order.paymentStatus === paymentFilter);
   const stats = statsQuery.data ?? { fulfilled: 0, netRevenue: 0, openOrders: 0 };
   const hasActiveFilters = Boolean(
     search ||
-      statusFilter !== 'all' ||
-      categoryFilter !== 'all' ||
-      subcategoryFilter !== 'all' ||
-      startDate ||
-      endDate,
+    paymentFilter !== 'all' ||
+    statusFilter !== 'all' ||
+    categoryFilter !== 'all' ||
+    subcategoryFilter !== 'all' ||
+    startDate ||
+    endDate,
   );
 
   const resetPagination = () => {
@@ -159,6 +182,7 @@ export const OrdersManagementPage = () => {
   };
 
   const clearFilters = () => {
+    setPaymentFilter('all');
     setSearch('');
     setStatusFilter('all');
     setCategoryFilter('all');
@@ -193,6 +217,13 @@ export const OrdersManagementPage = () => {
     { field: 'orderNumber', flex: 1, headerName: 'Order #', minWidth: 130 },
     { field: 'customerName', flex: 1.2, headerName: 'Customer', minWidth: 180 },
     { field: 'itemCount', headerName: 'Items', width: 90 },
+    {
+      field: 'paymentStatus',
+      headerName: 'Payment status',
+      width: 150,
+      renderCell: ({ row }) => <PaymentStatus status={row.paymentStatus} />,
+    },
+    { field: 'paymentMethod', headerName: 'Payment method', width: 160 },
     {
       field: 'totalAmount',
       headerName: 'Total',
@@ -313,7 +344,10 @@ export const OrdersManagementPage = () => {
             </Typography>
           </Stack>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Chip label={`${orders.length} results`} size="small" variant="outlined" />
+            <Chip label={`${visibleOrders.length} results`} size="small" variant="outlined" />
+            <Button disabled={ordersQuery.isFetching} onClick={() => void ordersQuery.refetch()}>
+              Refresh
+            </Button>
             <Button
               disabled={!hasActiveFilters}
               onClick={clearFilters}
@@ -337,6 +371,22 @@ export const OrdersManagementPage = () => {
             p: { sm: 2.5, xs: 2 },
           }}
         >
+          <TextField
+            label="Payment status"
+            select
+            value={paymentFilter}
+            onChange={(event) => {
+              setPaymentFilter(event.target.value);
+              resetPagination();
+            }}
+          >
+            <MenuItem value="all">All payments</MenuItem>
+            {paymentStatusOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextField>
           <TextField
             label="Search orders"
             onChange={(event) => {
@@ -457,7 +507,7 @@ export const OrdersManagementPage = () => {
           pagination
           paginationModel={paginationModel}
           rowHeight={60}
-          rows={orders}
+          rows={visibleOrders}
         />
       </Stack>
 
@@ -501,7 +551,10 @@ export const OrdersManagementPage = () => {
               <Grid container spacing={3}>
                 <Grid size={{ md: 7.5, xs: 12 }}>
                   <Stack spacing={1.5}>
-                    <Stack direction="row" sx={{ alignItems: 'baseline', justifyContent: 'space-between' }}>
+                    <Stack
+                      direction="row"
+                      sx={{ alignItems: 'baseline', justifyContent: 'space-between' }}
+                    >
                       <Typography sx={{ fontWeight: 800 }} variant="subtitle1">
                         Items to prepare
                       </Typography>
@@ -562,7 +615,11 @@ export const OrdersManagementPage = () => {
                               <Typography color="text.secondary" variant="caption">
                                 SKU {item.sku} · {item.quantity} × {formatCurrency(item.unitPrice)}
                               </Typography>
-                              <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+                              <Stack
+                                direction="row"
+                                spacing={0.75}
+                                sx={{ flexWrap: 'wrap', gap: 0.75 }}
+                              >
                                 {item.categoryName ? (
                                   <Chip
                                     clickable={Boolean(item.categoryId)}
@@ -607,15 +664,14 @@ export const OrdersManagementPage = () => {
                 </Grid>
 
                 <Grid size={{ md: 4.5, xs: 12 }}>
-                  <Stack
-                    spacing={2}
-                    sx={{ bgcolor: 'background.default', borderRadius: 1, p: 2 }}
-                  >
+                  <Stack spacing={2} sx={{ bgcolor: 'background.default', borderRadius: 1, p: 2 }}>
                     <Typography sx={{ fontWeight: 800 }} variant="subtitle1">
                       Fulfillment details
                     </Typography>
                     <Box>
-                      <Typography color="text.secondary" variant="caption">Customer</Typography>
+                      <Typography color="text.secondary" variant="caption">
+                        Customer
+                      </Typography>
                       <Typography sx={{ fontWeight: 700 }}>{detailOrder.customerName}</Typography>
                       <Typography color="text.secondary" variant="body2">
                         {detailOrder.customerPhone ?? 'No phone'}
@@ -626,7 +682,9 @@ export const OrdersManagementPage = () => {
                     </Box>
                     <Divider />
                     <Box>
-                      <Typography color="text.secondary" variant="caption">Deliver to</Typography>
+                      <Typography color="text.secondary" variant="caption">
+                        Deliver to
+                      </Typography>
                       <Typography sx={{ fontWeight: 700 }}>
                         {detailOrder.deliveryAddress ?? 'No delivery address'}
                       </Typography>
@@ -637,8 +695,38 @@ export const OrdersManagementPage = () => {
                     <Divider />
                     <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                       <Typography color="text.secondary">Payment</Typography>
-                      <Typography sx={{ fontWeight: 700 }}>{detailOrder.paymentMethod ?? 'N/A'}</Typography>
+                      <Typography sx={{ fontWeight: 700 }}>
+                        {detailOrder.paymentMethod ?? 'N/A'}
+                      </Typography>
                     </Stack>
+                    <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                      <Typography color="text.secondary">Payment status</Typography>
+                      <PaymentStatus status={detailOrder.paymentStatus} />
+                    </Stack>
+                    {detailOrder.paymentGateway ? (
+                      <Box sx={{ overflowWrap: 'anywhere' }}>
+                        <Typography variant="body2">
+                          Provider: {detailOrder.paymentGateway}
+                        </Typography>
+                        <Typography variant="body2">
+                          Gateway status: {detailOrder.paymentGatewayStatus ?? 'Pending'}
+                        </Typography>
+                        <Typography variant="body2">
+                          Payment ID: {detailOrder.paymentGatewayReferenceId ?? 'Not received'}
+                        </Typography>
+                        {detailOrder.paymentTransactionAmount != null ? (
+                          <Typography variant="body2">
+                            Transaction amount:{' '}
+                            {formatCurrency(detailOrder.paymentTransactionAmount)}
+                          </Typography>
+                        ) : null}
+                        {detailOrder.paymentSettlementAmount != null ? (
+                          <Typography variant="body2">
+                            Settlement amount: {formatCurrency(detailOrder.paymentSettlementAmount)}
+                          </Typography>
+                        ) : null}
+                      </Box>
+                    ) : null}
                     <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                       <Typography color="text.secondary">Order total</Typography>
                       <Typography sx={{ fontWeight: 900 }}>

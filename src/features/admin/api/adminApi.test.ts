@@ -19,6 +19,42 @@ describe('adminApi', () => {
     vi.clearAllMocks();
   });
 
+  it.each(['paid', 'pending', 'failed', 'expired', 'timeout'])(
+    'preserves %s payment status and gateway details for admin orders',
+    async (paymentStatus) => {
+      vi.mocked(apiClient.get).mockResolvedValue({
+        data: {
+          data: [
+            {
+              _id: 'order-1',
+              createdAt: '2026-09-08T00:00:00Z',
+              status: 'pending',
+              paymentStatus,
+              paymentMethod: 'mopayments',
+              paymentGateway: 'mopayments',
+              paymentGatewayReferenceId: 'payment-1',
+              paymentGatewayStatus: 'TIMEOUT',
+              paymentTransactionAmount: 1000,
+              paymentSettlementAmount: 950,
+            },
+          ],
+        },
+      });
+
+      const orders = await adminApi.listOrders({});
+
+      expect(orders[0]).toMatchObject({
+        id: 'order-1',
+        paymentStatus,
+        status: 'pending',
+        paymentGateway: 'mopayments',
+        paymentGatewayReferenceId: 'payment-1',
+        paymentTransactionAmount: 1000,
+        paymentSettlementAmount: 950,
+      });
+    },
+  );
+
   it('lists products with compact query params and maps Mongo ids', async () => {
     vi.mocked(apiClient.get).mockResolvedValue({
       data: {

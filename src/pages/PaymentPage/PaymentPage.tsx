@@ -52,10 +52,10 @@ const paymentOptions: Array<{
     title: 'Cash on delivery',
   },
   {
-    description: 'Pay securely online through the MoPayments gateway.',
+    description: 'Pay securely online using your preferred payment method.',
     icon: CreditCardOutlinedIcon,
     method: 'mopayments',
-    title: 'MoPayments online payment',
+    title: 'Online Payment',
   },
 ];
 
@@ -124,7 +124,7 @@ export const PaymentPage = () => {
 
       if (paymentMethod === 'mopayments') {
         if (!order.paymentRedirectUrl) {
-          toast.error('MoPayments did not return a payment URL. Please contact support.');
+          toast.error('Online payment could not be opened. Please contact support.');
           return;
         }
 
@@ -309,7 +309,7 @@ export const PaymentPage = () => {
                     {paymentMethod === 'wallet'
                       ? 'Wallet'
                       : paymentMethod === 'mopayments'
-                        ? 'MoPayments'
+                        ? 'Online Payment'
                         : 'Cash on delivery'}
                   </Typography>
                 </Stack>
@@ -335,7 +335,7 @@ export const PaymentPage = () => {
                     : paymentMethod === 'wallet'
                       ? 'Pay and place order'
                       : paymentMethod === 'mopayments'
-                        ? 'Continue to MoPayments'
+                        ? 'Continue to Online Payment'
                         : 'Confirm cash on delivery'}
                 </AppButton>
               </Stack>

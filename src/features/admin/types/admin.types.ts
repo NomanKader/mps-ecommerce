@@ -107,6 +107,12 @@ export type AdminOrder = {
   placedAt: string;
   productIds?: string[];
   paymentMethod?: string;
+  paymentStatus?: 'paid' | 'pending' | 'failed' | 'expired' | 'timeout';
+  paymentGateway?: string;
+  paymentGatewayStatus?: string;
+  paymentGatewayReferenceId?: string;
+  paymentTransactionAmount?: number;
+  paymentSettlementAmount?: number;
   region?: string;
   status: AdminOrderStatus;
   subcategories?: string[];
