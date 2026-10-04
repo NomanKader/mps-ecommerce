@@ -4,15 +4,15 @@ import KeyboardArrowRightRoundedIcon from '@mui/icons-material/KeyboardArrowRigh
 import { Box, Checkbox, Grid, Stack, TextField, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
 import { categoryApi } from '@features/category/api/categoryApi';
 import { useCart } from '@features/cart/hooks/useCart';
+import { useI18n } from '@features/i18n/I18nProvider';
 import { merchandisingApi } from '@features/home/api/merchandisingApi';
 import {
   featuredCategoryHighlights,
-  shopBrands,
   storefrontCategories,
   storefrontCategoryMenuItems,
 } from '@features/home/data/homePage.data';
@@ -1073,16 +1073,6 @@ const categoryShowcaseConfigs: Record<string, CategoryShowcaseConfig> = {
   },
 };
 
-const shopBrandCatalogTargets: Record<string, { category: string; search: string; title: string }> =
-  {
-    Iceland: { category: 'frozen', search: 'iceland', title: 'Iceland' },
-    'M&S': { category: 'quick-meals', search: 'marks spencer', title: 'M&S' },
-    Morrisons: { category: 'fruits', search: 'morrisons', title: 'Morrisons' },
-    redmart: { category: 'pantry', search: 'redmart', title: 'redmart' },
-    "Sainsbury's": { category: 'pantry', search: 'sainsbury', title: "Sainsbury's" },
-    SuperValu: { category: 'quick-meals', search: 'supervalu', title: 'SuperValu' },
-  };
-
 const quickShowcaseCategoryIds = new Set(storefrontCategories.map((category) => category.id));
 const merchandisingPageTitles = new Set([
   'Buy Bulk',
@@ -1101,7 +1091,6 @@ const merchandisingPageTitles = new Set([
   'Promotion',
   'Recipes',
   'Vegan',
-  ...Object.values(shopBrandCatalogTargets).map((target) => target.title),
 ]);
 
 const getCategoryConfig = (categoryId: string): CategoryShowcaseConfig => {
@@ -1211,15 +1200,9 @@ const getCategoryProducts = (
 
 const categoryFilters = [
   'Frozen (484)',
-  'Iceland (20)',
   'Kids (12)',
-  'M&S (36)',
   'Meat (38)',
-  'Morrisons (4)',
   'Quick Meals (907)',
-  'Redmart (4)',
-  'Sainsburys (18)',
-  'Supervalu (14)',
 ];
 
 const subCategoryFilters = [
@@ -1273,448 +1256,67 @@ const sectionTitleSx = {
 const merchandisingHeroHeight = { md: 420, xs: 220 };
 const categoryHeroHeight = { md: 420, xs: 250 };
 
-const shopsPanelSx = {
-  background: 'linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(241,245,252,0.98) 100%)',
-  border: `1px solid ${alpha(storefrontColors.navy, 0.04)}`,
-  borderRadius: 1,
-  boxShadow: `0 18px 34px ${alpha(storefrontColors.navy, 0.07)}`,
-  height: '100%',
-  overflow: 'hidden',
-  p: { lg: 2.2, md: 1.8, xs: 2.1 },
-  position: 'relative',
-  '&::before': {
-    background:
-      'radial-gradient(circle at top right, rgba(24,58,122,0.09), rgba(24,58,122,0) 42%), radial-gradient(circle at bottom left, rgba(147,200,62,0.08), rgba(147,200,62,0) 30%)',
-    content: '""',
-    inset: 0,
-    position: 'absolute',
-  },
-};
-
-const shopsTitleSx = {
-  ...sectionTitleSx,
-  fontSize: { lg: '1.72rem', md: '1.38rem', sm: '1.8rem', xs: '1.55rem' },
-  letterSpacing: 0,
-  lineHeight: 0.95,
-};
-
-const shopTileSx = {
-  alignItems: 'center',
-  borderRadius: 1,
-  boxShadow: 'none',
-  display: 'flex',
-  fontSize: { lg: '0.92rem', md: '0.84rem', xs: '0.96rem' },
-  fontWeight: 900,
-  height: { lg: 41, md: 39, xs: 52 },
-  justifyContent: 'center',
-  lineHeight: 1.05,
-  minWidth: 0,
-  overflow: 'hidden',
-  px: { md: 1, xs: 1.25 },
-  position: 'relative',
-  textAlign: 'center',
-  textDecoration: 'none',
-  transition: 'transform 180ms ease, box-shadow 180ms ease',
-  whiteSpace: 'normal',
-  wordBreak: 'normal',
-};
-
-const shopMegaMenuColumns = [
-  [
-    {
-      categoryId: 'quick-meals',
-      items: ['Appetizers', 'Sides', 'Heat & Eat', 'Italian', 'Desserts'],
-      title: 'Quick Meals',
-    },
-    {
-      categoryId: 'seafood',
-      items: ['Fish', 'Smoked Seafood', 'Prawns & Shellfish', 'Breaded Seafood', 'Canned Seafood'],
-      title: 'Seafood',
-    },
-    { categoryId: 'bakery', items: ['Cakes & Cupcakes'], title: 'Bakery' },
-    { categoryId: 'dairy', items: ['Cheese'], title: 'Dairy' },
-  ],
-  [
-    {
-      categoryId: 'dairy',
-      items: [
-        'Ice Cream & Frozen Desserts',
-        'Butter & Ghee',
-        'Long Life Milk',
-        'Plant-Based',
-        'Yoghurt',
-      ],
-      title: 'Dairy',
-    },
-    {
-      categoryId: 'pantry',
-      items: [
-        'Breakfast Cereals',
-        'Cans, Jars & Packets',
-        'Chocolates & Sweets',
-        'Deli & Dips',
-        'Condiments & Dressings',
-        'Crackers & Biscuits',
-        'Flours & Mixes',
-        'Honey, Jams & Spreads',
-        'Oil & Vinegar',
-        'Sauces & Ingredients',
-        'Pasta & Noodles',
-      ],
-      title: 'Pantry',
-    },
-  ],
-  [
-    {
-      categoryId: 'pantry',
-      items: [
-        'Pulses & Seeds',
-        'Crisps & Snacks',
-        'Rice & Grains',
-        'Spices & Seasonings',
-        'Sugar & Baking',
-        'World Foods',
-      ],
-      title: 'Pantry',
-    },
-    {
-      categoryId: 'drinks',
-      items: [
-        'Carbonated Drinks',
-        'Chocolate & Malt Drinks',
-        'Coffee',
-        'Cordials',
-        'Juice',
-        'Non Alcoholic Drinks',
-        'Tea',
-      ],
-      title: 'Drinks',
-    },
-    {
-      categoryId: 'frozen',
-      items: ['Frozen Ready Meals', 'Frozen Fruit', 'Frozen Vegetables'],
-      title: 'Frozen',
-    },
-  ],
-  [
-    {
-      categoryId: 'frozen',
-      items: [
-        'Frozen Seafood',
-        'Frozen Chips, Potatoes & Rice',
-        'Frozen Bakery',
-        'Ice Cream & Frozen Desserts',
-        'Frozen Pizza',
-        'Frozen Appetizers',
-        'Vegetarian & Vegan Food',
-      ],
-      title: 'Frozen',
-    },
-    {
-      categoryId: 'home',
-      items: [
-        'Home Fragrance',
-        'Tissue Rolls & Paper Towels',
-        'Cleaning Supplies',
-        'Kitchenware',
-        'Laundry Care',
-      ],
-      title: 'Home',
-    },
-    { categoryId: 'kids', items: ['Bathing & Grooming'], title: 'Kids' },
-  ],
-  [
-    {
-      categoryId: 'kids',
-      items: [
-        'Teething & Dental',
-        'Baby Food',
-        'Bottles & Pacifiers',
-        'Nappies & Potty Training',
-        'Nursery Items',
-      ],
-      title: 'Kids',
-    },
-    { categoryId: 'pets', items: ['Cat Care'], title: 'Pets' },
-    {
-      categoryId: 'care',
-      items: [
-        'Suncare & Outdoor',
-        'Facial Care',
-        'Bath & Shower',
-        'Dental Care',
-        'Body Care',
-        'Feminine Care',
-        'Hair Care',
-        "Men's Grooming & Skin Care",
-      ],
-      title: 'Self Care',
-    },
-    { categoryId: 'gifts', items: ['Cakes & Cupcakes'], title: 'Gifting' },
-  ],
-];
-
-const getShopCatalogPath = (brandLabel: string, categoryId = 'all', itemLabel?: string) => {
-  const brandTarget = shopBrandCatalogTargets[brandLabel] ?? {
-    category: categoryId,
-    search: brandLabel,
-    title: brandLabel,
-  };
-  const title = itemLabel ? `${brandLabel}: ${itemLabel}` : brandLabel;
-  const params = new URLSearchParams({
-    category: itemLabel ? categoryId : brandTarget.category,
-    search: itemLabel ?? brandTarget.search,
-    title,
-  });
-
-  return `${routePaths.catalog}?${params.toString()}`;
-};
-
-const ShopBrandsPanel = ({ height }: { height: { md: number; xs: number } }) => {
-  const navigate = useNavigate();
-  const [activeShopBrandId, setActiveShopBrandId] = useState<string | null>(null);
-  const activeShopBrand = shopBrands.find((brand) => brand.id === activeShopBrandId);
-  const activeShopBrandIndex = shopBrands.findIndex((brand) => brand.id === activeShopBrandId);
+const PromoPoster = ({ imageUrl, title }: { imageUrl: string; title: string }) => {
+  const { t } = useI18n();
 
   return (
     <Box
-      onMouseLeave={() => setActiveShopBrandId(null)}
-      sx={{ height, position: 'relative', zIndex: 5 }}
+      sx={{
+        backgroundImage: `linear-gradient(180deg, ${alpha('#000000', 0)} 0%, ${alpha('#000000', 0.1)} 100%), url(${imageUrl})`,
+        backgroundPosition: 'center',
+        backgroundSize: 'cover',
+        borderRadius: 1,
+        height: '100%',
+        minHeight: 0,
+        minWidth: 0,
+        overflow: 'hidden',
+        position: 'relative',
+        width: '100%',
+      }}
     >
-      {activeShopBrand ? (
-        <Box
-          onMouseEnter={() => setActiveShopBrandId(activeShopBrand.id)}
-          sx={{
-            backgroundColor: storefrontColors.surface,
-            borderRadius: 1,
-            boxShadow: `0 18px 44px ${alpha(storefrontColors.navy, 0.16)}`,
-            display: { lg: 'block', xs: 'none' },
-            minHeight: 420,
-            p: { lg: 4.5, md: 3.5 },
-            position: 'absolute',
-            right: 'calc(100% + 18px)',
-            top: 0,
-            width: 'min(72vw, 1120px)',
-            zIndex: 20,
-          }}
-        >
-          <Box
-            sx={{
-              display: 'grid',
-              gap: { lg: 5.5, md: 3.5 },
-              gridTemplateColumns: 'repeat(5, minmax(130px, 1fr))',
-            }}
-          >
-            {shopMegaMenuColumns.map((column, columnIndex) => (
-              <Stack key={columnIndex} spacing={1.45}>
-                {column.map((section) => (
-                  <Box key={`${section.categoryId}-${section.title}`}>
-                    <Typography
-                      component={Link}
-                      onClick={() => setActiveShopBrandId(null)}
-                      sx={{
-                        color: storefrontColors.navy,
-                        display: 'inline-block',
-                        fontSize: '1.05rem',
-                        fontWeight: 900,
-                        lineHeight: 1.2,
-                        mb: 0.65,
-                        textDecoration: 'none',
-                        '&:hover': {
-                          color: activeShopBrand.color,
-                        },
-                      }}
-                      to={getShopCatalogPath(
-                        activeShopBrand.label,
-                        section.categoryId,
-                        section.title,
-                      )}
-                      variant="h6"
-                    >
-                      {section.title}
-                    </Typography>
-                    <Stack spacing={0.42}>
-                      {section.items.map((item) => (
-                        <Typography
-                          component={Link}
-                          key={item}
-                          onClick={() => setActiveShopBrandId(null)}
-                          sx={{
-                            color: '#555a64',
-                            display: 'block',
-                            fontSize: '0.98rem',
-                            fontWeight: 650,
-                            lineHeight: 1.25,
-                            textDecoration: 'none',
-                            transition: 'color 140ms ease',
-                            '&:hover': {
-                              color: storefrontColors.navy,
-                            },
-                          }}
-                          to={getShopCatalogPath(activeShopBrand.label, section.categoryId, item)}
-                          variant="body2"
-                        >
-                          {item}
-                        </Typography>
-                      ))}
-                    </Stack>
-                  </Box>
-                ))}
-              </Stack>
-            ))}
-          </Box>
-          <Box
-            sx={{
-              borderColor: `transparent transparent transparent ${activeShopBrand.color}`,
-              borderStyle: 'solid',
-              borderWidth: '14px 0 14px 22px',
-              filter: `drop-shadow(7px 0 8px ${alpha(storefrontColors.navy, 0.08)})`,
-              position: 'absolute',
-              right: -22,
-              top: 130 + Math.max(activeShopBrandIndex, 0) * 46,
-            }}
-          />
-        </Box>
-      ) : null}
-
-      <Box sx={{ ...shopsPanelSx, height }}>
-        <Stack spacing={0.45} sx={{ mb: 1.15, position: 'relative', zIndex: 1 }}>
-          <Box
-            sx={{
-              alignItems: 'center',
-              backgroundColor: alpha(storefrontColors.navy, 0.07),
-              borderRadius: 999,
-              color: storefrontColors.navy,
-              display: 'inline-flex',
-              fontSize: '0.72rem',
-              fontWeight: 800,
-              letterSpacing: 0,
-              px: 1.1,
-              py: 0.55,
-              textTransform: 'uppercase',
-              width: 'fit-content',
-            }}
-          >
-            Partner Brands
-          </Box>
-          <Typography sx={shopsTitleSx}>Our Shops</Typography>
-          <Typography
-            color={storefrontColors.muted}
-            sx={{ lineHeight: 1.4, maxWidth: 220 }}
-            variant="body2"
-          >
-            Explore trusted partner ranges in one place.
-          </Typography>
-        </Stack>
-        <Grid container spacing={0.65} sx={{ position: 'relative', zIndex: 1 }}>
-          {shopBrands.map((brand) => {
-            const brandPath = getShopCatalogPath(brand.label);
-
-            return (
-              <Grid key={brand.id} size={12}>
-                <Box
-                  component={Link}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    setActiveShopBrandId(null);
-                    navigate(brandPath);
-                  }}
-                  onFocus={() => setActiveShopBrandId(brand.id)}
-                  onMouseEnter={() => setActiveShopBrandId(brand.id)}
-                  sx={{
-                    ...shopTileSx,
-                    background:
-                      brand.color === '#ffffff'
-                        ? 'linear-gradient(180deg, #ffffff 0%, #f9fbff 100%)'
-                        : `linear-gradient(180deg, ${brand.color} 0%, ${brand.color} 100%)`,
-                    border: `1px solid ${brand.color === '#ffffff' ? alpha('#e43224', 0.12) : 'transparent'}`,
-                    boxShadow:
-                      brand.color === '#ffffff'
-                        ? `0 12px 24px ${alpha('#9f1714', 0.08)}`
-                        : `0 16px 28px ${alpha(brand.color, 0.2)}`,
-                    color: brand.textColor ?? storefrontColors.navy,
-                    '&:hover': {
-                      boxShadow:
-                        brand.color === '#ffffff'
-                          ? `0 18px 30px ${alpha('#9f1714', 0.11)}`
-                          : `0 20px 34px ${alpha(brand.color, 0.28)}`,
-                      transform: 'translateY(-2px)',
-                    },
-                    '&:focus-visible': {
-                      outline: `3px solid ${alpha(brand.color, 0.24)}`,
-                      outlineOffset: 2,
-                    },
-                  }}
-                  to={brandPath}
-                >
-                  {brand.label}
-                </Box>
-              </Grid>
-            );
-          })}
-        </Grid>
+      <Box
+        sx={{
+          backgroundColor: storefrontColors.navy,
+          bottom: 28,
+          color: '#ffffff',
+          fontSize: '1.3rem',
+          fontWeight: 900,
+          left: '50%',
+          px: 3.2,
+          py: 1.25,
+          position: 'absolute',
+          textTransform: 'uppercase',
+          transform: 'translateX(-50%)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {t('Shop Now')}
+      </Box>
+      <Box
+        sx={{
+          alignItems: 'center',
+          backgroundColor: alpha(storefrontColors.navyDark, 0.82),
+          color: '#ffffff',
+          display: 'flex',
+          fontSize: '2rem',
+          fontWeight: 500,
+          justifyContent: 'center',
+          left: '50%',
+          lineHeight: 1.18,
+          maxWidth: 230,
+          minHeight: 172,
+          p: 2.2,
+          position: 'absolute',
+          textAlign: 'center',
+          top: 88,
+          transform: 'translateX(-50%)',
+        }}
+      >
+        {title}
       </Box>
     </Box>
   );
 };
-
-const PromoPoster = ({ imageUrl, title }: { imageUrl: string; title: string }) => (
-  <Box
-    sx={{
-      backgroundImage: `linear-gradient(180deg, ${alpha('#000000', 0)} 0%, ${alpha('#000000', 0.1)} 100%), url(${imageUrl})`,
-      backgroundPosition: 'center',
-      backgroundSize: 'cover',
-      borderRadius: 1,
-      height: '100%',
-      minHeight: 0,
-      minWidth: 0,
-      overflow: 'hidden',
-      position: 'relative',
-      width: '100%',
-    }}
-  >
-    <Box
-      sx={{
-        backgroundColor: storefrontColors.navy,
-        bottom: 28,
-        color: '#ffffff',
-        fontSize: '1.3rem',
-        fontWeight: 900,
-        left: '50%',
-        px: 3.2,
-        py: 1.25,
-        position: 'absolute',
-        textTransform: 'uppercase',
-        transform: 'translateX(-50%)',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      Shop Now
-    </Box>
-    <Box
-      sx={{
-        alignItems: 'center',
-        backgroundColor: alpha(storefrontColors.navyDark, 0.82),
-        color: '#ffffff',
-        display: 'flex',
-        fontSize: '2rem',
-        fontWeight: 500,
-        justifyContent: 'center',
-        left: '50%',
-        lineHeight: 1.18,
-        maxWidth: 230,
-        minHeight: 172,
-        p: 2.2,
-        position: 'absolute',
-        textAlign: 'center',
-        top: 88,
-        transform: 'translateX(-50%)',
-      }}
-    >
-      {title}
-    </Box>
-  </Box>
-);
 
 const FilterPanel = ({
   embedded = false,
@@ -2143,7 +1745,7 @@ const MerchandisingCollectionPage = ({
     <Box sx={{ backgroundColor: '#ffffff', px: { lg: 5, xs: 2 }, py: { md: 2, xs: 2 } }}>
       <Stack spacing={4.2} sx={{ maxWidth: 1600, mx: 'auto' }}>
         <Grid container spacing={2}>
-          <Grid size={{ lg: 10, md: 9, xs: 12 }}>
+          <Grid size={{ lg: 12, md: 12, xs: 12 }}>
             <Box
               sx={{
                 backgroundColor: storefrontColors.navy,
@@ -2183,9 +1785,6 @@ const MerchandisingCollectionPage = ({
                 />
               </Box>
             </Box>
-          </Grid>
-          <Grid size={{ lg: 2, md: 3, xs: 12 }}>
-            <ShopBrandsPanel height={merchandisingHeroHeight} />
           </Grid>
         </Grid>
 
@@ -2274,7 +1873,7 @@ const CategoryShowcasePage = ({
     >
       <Stack spacing={4.4} sx={{ maxWidth: 1600, mx: 'auto' }}>
         <Grid container spacing={2}>
-          <Grid size={{ lg: 10, md: 9, xs: 12 }}>
+          <Grid size={{ lg: 12, md: 12, xs: 12 }}>
             <Box
               sx={{
                 backgroundImage: `linear-gradient(90deg, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.1) 56%, rgba(0,0,0,0.18) 100%), url(${config.heroImage})`,
@@ -2312,9 +1911,6 @@ const CategoryShowcasePage = ({
                 <Box sx={{ backgroundColor: config.accent, height: 4, mt: 2.3, width: '100%' }} />
               </Box>
             </Box>
-          </Grid>
-          <Grid size={{ lg: 2, md: 3, xs: 12 }}>
-            <ShopBrandsPanel height={categoryHeroHeight} />
           </Grid>
         </Grid>
 
@@ -2572,7 +2168,7 @@ const PageSegmentCatalogPage = ({
     <Box sx={{ backgroundColor: '#ffffff', px: { lg: 5, xs: 2 }, py: { md: 2, xs: 2 } }}>
       <Stack spacing={4.4} sx={{ maxWidth: 1600, mx: 'auto' }}>
         <Grid container spacing={2}>
-          <Grid size={{ lg: 10, md: 9, xs: 12 }}>
+          <Grid size={{ lg: 12, md: 12, xs: 12 }}>
             <Box
               sx={{
                 borderRadius: 1,
@@ -2663,9 +2259,6 @@ const PageSegmentCatalogPage = ({
                 </Stack>
               ) : null}
             </Box>
-          </Grid>
-          <Grid size={{ lg: 2, md: 3, xs: 12 }}>
-            <ShopBrandsPanel height={categoryHeroHeight} />
           </Grid>
         </Grid>
 
@@ -2957,7 +2550,7 @@ export const CatalogPage = () => {
           <ProductGrid onAddToCart={addToCart} products={visibleCatalogProducts} />
         ) : (
           <EmptyState
-            description="This catalog area is connected to the live API. Products for this selection will be available soon."
+            description="Products for this selection will be available soon. Please try another category or search again later."
             title="Items coming soon"
           />
         )}

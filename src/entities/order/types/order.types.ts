@@ -30,6 +30,9 @@ export type Order = {
   paymentRedirectUrl?: string;
   paymentStatus?: 'paid' | 'pending' | 'failed' | 'expired' | 'timeout';
   paymentToken?: string;
+  promoCode?: string;
+  promoDiscountAmount?: number;
+  promoDiscountLabel?: string;
   id: string;
   itemCount: number;
   lineItems?: OrderLineItem[];

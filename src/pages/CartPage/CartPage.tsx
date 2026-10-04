@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import type { CartItem } from '@entities/cart/types/cart.types';
 import type { Product } from '@entities/product/types/product.types';
 import { useCart } from '@features/cart/hooks/useCart';
+import { useI18n } from '@features/i18n/I18nProvider';
 import { useProducts } from '@features/product/hooks/useProducts';
 import { routePaths } from '@routes/routePaths';
 import { EmptyState } from '@shared/components/ui/EmptyState/EmptyState';
@@ -28,6 +29,8 @@ const CartSuggestionCard = ({
   onAddToCart: (product: Product) => void;
   product: Product;
 }) => {
+  const { t } = useI18n();
+
   return (
     <Box
       sx={{
@@ -93,7 +96,7 @@ const CartSuggestionCard = ({
           },
         }}
       >
-        Add to cart
+        {t('Add to cart')}
       </Button>
     </Box>
   );

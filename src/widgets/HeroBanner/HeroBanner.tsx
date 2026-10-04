@@ -20,27 +20,27 @@ export const HeroBanner = () => (
       <Grid size={{ md: 7, xs: 12 }}>
         <Stack spacing={3}>
           <Chip
-            label="SaaS storefront foundation"
+            label="Fresh grocery delivery"
             sx={{ alignSelf: 'flex-start', bgcolor: 'rgba(255,255,255,0.12)', color: '#fff' }}
           />
           <Typography variant="h2">
-            Launch modern multi-tenant commerce experiences with a scalable frontend base.
+            Everyday groceries delivered across Yangon with care.
           </Typography>
           <Typography sx={{ color: 'rgba(255,255,255,0.8)', maxWidth: 640 }} variant="body1">
-            Prepared for product catalogs, tenant branding, RBAC, subscriptions, analytics, and
-            enterprise storefront growth without rewriting the foundation.
+            Shop fresh produce, pantry staples, household essentials, and easy meal picks from
+            AV's Store.
           </Typography>
           <Stack direction={{ sm: 'row', xs: 'column' }} spacing={2}>
             <Link to={routePaths.catalog}>
               <AppButton endIcon={<ArrowForwardRoundedIcon />}>Browse Catalog</AppButton>
             </Link>
-            <Link to={routePaths.tenantAdmin.dashboard}>
+            <Link to={routePaths.search}>
               <AppButton
                 color="secondary"
                 sx={{ '&:hover': { bgcolor: '#eef3f0' }, bgcolor: '#fff', color: 'primary.main' }}
                 variant="contained"
               >
-                View Tenant Dashboard
+                Search Products
               </AppButton>
             </Link>
           </Stack>
@@ -56,10 +56,9 @@ export const HeroBanner = () => (
             p: 3,
           }}
         >
-          <Typography variant="subtitle1">Prepared for future expansion</Typography>
+          <Typography variant="subtitle1">Fresh picks, simple shopping</Typography>
           <Typography color="rgba(255,255,255,0.75)" variant="body2">
-            Subscription plans, tenant onboarding, custom themes, permissions, and analytics hook
-            points are already reflected in the project structure.
+            Build your basket in minutes and choose the delivery details that work for your day.
           </Typography>
         </Box>
       </Grid>

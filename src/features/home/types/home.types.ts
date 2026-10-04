@@ -91,13 +91,6 @@ export type PromoTile = {
   title: string;
 };
 
-export type ShopBrand = {
-  color: string;
-  id: string;
-  label: string;
-  textColor?: string;
-};
-
 export type StoreProductBadge = {
   color: string;
   label: string;
@@ -159,6 +152,9 @@ export type StorefrontCarouselSlide = {
 
 export type FooterLinkGroup = {
   id: string;
-  links: string[];
+  links: Array<{
+    label: string;
+    to: string;
+  }>;
   title: string;
 };

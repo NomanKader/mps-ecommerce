@@ -1,4 +1,5 @@
 import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import FilterListRoundedIcon from '@mui/icons-material/FilterListRounded';
 import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
@@ -27,12 +28,17 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 
 import { adminApi } from '@features/admin/api/adminApi';
-import type { AdminOrder, AdminOrderStatus } from '@features/admin/types/admin.types';
+import type {
+  AdminOrder,
+  AdminOrderPaymentStatus,
+  AdminOrderStatus,
+} from '@features/admin/types/admin.types';
 import { useDebounce } from '@hooks/useDebounce';
 import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
+import { createReportFilename, downloadCsv } from '@shared/utils/downloadCsv';
 import { formatCurrency } from '@utils/formatCurrency';
 import { formatDate } from '@utils/formatDate';
 
@@ -50,13 +56,17 @@ const statusFilterOptions: Array<{ label: string; value: AdminOrderStatus | 'all
   ...orderStatusOptions,
 ];
 
-const paymentStatusOptions = [
+const paymentStatusOptions: Array<{
+  color: 'default' | 'error' | 'success' | 'warning';
+  label: string;
+  value: AdminOrderPaymentStatus;
+}> = [
   { value: 'paid', label: 'Paid', color: 'success' },
   { value: 'pending', label: 'Pending', color: 'warning' },
   { value: 'failed', label: 'Failed', color: 'error' },
   { value: 'expired', label: 'Expired', color: 'default' },
   { value: 'timeout', label: 'Timed out', color: 'error' },
-] as const;
+] ;
 
 const PaymentStatus = ({ status }: { status: AdminOrder['paymentStatus'] }) => {
   const option = paymentStatusOptions.find((item) => item.value === status);
@@ -205,12 +215,66 @@ export const OrdersManagementPage = () => {
     },
   });
 
+  const paymentStatusMutation = useMutation({
+    mutationFn: ({
+      id,
+      paymentStatus,
+    }: {
+      id: string;
+      paymentStatus: AdminOrderPaymentStatus;
+    }) => adminApi.updateOrderPaymentStatus(id, paymentStatus),
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
+      toast.success(result.message);
+      setDetailOrder((current) =>
+        current?.id === variables.id
+          ? { ...current, paymentStatus: variables.paymentStatus }
+          : current,
+      );
+    },
+  });
+
   const handleStatusChange = (order: AdminOrder, status: AdminOrderStatus) => {
     if (order.status === status) {
       return;
     }
 
     statusMutation.mutate({ id: order.id, status });
+  };
+
+  const handlePaymentStatusChange = (
+    order: AdminOrder,
+    paymentStatus: AdminOrderPaymentStatus,
+  ) => {
+    if (order.paymentStatus === paymentStatus) {
+      return;
+    }
+
+    paymentStatusMutation.mutate({ id: order.id, paymentStatus });
+  };
+
+  const downloadOrdersReport = () => {
+    downloadCsv(createReportFilename('orders-report'), visibleOrders, [
+      { header: 'Order number', value: (order) => order.orderNumber },
+      { header: 'Placed at', value: (order) => formatDate(order.createdAt) },
+      { header: 'Customer', value: (order) => order.customerName },
+      { header: 'Customer email', value: (order) => order.customerEmail ?? '' },
+      { header: 'Customer phone', value: (order) => order.customerPhone ?? '' },
+      { header: 'Items', value: (order) => order.itemCount },
+      { header: 'Order status', value: (order) => order.status },
+      { header: 'Payment status', value: (order) => order.paymentStatus ?? 'pending' },
+      { header: 'Payment method', value: (order) => order.paymentMethod ?? '' },
+      { header: 'Payment gateway', value: (order) => order.paymentGateway ?? '' },
+      { header: 'Payment reference', value: (order) => order.paymentGatewayReferenceId ?? '' },
+      { header: 'Region', value: (order) => order.region ?? '' },
+      { header: 'Township', value: (order) => order.township ?? '' },
+      { header: 'Delivery address', value: (order) => order.deliveryAddress ?? '' },
+      { header: 'Promo code', value: (order) => order.promoCode ?? '' },
+      { header: 'Promo discount', value: (order) => order.promoDiscountAmount ?? 0 },
+      { header: 'Total amount', value: (order) => order.totalAmount },
+      { header: 'Currency', value: (order) => order.currency },
+    ]);
   };
 
   const columns: GridColDef<AdminOrder>[] = [
@@ -220,8 +284,28 @@ export const OrdersManagementPage = () => {
     {
       field: 'paymentStatus',
       headerName: 'Payment status',
-      width: 150,
-      renderCell: ({ row }) => <PaymentStatus status={row.paymentStatus} />,
+      renderCell: ({ row }) => (
+        <TextField
+          disabled={
+            paymentStatusMutation.isPending && paymentStatusMutation.variables?.id === row.id
+          }
+          onChange={(event) =>
+            handlePaymentStatusChange(row, event.target.value as AdminOrderPaymentStatus)
+          }
+          onClick={(event) => event.stopPropagation()}
+          select
+          size="small"
+          sx={{ minWidth: 140 }}
+          value={row.paymentStatus ?? 'pending'}
+        >
+          {paymentStatusOptions.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </TextField>
+      ),
+      width: 170,
     },
     { field: 'paymentMethod', headerName: 'Payment method', width: 160 },
     {
@@ -345,6 +429,14 @@ export const OrdersManagementPage = () => {
           </Stack>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             <Chip label={`${visibleOrders.length} results`} size="small" variant="outlined" />
+            <Button
+              disabled={ordersQuery.isLoading || visibleOrders.length === 0}
+              onClick={downloadOrdersReport}
+              startIcon={<FileDownloadOutlinedIcon />}
+              variant="outlined"
+            >
+              Download report
+            </Button>
             <Button disabled={ordersQuery.isFetching} onClick={() => void ordersQuery.refetch()}>
               Refresh
             </Button>
@@ -701,7 +793,28 @@ export const OrdersManagementPage = () => {
                     </Stack>
                     <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                       <Typography color="text.secondary">Payment status</Typography>
-                      <PaymentStatus status={detailOrder.paymentStatus} />
+                      <TextField
+                        disabled={
+                          paymentStatusMutation.isPending &&
+                          paymentStatusMutation.variables?.id === detailOrder.id
+                        }
+                        onChange={(event) =>
+                          handlePaymentStatusChange(
+                            detailOrder,
+                            event.target.value as AdminOrderPaymentStatus,
+                          )
+                        }
+                        select
+                        size="small"
+                        sx={{ minWidth: 150 }}
+                        value={detailOrder.paymentStatus ?? 'pending'}
+                      >
+                        {paymentStatusOptions.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
                     </Stack>
                     {detailOrder.paymentGateway ? (
                       <Box sx={{ overflowWrap: 'anywhere' }}>

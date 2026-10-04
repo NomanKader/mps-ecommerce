@@ -10,14 +10,16 @@ export const MoPaymentsReturnPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const orderNumber = searchParams.get('orderNumber');
+  const walletTopUpId = searchParams.get('walletTopUpId');
+  const isWalletTopUp = Boolean(walletTopUpId);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      navigate(routePaths.accountOrders, { replace: true });
+      navigate(isWalletTopUp ? routePaths.accountWallet : routePaths.accountOrders, { replace: true });
     }, 1800);
 
     return () => window.clearTimeout(timeoutId);
-  }, [navigate]);
+  }, [isWalletTopUp, navigate]);
 
   return (
     <PageSection
@@ -28,14 +30,22 @@ export const MoPaymentsReturnPage = () => {
         <Alert severity="info">
           {orderNumber
             ? `Checking online payment for order ${orderNumber}. Your order history will show the latest status.`
-            : 'Your order history will show the latest online payment status.'}
+            : isWalletTopUp
+              ? 'Checking your wallet top-up payment. Your wallet balance will show the latest status.'
+              : 'Your order history will show the latest online payment status.'}
         </Alert>
         <Typography color="text.secondary">
-          You will be redirected to your order history automatically.
+          You will be redirected automatically.
         </Typography>
         <Box>
-          <AppButton onClick={() => navigate(routePaths.accountOrders, { replace: true })}>
-            View order history
+          <AppButton
+            onClick={() =>
+              navigate(isWalletTopUp ? routePaths.accountWallet : routePaths.accountOrders, {
+                replace: true,
+              })
+            }
+          >
+            {isWalletTopUp ? 'View wallet' : 'View order history'}
           </AppButton>
         </Box>
       </Stack>

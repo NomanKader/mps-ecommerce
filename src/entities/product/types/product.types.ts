@@ -14,4 +14,5 @@ export type Product = {
   subcategory?: string;
   tags: string[];
   tenantId: string;
+  unit?: string;
 };

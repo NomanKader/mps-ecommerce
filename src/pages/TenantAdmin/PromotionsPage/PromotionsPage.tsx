@@ -5,12 +5,12 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
   Alert,
-  Chip,
   DialogActions,
   DialogContent,
   DialogTitle,
   Grid,
   InputAdornment,
+  MenuItem,
   Stack,
   TextField,
   Typography,
@@ -21,7 +21,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 
 import { adminApi } from '@features/admin/api/adminApi';
-import type { AdminPromotion } from '@features/admin/types/admin.types';
+import type { AdminPromotion, AdminPromotionStatus } from '@features/admin/types/admin.types';
 import { useDebounce } from '@hooks/useDebounce';
 import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
@@ -29,9 +29,19 @@ import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
 import { formatDate } from '@utils/formatDate';
 
-type PromotionForm = Pick<AdminPromotion, 'code' | 'discount' | 'endsAt' | 'startsAt'> & {
+type PromotionForm = Pick<
+  AdminPromotion,
+  'code' | 'discount' | 'endsAt' | 'startsAt' | 'status'
+> & {
   campaign: string;
 };
+
+const promotionStatusOptions: Array<{ label: string; value: AdminPromotionStatus }> = [
+  { label: 'Active', value: 'active' },
+  { label: 'Paused / deactivated', value: 'paused' },
+  { label: 'Scheduled', value: 'scheduled' },
+  { label: 'Expired', value: 'expired' },
+];
 
 const emptyForm: PromotionForm = {
   code: '',
@@ -39,6 +49,7 @@ const emptyForm: PromotionForm = {
   endsAt: '2026-06-30',
   campaign: '',
   startsAt: '2026-04-27',
+  status: 'active',
 };
 
 const toDateInputValue = (date: string) => date.slice(0, 10);
@@ -56,6 +67,16 @@ export const PromotionsPage = () => {
     queryKey: ['admin', 'promotions', debouncedSearch],
   });
   const promotions = promotionsQuery.data ?? [];
+
+  const saveStatusMutation = useMutation({
+    mutationFn: ({ promotion, status }: { promotion: AdminPromotion; status: AdminPromotionStatus }) =>
+      adminApi.updatePromotion(promotion.id, { ...promotion, status }),
+    onError: (error) => toast.error(toApiError(error).message),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'promotions'] });
+      toast.success(result.message);
+    },
+  });
 
   const columns: GridColDef<AdminPromotion>[] = [
     { field: 'campaign', flex: 1, headerName: 'Campaign', minWidth: 200 },
@@ -80,14 +101,32 @@ export const PromotionsPage = () => {
         const status = params.row.status;
 
         return (
-          <Chip
-            color={status === 'active' ? 'success' : status === 'paused' ? 'default' : 'info'}
-            label={status}
+          <TextField
+            disabled={
+              saveStatusMutation.isPending &&
+              saveStatusMutation.variables?.promotion.id === params.row.id
+            }
+            onChange={(event) =>
+              saveStatusMutation.mutate({
+                promotion: params.row,
+                status: event.target.value as AdminPromotionStatus,
+              })
+            }
+            onClick={(event) => event.stopPropagation()}
+            select
             size="small"
-          />
+            sx={{ minWidth: 150 }}
+            value={status}
+          >
+            {promotionStatusOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextField>
         );
       },
-      width: 130,
+      width: 180,
     },
     { field: 'uses', headerName: 'Uses', type: 'number', width: 100 },
     {
@@ -105,6 +144,7 @@ export const PromotionsPage = () => {
               discount: row.discount,
               endsAt: toDateInputValue(row.endsAt),
               startsAt: toDateInputValue(row.startsAt),
+              status: row.status,
             });
             setIsPromotionDialogOpen(true);
           }}
@@ -138,7 +178,7 @@ export const PromotionsPage = () => {
         discount,
         endsAt: new Date(`${form.endsAt}T23:59:59.999Z`).toISOString(),
         startsAt: new Date(`${form.startsAt}T00:00:00.000Z`).toISOString(),
-        status: existing?.status ?? ('scheduled' as const),
+        status: form.status,
         uses: existing?.uses ?? 0,
       };
 
@@ -285,6 +325,23 @@ export const PromotionsPage = () => {
                 />
               </Grid>
             </Grid>
+            <TextField
+              label="Status"
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  status: event.target.value as AdminPromotionStatus,
+                }))
+              }
+              select
+              value={form.status}
+            >
+              {promotionStatusOptions.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>

@@ -1,5 +1,4 @@
 import { PersistentDialog as Dialog } from '@shared/components/ui/Dialog/AppDialog';
-import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import {
   Alert,
@@ -38,9 +37,6 @@ const statusColors: Record<AdminWalletTopUpStatus, 'default' | 'success' | 'warn
   pending: 'warning',
   rejected: 'error',
 };
-
-const receiptLabel = (request: AdminWalletTopUpRequest) =>
-  `Receipt for ${formatCurrency(request.amount)} top-up`;
 
 export const WalletTopUpsPage = () => {
   const queryClient = useQueryClient();
@@ -155,7 +151,7 @@ export const WalletTopUpsPage = () => {
       action={
         <Chip color={pendingCount ? 'warning' : 'default'} label={`${pendingCount} pending`} />
       }
-      description="Review customer wallet top-up transfer receipts and manually approve wallet balance updates."
+      description="Monitor online wallet top-up payments and manually review legacy pending requests if needed."
       title="Wallet Top-ups"
     >
       <Stack spacing={2}>
@@ -184,7 +180,7 @@ export const WalletTopUpsPage = () => {
             <MenuItem value="rejected">Rejected</MenuItem>
           </TextField>
           <Typography sx={{ color: 'text.secondary', fontWeight: 700 }}>
-            Approve only after confirming the receipt amount in the uploaded image.
+            Online payments approve wallet balance automatically after gateway confirmation.
           </Typography>
         </Stack>
         {topUpsQuery.error ? (
@@ -269,22 +265,35 @@ export const WalletTopUpsPage = () => {
                   spacing={1}
                   sx={{ alignItems: 'center', bgcolor: 'grey.100', p: 1.2 }}
                 >
-                  <ReceiptLongOutlinedIcon fontSize="small" />
-                  <Typography sx={{ fontWeight: 800 }}>{receiptLabel(reviewTarget)}</Typography>
+                  <Typography sx={{ fontWeight: 800 }}>Payment gateway details</Typography>
                 </Stack>
-                {reviewTarget.receiptImageUrl ? (
-                  <Box
-                    component="img"
-                    src={reviewTarget.receiptImageUrl}
-                    sx={{ display: 'block', maxHeight: 420, objectFit: 'contain', width: '100%' }}
-                  />
-                ) : (
-                  <Box sx={{ p: 3 }}>
-                    <Alert severity="warning">
-                      Receipt preview is not available. The signed S3 URL may have expired.
-                    </Alert>
-                  </Box>
-                )}
+                <Stack spacing={1} sx={{ p: 2 }}>
+                  <Typography>
+                    Provider: {reviewTarget.paymentGateway ?? reviewTarget.paymentMethod ?? 'N/A'}
+                  </Typography>
+                  <Typography>
+                    Gateway status: {reviewTarget.paymentGatewayStatus ?? 'Pending'}
+                  </Typography>
+                  <Typography>
+                    Reference: {reviewTarget.paymentMerchantReferenceId ?? 'N/A'}
+                  </Typography>
+                  {reviewTarget.paymentGatewayReferenceId ? (
+                    <Typography>Payment ID: {reviewTarget.paymentGatewayReferenceId}</Typography>
+                  ) : null}
+                  {reviewTarget.paymentTransactionAmount != null ? (
+                    <Typography>
+                      Transaction amount: {formatCurrency(reviewTarget.paymentTransactionAmount)}
+                    </Typography>
+                  ) : null}
+                  {reviewTarget.paymentSettlementAmount != null ? (
+                    <Typography>
+                      Settlement amount: {formatCurrency(reviewTarget.paymentSettlementAmount)}
+                    </Typography>
+                  ) : null}
+                  {reviewTarget.receiptImageUrl ? (
+                    <Alert severity="info">Legacy receipt image is still available for this request.</Alert>
+                  ) : null}
+                </Stack>
               </Box>
             </Box>
           ) : null}

@@ -48,7 +48,7 @@ const addressToForm = (
   addressLine2: address.addressLine2 ?? '',
   city: address.city,
   deliveryInstructions: address.deliveryInstructions ?? '',
-  email: user?.email ?? '',
+  email: address.email || user?.email || '',
   fullName: address.recipientName || getUserName(user),
   isDefault: address.isDefault,
   label: address.label,
@@ -63,6 +63,7 @@ const formToAddressPayload = (form: CheckoutForm): CustomerAddressPayload => ({
   addressLine2: form.addressLine2.trim() || undefined,
   city: form.city.trim(),
   deliveryInstructions: form.deliveryInstructions.trim() || undefined,
+  email: form.email.trim() || undefined,
   isDefault: form.isDefault,
   label: form.label,
   landmark: form.landmark.trim() || undefined,
@@ -85,6 +86,8 @@ const formatDeliveryAddress = (form: CheckoutForm) =>
     .filter(Boolean)
     .join(', ');
 
+const isYangonRegion = (region?: string) => region === 'Yangon' || region === 'Yangon Region';
+
 export const CheckoutPage = () => {
   const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth.user);
@@ -92,6 +95,8 @@ export const CheckoutPage = () => {
   const locationsQuery = useMyanmarLocations();
   const { items, totalItems, totalPrice } = useCart();
   const [form, setForm] = useState<CheckoutForm>(() => getEmptyCheckoutForm(user));
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCouponCode, setAppliedCouponCode] = useState('');
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState('');
   const currency = items[0]?.product.currency ?? 'MMK';
@@ -107,6 +112,7 @@ export const CheckoutPage = () => {
     queryFn: () =>
       orderApi.getDeliveryQuote({
         city: form.city.trim(),
+        promoCode: appliedCouponCode || undefined,
         region: form.region.trim(),
         subtotalAmount: totalPrice,
         township: form.township.trim(),
@@ -116,10 +122,15 @@ export const CheckoutPage = () => {
       'delivery-quote',
       form.city,
       form.region,
+      appliedCouponCode,
       totalPrice,
       form.township,
     ],
     retry: false,
+  });
+  const activePromotionsQuery = useQuery({
+    queryFn: ({ signal }) => orderApi.getActivePromotions({ signal }),
+    queryKey: ['orders', 'promotions', 'active'],
   });
 
   useEffect(() => {
@@ -142,7 +153,9 @@ export const CheckoutPage = () => {
         return;
       }
 
-      const initialAddress = addresses.find((address) => address.isDefault) ?? addresses[0];
+      const supportedAddresses = addresses.filter((address) => isYangonRegion(address.region));
+      const initialAddress =
+        supportedAddresses.find((address) => address.isDefault) ?? supportedAddresses[0];
       if (!initialAddress) return;
 
       setSelectedAddressId(initialAddress.id);
@@ -156,6 +169,10 @@ export const CheckoutPage = () => {
   const handleSelectAddress = (addressId: string) => {
     const address = addresses.find((item) => item.id === addressId);
     if (!address) return;
+    if (!isYangonRegion(address.region)) {
+      toast.error('Delivery is available in Yangon only for now. Please add a Yangon address.');
+      return;
+    }
 
     setSelectedAddressId(address.id);
     setForm(addressToForm(address, user));
@@ -168,7 +185,9 @@ export const CheckoutPage = () => {
 
   const handleCancelAddAddress = () => {
     const address =
-      selectedAddress ?? addresses.find((item) => item.isDefault) ?? addresses[0];
+      (selectedAddress && isYangonRegion(selectedAddress.region) ? selectedAddress : undefined) ??
+      addresses.find((item) => item.isDefault && isYangonRegion(item.region)) ??
+      addresses.find((item) => isYangonRegion(item.region));
     if (!address) return;
 
     setIsAddingAddress(false);
@@ -188,6 +207,11 @@ export const CheckoutPage = () => {
 
     if (requiredFields.some((field) => !field.trim())) {
       toast.error('Complete all required customer and delivery address fields.');
+      return;
+    }
+
+    if (!isYangonRegion(form.region)) {
+      toast.error('Delivery is available in Yangon only for now. Please select Yangon.');
       return;
     }
 
@@ -219,6 +243,7 @@ export const CheckoutPage = () => {
         customerPhone: checkoutForm.phone.trim(),
         deliveryAddress: formatDeliveryAddress(checkoutForm),
         itemCount: totalItems,
+        promoCode: deliveryQuoteQuery.data.promoCode,
         region: checkoutForm.region.trim(),
         township: checkoutForm.township.trim(),
         subtotalAmount: totalPrice,
@@ -238,7 +263,10 @@ export const CheckoutPage = () => {
       >
         {items.length ? (
           <CheckoutSections
+            activePromotions={activePromotionsQuery.data ?? []}
             addresses={addresses}
+            appliedCouponCode={appliedCouponCode}
+            couponCode={couponCode}
             currency={currency}
             form={form}
             isAddingAddress={isAddingAddress}
@@ -247,10 +275,20 @@ export const CheckoutPage = () => {
             isSubmitting={isSaving}
             locations={locationsQuery.data ?? []}
             onAddAddress={handleAddAddress}
+            onApplyCoupon={() => setAppliedCouponCode(couponCode.trim().toUpperCase())}
             onCancelAddAddress={handleCancelAddAddress}
             onChange={(field, value) =>
               setForm((current) => ({ ...current, [field]: value }))
             }
+            onClearCoupon={() => {
+              setAppliedCouponCode('');
+              setCouponCode('');
+            }}
+            onCouponCodeChange={setCouponCode}
+            onSelectPromotion={(code) => {
+              setCouponCode(code);
+              setAppliedCouponCode(code);
+            }}
             onSelectAddress={handleSelectAddress}
             onSubmit={() => void handleSubmit()}
             selectedAddressId={selectedAddressId}

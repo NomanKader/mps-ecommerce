@@ -3,6 +3,7 @@ import { alpha } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
+import { useI18n } from '@features/i18n/I18nProvider';
 import { routePaths } from '@routes/routePaths';
 import { storefrontMutedPanelSx } from '@shared/styles/storefront';
 import type { StorefrontPageSegment } from '@features/home/types/home.types';
@@ -13,6 +14,8 @@ const getPageSegmentPath = (segment: StorefrontPageSegment) =>
   routePaths.pageSegmentDetails.replace(':segmentId', segment.id);
 
 export const PageSegmentStrip = ({ segments }: { segments: StorefrontPageSegment[] }) => {
+  const { t } = useI18n();
+
   if (!segments.length) return null;
 
   const isFullImageCardDesign = segments[0]?.displaySlot === 'after-storefront-icons';
@@ -168,7 +171,7 @@ export const PageSegmentStrip = ({ segments }: { segments: StorefrontPageSegment
                     }}
                     tabIndex={-1}
                   >
-                    Shop now
+                    {t('Shop now')}
                   </Button>
                 ) : (
                   mediaItems.slice(0, 3).map((item, index) => (

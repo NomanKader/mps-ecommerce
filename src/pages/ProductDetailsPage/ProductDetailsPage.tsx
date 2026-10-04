@@ -4,8 +4,9 @@ import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 import KeyboardArrowUpRoundedIcon from '@mui/icons-material/KeyboardArrowUpRounded';
 import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
+import ShoppingCartRoundedIcon from '@mui/icons-material/ShoppingCartRounded';
 import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded';
-import { Box, Card, Fab, Grid, IconButton, Skeleton, Stack, Typography } from '@mui/material';
+import { Box, Button, Card, Fab, Grid, IconButton, Skeleton, Stack, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
@@ -83,6 +84,9 @@ const isStoreProduct = (product: StoreProduct | Product): product is StoreProduc
 const toGenericProduct = (product: StoreProduct | Product) =>
   isStoreProduct(product) ? mapHomeProductToProduct(product) : product;
 
+const getProductUnit = (product: StoreProduct | Product) =>
+  isStoreProduct(product) ? product.unit : product.unit || product.subcategory || 'item';
+
 const isOpaqueId = (value: string) => /^[a-f0-9]{24}$/i.test(value);
 
 const getProductCategoryLabel = (product: StoreProduct | Product, categories: Category[]) => {
@@ -115,7 +119,7 @@ const getProductDetailContent = (product: StoreProduct | Product): ProductDetail
     return (
       productDetailOverrides[product.id] ?? {
         description: [
-          `${product.name} from ${product.origin} is merchandised as a premium storefront product with a clean, image-led layout and simple purchase controls.`,
+          `${product.name} from ${product.origin} is selected for easy everyday shopping and reliable home delivery.`,
           product.description,
         ],
         gallery: [product.imageUrl, product.imageUrl, product.imageUrl],
@@ -124,7 +128,7 @@ const getProductDetailContent = (product: StoreProduct | Product): ProductDetail
           `Pack / unit: ${product.unit}.`,
           `SKU: ${product.sku}.`,
           `Inventory available: ${product.inventory}.`,
-          'Presented in the same reusable storefront structure as the homepage merchandising cards.',
+          'Selected for easy everyday shopping and reliable home delivery.',
         ],
         packLabel: product.unit,
       }
@@ -134,7 +138,7 @@ const getProductDetailContent = (product: StoreProduct | Product): ProductDetail
   return {
     description: [
       product.description,
-      'This product is available through the same shared storefront shell, using the project’s reusable navigation, page container, and footer components.',
+      "Add it to your basket and AV's Store will prepare it with care for Yangon delivery.",
     ],
     gallery: [product.imageUrl, product.imageUrl, product.imageUrl].filter(Boolean),
     keyFeatures: [
@@ -142,7 +146,7 @@ const getProductDetailContent = (product: StoreProduct | Product): ProductDetail
       `Inventory available: ${product.inventory}.`,
       `Price: ${formatCurrency(product.price, product.currency)}.`,
     ],
-    packLabel: 'Storefront product',
+    packLabel: getProductUnit(product),
   };
 };
 
@@ -270,7 +274,7 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
     [allProductsQuery.data, fallbackProduct, product],
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [quantity, setQuantity] = useState(0);
+  const [quantity, setQuantity] = useState(1);
   const isLoadingProduct =
     !fallbackProduct && (productQuery.isLoading || productQuery.isFetching);
   const isLoadingSupportingData =
@@ -301,18 +305,22 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
   const productForCart = toGenericProduct(product);
   const productIsFavorite = isFavorite(product.id);
   const origin = isStoreProduct(product) ? product.origin : 'Storefront';
-  const unit = isStoreProduct(product) ? product.unit : detailContent.packLabel;
+  const unit = getProductUnit(product);
   const { oldPrice, qualifier } = isStoreProduct(product)
     ? parseStorefrontUnit(product.unit, product.price)
     : { oldPrice: null, qualifier: '' };
 
   const handleIncreaseQuantity = () => {
     setQuantity((current) => current + 1);
-    addToCart(productForCart);
   };
 
   const handleDecreaseQuantity = () => {
-    setQuantity((current) => Math.max(0, current - 1));
+    setQuantity((current) => Math.max(1, current - 1));
+  };
+
+  const handleAddToCart = () => {
+    Array.from({ length: quantity }).forEach(() => addToCart(productForCart));
+    toast.success(`${quantity} ${quantity === 1 ? 'item' : 'items'} added to cart`);
   };
 
   const handleShare = async () => {
@@ -524,53 +532,78 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
               ) : null}
             </Box>
 
-            <Stack direction="row" spacing={2} sx={{ alignItems: 'center', pt: 0.5 }}>
-              <IconButton
-                disabled={quantity === 0}
-                onClick={handleDecreaseQuantity}
-                sx={{
-                  backgroundColor: storefrontColors.navy,
-                  borderRadius: 0.5,
-                  color: storefrontColors.surface,
-                  height: 56,
-                  width: 56,
-                  '&.Mui-disabled': {
-                    backgroundColor: alpha(storefrontColors.navy, 0.32),
+            <Stack
+              direction={{ sm: 'row', xs: 'column' }}
+              spacing={1.5}
+              sx={{ alignItems: { sm: 'center', xs: 'stretch' }, pt: 0.5 }}
+            >
+              <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                <IconButton
+                  disabled={quantity === 1}
+                  onClick={handleDecreaseQuantity}
+                  sx={{
+                    backgroundColor: storefrontColors.navy,
+                    borderRadius: 0.5,
                     color: storefrontColors.surface,
-                  },
-                  '&:hover': {
-                    backgroundColor: storefrontColors.navyDark,
-                  },
-                }}
-              >
-                <RemoveRoundedIcon />
-              </IconButton>
-              <Typography
+                    height: 56,
+                    width: 56,
+                    '&.Mui-disabled': {
+                      backgroundColor: alpha(storefrontColors.navy, 0.32),
+                      color: storefrontColors.surface,
+                    },
+                    '&:hover': {
+                      backgroundColor: storefrontColors.navyDark,
+                    },
+                  }}
+                >
+                  <RemoveRoundedIcon />
+                </IconButton>
+                <Typography
+                  sx={{
+                    color: storefrontColors.navy,
+                    fontSize: '2rem',
+                    fontWeight: 700,
+                    minWidth: 32,
+                    textAlign: 'center',
+                  }}
+                >
+                  {quantity}
+                </Typography>
+                <IconButton
+                  onClick={handleIncreaseQuantity}
+                  sx={{
+                    backgroundColor: storefrontColors.navy,
+                    borderRadius: 0.5,
+                    color: storefrontColors.surface,
+                    height: 56,
+                    width: 56,
+                    '&:hover': {
+                      backgroundColor: storefrontColors.navyDark,
+                    },
+                  }}
+                >
+                  <AddRoundedIcon />
+                </IconButton>
+              </Stack>
+              <Button
+                onClick={handleAddToCart}
+                startIcon={<ShoppingCartRoundedIcon />}
                 sx={{
-                  color: storefrontColors.navy,
-                  fontSize: '2rem',
-                  fontWeight: 700,
-                  minWidth: 32,
-                  textAlign: 'center',
-                }}
-              >
-                {quantity}
-              </Typography>
-              <IconButton
-                onClick={handleIncreaseQuantity}
-                sx={{
-                  backgroundColor: storefrontColors.navy,
-                  borderRadius: 0.5,
-                  color: storefrontColors.surface,
-                  height: 56,
-                  width: 56,
+                  bgcolor: '#c41a1a',
+                  borderRadius: 0.75,
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  minHeight: 56,
+                  px: 3,
+                  textTransform: 'none',
                   '&:hover': {
-                    backgroundColor: storefrontColors.navyDark,
+                    bgcolor: '#a91515',
                   },
                 }}
+                variant="contained"
               >
-                <AddRoundedIcon />
-              </IconButton>
+                Add to cart
+              </Button>
             </Stack>
 
             <Typography

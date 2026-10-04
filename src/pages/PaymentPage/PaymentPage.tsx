@@ -76,6 +76,7 @@ export const PaymentPage = () => {
 
       return orderApi.getDeliveryQuote({
         city: draft.city,
+        promoCode: draft.promoCode,
         region: draft.region ?? '',
         subtotalAmount: draft.subtotalAmount,
         township: draft.township ?? '',
@@ -85,6 +86,7 @@ export const PaymentPage = () => {
       'orders',
       'delivery-quote',
       draft?.city,
+      draft?.promoCode,
       draft?.region,
       draft?.subtotalAmount,
       draft?.township,
@@ -300,6 +302,16 @@ export const PaymentPage = () => {
                         )}
                   </Typography>
                 </Stack>
+                {deliveryQuoteQuery.data?.promoDiscountAmount ? (
+                  <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                    <Typography color="text.secondary">
+                      Discount {deliveryQuoteQuery.data.promoCode ? `(${deliveryQuoteQuery.data.promoCode})` : ''}
+                    </Typography>
+                    <Typography color="success.main" sx={{ fontWeight: 800 }}>
+                      -{formatCurrency(deliveryQuoteQuery.data.promoDiscountAmount, draft.currency)}
+                    </Typography>
+                  </Stack>
+                ) : null}
                 <Typography color="text.secondary" variant="caption">
                   Delivering to {draft.city}, {draft.township}, {draft.region}
                 </Typography>

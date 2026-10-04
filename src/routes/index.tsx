@@ -12,6 +12,7 @@ import { CatalogPage } from '@pages/CatalogPage/CatalogPage';
 import { CheckoutPage } from '@pages/CheckoutPage/CheckoutPage';
 import { AccountMenuPage } from '@pages/FavouritesPage/FavouritesPage';
 import { HomePage } from '@pages/HomePage/HomePage';
+import { LegalPage } from '@pages/LegalPage/LegalPage';
 import { NotFoundPage } from '@pages/NotFoundPage/NotFoundPage';
 import { MoPaymentsReturnPage } from '@pages/PaymentPage/MoPaymentsReturnPage';
 import { PaymentPage } from '@pages/PaymentPage/PaymentPage';
@@ -55,6 +56,7 @@ const accountRoutes = [
   { element: <AccountMenuPage />, path: routePaths.accountStatus },
   { element: <AccountMenuPage />, path: routePaths.accountVouchers },
   { element: <AccountMenuPage />, path: routePaths.accountWallet },
+  { element: <AccountMenuPage />, path: routePaths.accountWalletTerms },
   { element: <AccountMenuPage />, path: routePaths.accountWioBank },
 ];
 
@@ -92,6 +94,8 @@ export const router = createBrowserRouter([
           { element: <CartPage />, path: routePaths.cart },
           { element: <SearchPage />, path: routePaths.search },
           { element: <ProductDetailsPage />, path: routePaths.productDetails },
+          { element: <LegalPage />, path: routePaths.privacyPolicy },
+          { element: <LegalPage />, path: routePaths.termsConditions },
           ...sustainableShoppingRoutes,
           ...legacySustainableShoppingRoutes.map((route) => ({
             element: <Navigate replace to={route.to} />,

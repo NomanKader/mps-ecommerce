@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 
 import { useFavorites } from '@features/favorites/hooks/useFavorites';
 import type { StoreProduct } from '@features/home/types/home.types';
+import { useI18n } from '@features/i18n/I18nProvider';
 import { routePaths } from '@routes/routePaths';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { formatCurrency } from '@utils/formatCurrency';
@@ -24,6 +25,7 @@ const productPath = (productId: string) =>
 
 export const StoreProductCard = ({ disableNavigation = false, onAddToCart, product }: StoreProductCardProps) => {
   const { isFavorite, isToggling, toggleFavorite } = useFavorites();
+  const { t } = useI18n();
   const productIsFavorite = isFavorite(product.id);
   const path = productPath(product.id);
   const titleComponent = disableNavigation ? 'span' : Link;
@@ -132,7 +134,7 @@ export const StoreProductCard = ({ disableNavigation = false, onAddToCart, produ
           onClick={() => onAddToCart?.(product)}
           sx={{ mt: 'auto' }}
         >
-          Add to Cart
+          {t('Add to Cart')}
         </AppButton>
       </CardContent>
     </Card>

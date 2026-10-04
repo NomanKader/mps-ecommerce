@@ -23,6 +23,7 @@ export const routePaths = {
   accountVouchers: '/account/myvouchers',
   accountVision: '/account/vision',
   accountWallet: '/account/mywallet',
+  accountWalletTerms: '/account/wallet-terms',
   accountWioBank: '/account/wio-bank',
   auth: {
     forgotPassword: '/auth/forgot-password',
@@ -37,6 +38,7 @@ export const routePaths = {
   payment: '/payment',
   paymentMoPaymentsReturn: '/payment/mopayments/return',
   pageSegmentDetails: '/page-segments/:segmentId',
+  privacyPolicy: '/privacy-policy',
   productDetails: '/products/:productId',
   search: '/searchpage',
   sustainability: {
@@ -76,4 +78,5 @@ export const routePaths = {
     townships: '/admin/townships',
     walletTopUps: '/admin/wallet-topups',
   },
+  termsConditions: '/terms-and-conditions',
 } as const;

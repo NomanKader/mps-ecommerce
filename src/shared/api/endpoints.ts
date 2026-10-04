@@ -18,10 +18,12 @@ export const endpoints = {
     categories: '/admin/categories',
     category: (id: string) => `/admin/categories/${id}`,
     customers: '/admin/customers',
+    customerWalletLoad: '/admin/customers/wallet-load',
     dashboard: '/admin/dashboard',
     deliveryFee: (id: string) => `/admin/delivery-fees/${id}`,
     deliveryFees: '/admin/delivery-fees',
     orderStats: '/admin/orders/stats',
+    orderPaymentStatus: (id: string) => `/admin/orders/${id}/payment-status`,
     orderStatus: (id: string) => `/admin/orders/${id}/status`,
     orders: '/admin/orders',
     pageSegment: (id: string) => `/admin/page-segments/${id}`,
@@ -62,6 +64,7 @@ export const endpoints = {
   orders: {
     deliveryQuote: '/orders/delivery-quote',
     list: '/orders',
+    promotions: '/orders/promotions/active',
   },
   products: {
     details: (productId: string) => `/products/${productId}`,

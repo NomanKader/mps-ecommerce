@@ -217,7 +217,7 @@ export const DeliveryFeesPage = () => {
           Add delivery fee
         </AppButton>
       }
-      description="Configure delivery fees by Myanmar region and township."
+      description="Configure delivery fees for Yangon townships."
       title="Delivery Fees"
     >
       <Stack

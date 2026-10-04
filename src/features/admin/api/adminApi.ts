@@ -5,6 +5,7 @@ import type {
   AdminCategory,
   AdminCategoryPayload,
   AdminCustomer,
+  AdminCustomerPayload,
   AdminDashboard,
   AdminDashboardUser,
   AdminDashboardUserPayload,
@@ -26,6 +27,8 @@ import type {
   AdminTownship,
   AdminTownshipPayload,
   AdminWalletTopUpRequest,
+  AdminWalletLoadPayload,
+  AdminWalletLoadResult,
 } from '@features/admin/types/admin.types';
 
 type MongoEntity = { _id: string };
@@ -76,6 +79,10 @@ const productFormData = (payload: AdminProductPayload) => {
   formData.append('name', payload.name);
   formData.append('sku', payload.sku);
 
+  if (payload.unit) {
+    formData.append('unit', payload.unit);
+  }
+
   if (payload.categoryName) {
     formData.append('categoryName', payload.categoryName);
   }
@@ -114,6 +121,13 @@ export const adminApi = {
   async createCategory(payload: AdminCategoryPayload) {
     const response = await apiClient.post<ApiResponse<BackendEntity<AdminCategory>>>(
       endpoints.admin.categories,
+      payload,
+    );
+    return { ...response.data, data: mapId(response.data.data) };
+  },
+  async createCustomer(payload: AdminCustomerPayload) {
+    const response = await apiClient.post<ApiResponse<BackendEntity<AdminCustomer>>>(
+      endpoints.admin.customers,
       payload,
     );
     return { ...response.data, data: mapId(response.data.data) };
@@ -160,6 +174,14 @@ export const adminApi = {
       payload,
     );
     return { ...response.data, data: mapId(response.data.data) };
+  },
+  async loadCustomerWallet(payload: AdminWalletLoadPayload) {
+    return (
+      await apiClient.post<ApiResponse<AdminWalletLoadResult>>(
+        endpoints.admin.customerWalletLoad,
+        payload,
+      )
+    ).data;
   },
   async createRegion(payload: AdminRegionPayload) {
     const response = await apiClient.post<ApiResponse<BackendEntity<AdminRegion>>>(
@@ -345,6 +367,16 @@ export const adminApi = {
         endpoints.admin.orderStatus(id),
         {
           status,
+        },
+      )
+    ).data;
+  },
+  async updateOrderPaymentStatus(id: string, paymentStatus: AdminOrder['paymentStatus']) {
+    return (
+      await apiClient.patch<ApiResponse<BackendEntity<AdminOrder>>>(
+        endpoints.admin.orderPaymentStatus(id),
+        {
+          paymentStatus,
         },
       )
     ).data;

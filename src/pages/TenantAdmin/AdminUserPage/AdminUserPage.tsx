@@ -3,6 +3,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
@@ -34,6 +35,8 @@ import { toApiError } from '@shared/api/apiError';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
+import { createReportFilename, downloadCsv } from '@shared/utils/downloadCsv';
+import { formatDate } from '@utils/formatDate';
 
 type AdminUserStatus = 'active' | 'inactive';
 
@@ -379,12 +382,37 @@ export const AdminUserPage = () => {
     deleteMutation.mutate(deleteTarget.id);
   };
 
+  const downloadUsersReport = () => {
+    downloadCsv(createReportFilename('admin-users-report'), filteredUsers, [
+      { header: 'First name', value: (user) => user.firstName },
+      { header: 'Last name', value: (user) => user.lastName },
+      { header: 'Email', value: (user) => user.email },
+      { header: 'Phone', value: (user) => user.phone ?? '' },
+      {
+        header: 'Role',
+        value: (user) => getRoleDefinition(user.dashboardRole ?? 'operations_manager').label,
+      },
+      { header: 'Status', value: (user) => (user.isActive ? 'Active' : 'Inactive') },
+      { header: 'Created at', value: (user) => formatDate(user.createdAt) },
+    ]);
+  };
+
   return (
     <PageSection
       action={
-        <AppButton onClick={openCreateDialog} startIcon={<AddRoundedIcon />}>
-          Create user
-        </AppButton>
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <AppButton
+            disabled={usersQuery.isLoading || filteredUsers.length === 0}
+            onClick={downloadUsersReport}
+            startIcon={<FileDownloadOutlinedIcon />}
+            variant="outlined"
+          >
+            Download report
+          </AppButton>
+          <AppButton onClick={openCreateDialog} startIcon={<AddRoundedIcon />}>
+            Create user
+          </AppButton>
+        </Stack>
       }
       description="Create ecommerce website admins for dashboard operations. Tenant admin access is not created here."
       title="Ecommerce Website Admin Users"

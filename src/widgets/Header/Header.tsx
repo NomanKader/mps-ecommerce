@@ -38,6 +38,8 @@ import {
 import { useCart } from '@features/cart/hooks/useCart';
 import { useAddresses } from '@features/addresses/hooks/useAddresses';
 import { merchandisingApi } from '@features/home/api/merchandisingApi';
+import { LanguageSelector } from '@features/i18n/LanguageSelector';
+import { useI18n } from '@features/i18n/I18nProvider';
 import { useSignOut } from '@features/auth/hooks/useSignOut';
 import { storefrontIconButtonSx } from '@shared/styles/storefront';
 import type { RootState } from '@store/index';
@@ -139,10 +141,15 @@ const sustainableShoppingLinks = [
 const addressSummary = (address: CustomerAddress) =>
   [address.addressLine1, address.township, address.city].filter(Boolean).join(', ');
 
+const formatSupportPhoneLabel = (countryCode?: string, phoneNumber?: string) =>
+  countryCode && phoneNumber ? `${countryCode}-${phoneNumber}` : '+95-9953055682';
+
+const supportPhoneHref = 'tel:+959953055682';
+
 type AuthDrawerMode = 'login' | 'register';
 
 type SearchSuggestionsProps = {
-  onSelect: () => void;
+  onSelect: (product: Product) => void;
   products: Product[];
 };
 
@@ -168,28 +175,39 @@ const SearchSuggestions = ({ onSelect, products }: SearchSuggestionsProps) => {
     >
       {products.map((product) => (
         <Box
-          component={Link}
+          component="button"
           key={product.id}
-          onClick={onSelect}
+          onClick={() => onSelect(product)}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            onSelect(product);
+          }}
           role="option"
-          state={{ product }}
           sx={{
             alignItems: 'center',
+            background: 'transparent',
             borderBottom: `1px solid ${storefrontColors.border}`,
+            borderLeft: 0,
+            borderRight: 0,
+            borderTop: 0,
             color: storefrontColors.navy,
+            cursor: 'pointer',
             display: 'grid',
+            font: 'inherit',
             gap: 1.25,
             gridTemplateColumns: '52px minmax(0, 1fr) auto',
             minHeight: 68,
             p: 1,
+            textAlign: 'left',
             textDecoration: 'none',
+            width: '100%',
             '&:last-of-type': { borderBottom: 0 },
             '&:hover, &:focus-visible': {
               backgroundColor: alpha(storefrontColors.navy, 0.06),
               outline: 'none',
             },
           }}
-          to={routePaths.productDetails.replace(':productId', product.id)}
+          type="button"
         >
           <Box
             alt=""
@@ -237,6 +255,7 @@ const SearchSuggestions = ({ onSelect, products }: SearchSuggestionsProps) => {
 };
 
 export const Header = () => {
+  const { t } = useI18n();
   const { totalItems } = useCart();
   const signOut = useSignOut();
   const location = useLocation();
@@ -335,10 +354,13 @@ export const Header = () => {
     ? `${defaultAddress.label.toUpperCase()} · ${defaultAddress.township || defaultAddress.city}`
     : 'Add your address';
   const deliveryHeadline =
-    headerSettingsQuery.data?.deliveryHeadline ?? user?.deliveryHeadline ?? 'Delivery all over UAE';
+    headerSettingsQuery.data?.deliveryHeadline ?? user?.deliveryHeadline ?? 'Deliver in Yangon';
   const supportPhoneLabel = headerSettingsQuery.data
-    ? `${headerSettingsQuery.data.supportPhoneCountryCode} ${headerSettingsQuery.data.supportPhoneNumber}`.trim()
-    : (user?.supportPhoneLabel ?? '800 AVS');
+    ? formatSupportPhoneLabel(
+        headerSettingsQuery.data.supportPhoneCountryCode,
+        headerSettingsQuery.data.supportPhoneNumber,
+      )
+    : (user?.supportPhoneLabel ?? '+95-9953055682');
   const topBarTagline =
     headerSettingsQuery.data?.topBarTagline ??
     user?.topBarTagline ??
@@ -367,6 +389,14 @@ export const Header = () => {
   const openAuthDrawer = (mode: AuthDrawerMode = 'login') => {
     setAuthDrawerMode(mode);
     setIsAuthDrawerOpen(true);
+  };
+
+  const handleSearchSuggestionSelect = (product: Product) => {
+    setIsSearchSuggestionsOpen(false);
+    setSearchValue('');
+    navigate(routePaths.productDetails.replace(':productId', product.id), {
+      state: { product },
+    });
   };
 
   useEffect(() => {
@@ -552,7 +582,7 @@ export const Header = () => {
             </Stack>
             {isSearchSuggestionsOpen && searchValue.trim() ? (
               <SearchSuggestions
-                onSelect={() => setIsSearchSuggestionsOpen(false)}
+                onSelect={handleSearchSuggestionSelect}
                 products={searchSuggestions}
               />
             ) : null}
@@ -730,7 +760,7 @@ export const Header = () => {
                           }}
                           to={item.to}
                         >
-                          {item.label}
+                          {t(item.label)}
                         </Box>
                       ))}
                     </Box>
@@ -740,10 +770,16 @@ export const Header = () => {
             ) : null}
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               <PhoneInTalkOutlinedIcon sx={{ fontSize: 18 }} />
-              <Typography sx={{ fontWeight: 800 }} variant="body2">
+              <Typography
+                component="a"
+                href={supportPhoneHref}
+                sx={{ color: 'inherit', fontWeight: 800, textDecoration: 'none' }}
+                variant="body2"
+              >
                 {supportPhoneLabel}
               </Typography>
             </Stack>
+            <LanguageSelector />
             {isAuthenticated ? (
               <Stack direction="row" spacing={1.4} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
                 {isCustomer ? (
@@ -916,7 +952,7 @@ export const Header = () => {
             </Stack>
             {isSearchSuggestionsOpen && searchValue.trim() ? (
               <SearchSuggestions
-                onSelect={() => setIsSearchSuggestionsOpen(false)}
+                onSelect={handleSearchSuggestionSelect}
                 products={searchSuggestions}
               />
             ) : null}
@@ -1166,7 +1202,7 @@ export const Header = () => {
                   }}
                   to={getCatalogPath(
                     activeCategory.id,
-                    `${activeCategory.label}: ${item.label}`,
+                    `${t(activeCategory.label)}: ${t(item.label)}`,
                     item.label,
                   )}
                 >
@@ -1197,7 +1233,7 @@ export const Header = () => {
                     }}
                     variant="body2"
                   >
-                    {item.label}
+                    {t(item.label)}
                   </Typography>
                 </Box>
               ))}
@@ -1320,7 +1356,7 @@ export const Header = () => {
         ].map((item) => (
           <Box
             aria-current={item.isActive ? 'page' : undefined}
-            aria-label={item.label}
+            aria-label={t(item.label)}
             component={!isAuthenticated && item.requiresAuth ? 'button' : Link}
             key={item.label}
             onClick={
@@ -1374,7 +1410,7 @@ export const Header = () => {
                 lineHeight: 1,
               }}
             >
-              {item.label}
+              {t(item.label)}
             </Typography>
             {item.badge ? (
               <Box

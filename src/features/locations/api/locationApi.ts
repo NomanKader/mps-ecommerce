@@ -38,6 +38,14 @@ const normalizeMyanmarLocation = (location: RawMyanmarLocationOption): MyanmarLo
   };
 };
 
+const isYangonLocation = (location: MyanmarLocationOption) =>
+  location.region === 'Yangon' || location.region === 'Yangon Region';
+
+const normalizeServiceLocation = (location: MyanmarLocationOption): MyanmarLocationOption => ({
+  ...location,
+  region: location.region === 'Yangon Region' ? 'Yangon' : location.region,
+});
+
 export const locationApi = {
   async listMyanmarLocations(options: { signal?: globalThis.AbortSignal } = {}) {
     const response = await apiClient.get<ApiResponse<RawMyanmarLocationOption[]>>(
@@ -45,6 +53,9 @@ export const locationApi = {
       { signal: options.signal },
     );
 
-    return response.data.data.map(normalizeMyanmarLocation);
+    return response.data.data
+      .map(normalizeMyanmarLocation)
+      .filter(isYangonLocation)
+      .map(normalizeServiceLocation);
   },
 };

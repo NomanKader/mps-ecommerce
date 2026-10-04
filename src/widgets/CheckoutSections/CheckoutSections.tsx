@@ -4,6 +4,7 @@ import {
   Box,
   Card,
   CardContent,
+  Chip,
   Checkbox,
   Divider,
   FormControlLabel,
@@ -16,7 +17,7 @@ import {
 
 import type { AddressLabel, CustomerAddress } from '@entities/address/types/address.types';
 import type { MyanmarLocationOption } from '@entities/location/types/location.types';
-import type { DeliveryQuote } from '@features/order/api/orderApi';
+import type { ActivePromotion, DeliveryQuote } from '@features/order/api/orderApi';
 import { AppButton } from '@shared/components/ui/Button/AppButton';
 import { AppTextField } from '@shared/components/ui/Input/AppTextField';
 import { formatCurrency } from '@utils/formatCurrency';
@@ -37,7 +38,10 @@ export type CheckoutForm = {
 };
 
 type CheckoutSectionsProps = {
+  activePromotions: ActivePromotion[];
   addresses: CustomerAddress[];
+  appliedCouponCode: string;
+  couponCode: string;
   currency: string;
   deliveryQuote?: DeliveryQuote;
   deliveryQuoteError?: string;
@@ -48,9 +52,13 @@ type CheckoutSectionsProps = {
   isSubmitting?: boolean;
   locations: MyanmarLocationOption[];
   onAddAddress: () => void;
+  onApplyCoupon: () => void;
   onCancelAddAddress: () => void;
   onChange: <TKey extends keyof CheckoutForm>(field: TKey, value: CheckoutForm[TKey]) => void;
+  onClearCoupon: () => void;
+  onCouponCodeChange: (value: string) => void;
   onSelectAddress: (addressId: string) => void;
+  onSelectPromotion: (code: string) => void;
   onSubmit: () => void;
   selectedAddressId: string;
   subtotalAmount: number;
@@ -61,8 +69,13 @@ const addressSummary = (address: CustomerAddress) =>
     .filter(Boolean)
     .join(', ');
 
+const isYangonRegion = (region?: string) => region === 'Yangon' || region === 'Yangon Region';
+
 export const CheckoutSections = ({
+  activePromotions,
   addresses,
+  appliedCouponCode,
+  couponCode,
   currency,
   deliveryQuote,
   deliveryQuoteError,
@@ -73,14 +86,19 @@ export const CheckoutSections = ({
   isSubmitting,
   locations,
   onAddAddress,
+  onApplyCoupon,
   onCancelAddAddress,
   onChange,
+  onClearCoupon,
+  onCouponCodeChange,
   onSelectAddress,
+  onSelectPromotion,
   onSubmit,
   selectedAddressId,
   subtotalAmount,
 }: CheckoutSectionsProps) => {
-  const selectedRegion = locations.find((location) => location.region === form.region);
+  const supportedLocations = locations.filter((location) => isYangonRegion(location.region));
+  const selectedRegion = supportedLocations.find((location) => location.region === form.region);
   const cityOptions = selectedRegion?.cities.map((city) => city.name) ?? [];
   const selectedCity = selectedRegion?.cities.find((city) => city.name === form.city);
   const townshipOptions = selectedCity?.townships.length
@@ -145,9 +163,14 @@ export const CheckoutSections = ({
                   value={selectedAddressId}
                 >
                   {addresses.map((address) => (
-                    <MenuItem key={address.id} value={address.id}>
+                    <MenuItem
+                      disabled={!isYangonRegion(address.region)}
+                      key={address.id}
+                      value={address.id}
+                    >
                       {address.label.toUpperCase()}
                       {address.isDefault ? ' · Default' : ''} — {addressSummary(address)}
+                      {!isYangonRegion(address.region) ? ' · Not available yet' : ''}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -201,7 +224,7 @@ export const CheckoutSections = ({
                       select
                       value={form.region}
                     >
-                      {locations.map((location) => (
+                      {supportedLocations.map((location) => (
                         <MenuItem key={location.region} value={location.region}>
                           {location.region}
                         </MenuItem>
@@ -280,6 +303,49 @@ export const CheckoutSections = ({
 
             <Divider />
             <Stack spacing={1.15}>
+              <Stack spacing={1}>
+                <Typography sx={{ fontWeight: 800 }}>Coupon / promo code</Typography>
+                <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1}>
+                  <TextField
+                    fullWidth
+                    label="Enter coupon code"
+                    onChange={(event) => onCouponCodeChange(event.target.value.toUpperCase())}
+                    value={couponCode}
+                  />
+                  <AppButton disabled={!couponCode.trim()} onClick={onApplyCoupon}>
+                    Apply
+                  </AppButton>
+                  {appliedCouponCode ? (
+                    <AppButton onClick={onClearCoupon} variant="outlined">
+                      Clear
+                    </AppButton>
+                  ) : null}
+                </Stack>
+                {activePromotions.length ? (
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                    {activePromotions.map((promotion) => (
+                      <Chip
+                        color={appliedCouponCode === promotion.code ? 'primary' : 'default'}
+                        key={promotion.id}
+                        label={`${promotion.code} · ${promotion.discount}`}
+                        onClick={() => onSelectPromotion(promotion.code)}
+                        sx={{ borderRadius: 1, fontWeight: 800 }}
+                        variant={appliedCouponCode === promotion.code ? 'filled' : 'outlined'}
+                      />
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography color="text.secondary" variant="body2">
+                    No active promo codes are available right now.
+                  </Typography>
+                )}
+                {deliveryQuote?.promoCode ? (
+                  <Alert severity="success">
+                    Promo {deliveryQuote.promoCode} applied: {deliveryQuote.promoDiscountLabel}
+                  </Alert>
+                ) : null}
+              </Stack>
+              <Divider />
               <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                 <Typography color="text.secondary">Items subtotal</Typography>
                 <Typography>{formatCurrency(subtotalAmount, currency)}</Typography>
@@ -303,6 +369,16 @@ export const CheckoutSections = ({
                       : 'Select address'}
                 </Typography>
               </Stack>
+              {deliveryQuote?.promoDiscountAmount ? (
+                <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                  <Typography color="text.secondary">
+                    Discount {deliveryQuote.promoCode ? `(${deliveryQuote.promoCode})` : ''}
+                  </Typography>
+                  <Typography color="success.main" sx={{ fontWeight: 800 }}>
+                    -{formatCurrency(deliveryQuote.promoDiscountAmount, currency)}
+                  </Typography>
+                </Stack>
+              ) : null}
               <Divider />
               <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                 <Typography sx={{ fontWeight: 900 }}>Total payable</Typography>

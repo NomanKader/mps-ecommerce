@@ -13,6 +13,7 @@ export type AdminProduct = {
   stock: number;
   subcategory?: string;
   tags: string[];
+  unit?: string;
 };
 
 export type AdminProductPayload = Omit<AdminProduct, 'id' | 'imageUrl'> & {
@@ -79,6 +80,8 @@ export type AdminOrderStatus =
   | 'fulfilled'
   | 'cancelled';
 
+export type AdminOrderPaymentStatus = 'paid' | 'pending' | 'failed' | 'expired' | 'timeout';
+
 export type AdminOrderLineItem = {
   categoryId?: string;
   categoryName?: string;
@@ -107,12 +110,15 @@ export type AdminOrder = {
   placedAt: string;
   productIds?: string[];
   paymentMethod?: string;
-  paymentStatus?: 'paid' | 'pending' | 'failed' | 'expired' | 'timeout';
+  paymentStatus?: AdminOrderPaymentStatus;
   paymentGateway?: string;
   paymentGatewayStatus?: string;
   paymentGatewayReferenceId?: string;
   paymentTransactionAmount?: number;
   paymentSettlementAmount?: number;
+  promoCode?: string;
+  promoDiscountAmount?: number;
+  promoDiscountLabel?: string;
   region?: string;
   status: AdminOrderStatus;
   subcategories?: string[];
@@ -135,6 +141,8 @@ export type AdminCustomer = {
   segment: 'VIP' | 'Loyal' | 'New' | 'At Risk';
   totalSpend: number;
 };
+
+export type AdminCustomerPayload = Pick<AdminCustomer, 'email' | 'name' | 'segment'>;
 
 export type AdminPromotionStatus = 'active' | 'scheduled' | 'expired' | 'paused';
 
@@ -202,15 +210,37 @@ export type AdminWalletTopUpRequest = {
   customerPhone?: string;
   id: string;
   paymentMethod?: string;
+  paymentGateway?: string;
+  paymentGatewayReferenceId?: string;
+  paymentGatewayStatus?: string;
+  paymentMerchantReferenceId?: string;
+  paymentRedirectUrl?: string;
+  paymentSettlementAmount?: number;
+  paymentTransactionAmount?: number;
   promoCode?: string;
-  receiptImageKey: string;
-  receiptImageName: string;
-  receiptImageSize: number;
+  receiptImageKey?: string;
+  receiptImageName?: string;
+  receiptImageSize?: number;
   receiptImageUrl?: string | null;
   reviewedAt?: string;
   status: AdminWalletTopUpStatus;
   updatedAt: string;
   userId: string;
+};
+
+export type AdminWalletLoadPayload = {
+  adminNote?: string;
+  amount: number;
+  customerEmail: string;
+};
+
+export type AdminWalletLoadResult = {
+  amount: number;
+  balance: number;
+  customerEmail: string;
+  customerName: string;
+  referenceId: string;
+  walletId: string;
 };
 
 export type AdminDashboardRole =

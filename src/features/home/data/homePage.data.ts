@@ -4,7 +4,6 @@ import type {
   HeroBannerContent,
   PromoTile,
   ShowcaseBanner,
-  ShopBrand,
   StorefrontHighlightItem,
   StorefrontCarouselSlide,
   StorefrontProductSection,
@@ -13,6 +12,7 @@ import type {
   StoreCategoryMenuItem,
   StoreProduct,
 } from '@features/home/types/home.types';
+import { routePaths } from '@routes/routePaths';
 
 export const storefrontCategories: StoreCategory[] = [
   { color: '#b9263d', icon: '🍽️', id: 'quick-meals', label: 'Quick Meals' },
@@ -265,7 +265,7 @@ export const heroBanner: HeroBannerContent = {
 export const showcaseBanners: ShowcaseBanner[] = [
   {
     description:
-      'Theme tokens, reusable footer and navbar, and isolated homepage data make the next iteration much cheaper.',
+      'A cleaner grocery homepage with fresh picks, simple navigation, and everyday essentials in easy reach.',
     id: 'cleaner-homepage',
     imageUrl:
       'https://images.unsplash.com/photo-1514996937319-344454492b37?auto=format&fit=crop&w=1000&q=80',
@@ -358,15 +358,6 @@ export const defaultCarouselSlides: StorefrontCarouselSlide[] = [
     targetSearch: index === 1 ? 'organic' : index === 2 ? 'offer' : 'fresh',
     title: banner.title,
   })),
-];
-
-export const shopBrands: ShopBrand[] = [
-  { color: '#f28c28', id: 'sainsbury', label: "Sainsbury's" },
-  { color: '#1c1c1c', id: 'marks-spencer', label: 'M&S', textColor: '#ffffff' },
-  { color: '#d61f32', id: 'supervalu', label: 'SuperValu', textColor: '#ffffff' },
-  { color: '#ee4b63', id: 'redmart', label: 'redmart', textColor: '#ffffff' },
-  { color: '#169447', id: 'morrisons', label: 'Morrisons', textColor: '#ffffff' },
-  { color: '#ffffff', id: 'iceland', label: 'Iceland' },
 ];
 
 export const promoTiles: PromoTile[] = [
@@ -857,7 +848,7 @@ export const topBlooms: StoreProduct[] = [
 export const storefrontProductSections: StorefrontProductSection[] = [
   {
     description:
-      'Promo-led pricing blocks inspired by the provided design, implemented as reusable card and section primitives.',
+      'Save on popular groceries, pantry essentials, and household favourites for the week.',
     id: 'top-offers',
     title: 'Top Offers',
   },
@@ -869,13 +860,13 @@ export const storefrontProductSections: StorefrontProductSection[] = [
   },
   {
     description:
-      'Seasonal, produce-led content blocks stay separate from the catalog API and can later be replaced with CMS or backend-fed content.',
+      'Fresh seasonal produce and timely grocery picks selected for your next basket.',
     id: 'new-season',
     title: 'New In Season',
   },
   {
     description:
-      'Prepared meals, bakery, and pantry modules can reuse the exact same card component and only swap data.',
+      'Prepared meals, bakery picks, and pantry favourites for quick shopping days.',
     id: 'pantry-ready',
     title: 'Pantry & Ready Meals',
   },
@@ -925,17 +916,32 @@ export const defaultProductSectionAssignments: StorefrontProductSectionAssignmen
 export const footerLinkGroups: FooterLinkGroup[] = [
   {
     id: 'account',
-    links: ['My Account', 'My Addresses', 'My Orders', 'FAQs'],
+    links: [
+      { label: 'My Account', to: routePaths.account },
+      { label: 'My Addresses', to: routePaths.accountAddresses },
+      { label: 'My Orders', to: routePaths.accountOrders },
+      { label: 'FAQs', to: routePaths.sustainability.cares },
+    ],
     title: 'Account Details',
   },
   {
     id: 'brand',
-    links: ['Our Story', 'Our Vision', 'Our Quality', 'Media'],
+    links: [
+      { label: 'Our Story', to: routePaths.sustainability.story },
+      { label: 'Our Vision', to: routePaths.sustainability.vision },
+      { label: 'Our Quality', to: routePaths.sustainability.quality },
+      { label: 'Media', to: routePaths.sustainability.media },
+    ],
     title: 'Sustainable Shopping',
   },
   {
     id: 'care',
-    links: ["AV's Store Cares", 'Kitchen', 'Privacy Policy', 'Terms & Conditions'],
+    links: [
+      { label: "AV's Store Cares", to: routePaths.sustainability.cares },
+      { label: 'Kitchen', to: routePaths.sustainability.kitchen },
+      { label: 'Privacy Policy', to: routePaths.privacyPolicy },
+      { label: 'Terms & Conditions', to: routePaths.termsConditions },
+    ],
     title: 'Support',
   },
 ];

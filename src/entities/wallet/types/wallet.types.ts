@@ -38,11 +38,19 @@ export type WalletTopUpRequest = {
   customerPhone?: string;
   id: string;
   paymentMethod?: string;
+  paymentGateway?: string;
+  paymentGatewayReferenceId?: string;
+  paymentGatewayStatus?: string;
+  paymentMerchantReferenceId?: string;
+  paymentRedirectUrl?: string;
+  paymentSettlementAmount?: number;
+  paymentToken?: string;
+  paymentTransactionAmount?: number;
   promoCode?: string;
-  receiptImageKey: string;
-  receiptImageMimeType: string;
-  receiptImageName: string;
-  receiptImageSize: number;
+  receiptImageKey?: string;
+  receiptImageMimeType?: string;
+  receiptImageName?: string;
+  receiptImageSize?: number;
   receiptImageUrl?: string | null;
   reviewedAt?: string;
   status: WalletTopUpStatus;
@@ -55,6 +63,11 @@ export type WalletPaymentTransferDetails = {
   accountNumber: string;
   instructions: string;
   provider: string;
+};
+
+export type WalletTopUpPaymentResponse = {
+  data: WalletTopUpRequest;
+  message: string;
 };
 
 export type ServerWallet = {

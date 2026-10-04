@@ -4146,3 +4146,10 @@ export const myanmarLocationFallback: MyanmarLocationOption[] = [
     ]
   }
 ];
+
+export const yangonLocationFallback: MyanmarLocationOption[] = myanmarLocationFallback
+  .filter((location) => location.region === 'Yangon Region' || location.region === 'Yangon')
+  .map((location) => ({
+    ...location,
+    region: 'Yangon',
+  }));

@@ -12,9 +12,27 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { Link } from 'react-router-dom';
 
 import { storefrontColors, storefrontGradients } from '@app/providers/theme/tokens';
 import { footerLinkGroups, quickHighlights } from '@features/home/data/homePage.data';
+import { routePaths } from '@routes/routePaths';
+
+const footerLinkSx = {
+  color: '#d6def0',
+  textDecoration: 'none',
+  transition: 'color 160ms ease',
+  '&:hover': {
+    color: storefrontColors.accent,
+    textDecoration: 'underline',
+  },
+};
+
+const bottomFooterLinks = [
+  { label: 'Locate Us', to: routePaths.sustainability.cares },
+  { label: 'Privacy Policy', to: routePaths.privacyPolicy },
+  { label: 'Terms & Conditions', to: routePaths.termsConditions },
+];
 
 export const Footer = () => (
   <Box component="footer" sx={{ minWidth: 0, mt: { md: 8, xs: 4 }, width: '100%' }}>
@@ -127,11 +145,11 @@ export const Footer = () => (
               }}
               variant="h4"
             >
-              Premium product delivered, anywhere in Myanmar
+              Premium product delivered, anywhere in Yangon
             </Typography>
             <Typography
               sx={{
-                color: { xs: '#d6def0' },
+                color: { xs: '#303238' },
                 fontSize: { xs: '0.9rem' },
                 lineHeight: { md: 1.8, xs: 1.6 },
                 mt: { md: 3, xs: 1.5 },
@@ -141,8 +159,8 @@ export const Footer = () => (
               }}
               variant="body1"
             >
-              With a clean storefront structure, reusable UI layers, and separated theme tokens, this homepage is now ready
-              to scale into the rest of your commerce experience.
+              Shop everyday groceries, fresh produce, pantry favourites, and household essentials
+              with dependable Yangon delivery from AV's Store.
             </Typography>
           </Grid>
 
@@ -157,8 +175,14 @@ export const Footer = () => (
               </Typography>
               <Stack spacing={1.25}>
                 {group.links.map((link) => (
-                  <Typography key={link} sx={{ color: '#d6def0' }} variant="body1">
-                    {link}
+                  <Typography
+                    component={Link}
+                    key={link.label}
+                    sx={footerLinkSx}
+                    to={link.to}
+                    variant="body1"
+                  >
+                    {link.label}
                   </Typography>
                 ))}
               </Stack>
@@ -197,10 +221,12 @@ export const Footer = () => (
                     <Stack spacing={1.25}>
                       {group.links.map((link) => (
                         <Typography
-                          key={link}
-                          sx={{ color: '#d6def0', fontSize: '0.9rem', lineHeight: 1.4 }}
+                          component={Link}
+                          key={link.label}
+                          sx={{ ...footerLinkSx, fontSize: '0.9rem', lineHeight: 1.4 }}
+                          to={link.to}
                         >
-                          {link}
+                          {link.label}
                         </Typography>
                       ))}
                     </Stack>
@@ -232,10 +258,20 @@ export const Footer = () => (
                 <InstagramIcon />
               </Box>
             </Stack>
-            <Typography sx={{ fontWeight: 800, textDecoration: 'underline' }} variant="body1">
-              800AVS
+            <Typography
+              component="a"
+              href="tel:+959953055682"
+              sx={{ color: 'inherit', fontWeight: 800, textDecoration: 'underline' }}
+              variant="body1"
+            >
+              +95-9953055682
             </Typography>
-            <Typography sx={{ mt: 0.5 }} variant="body1">
+            <Typography
+              component="a"
+              href="mailto:support@avsstoreonline.com"
+              sx={{ color: 'inherit', display: 'block', mt: 0.5, textDecoration: 'none' }}
+              variant="body1"
+            >
               support@avsstoreonline.com
             </Typography>
           </Grid>
@@ -263,10 +299,17 @@ export const Footer = () => (
               rowGap: 1,
             }}
           >
-            <Typography variant="body2">Locate Us</Typography>
-            <Typography variant="body2">Become a supplier</Typography>
-            <Typography variant="body2">Privacy Policy</Typography>
-            <Typography variant="body2">Terms & Conditions</Typography>
+            {bottomFooterLinks.map((link) => (
+              <Typography
+                component={Link}
+                key={link.label}
+                sx={footerLinkSx}
+                to={link.to}
+                variant="body2"
+              >
+                {link.label}
+              </Typography>
+            ))}
           </Stack>
         </Stack>
       </Container>

@@ -5,17 +5,17 @@ import { Box, Button, Grid, IconButton, Stack, Typography } from '@mui/material'
 import { alpha } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import { routePaths } from '@routes/routePaths';
 import { storefrontColors, storefrontGradients } from '@app/providers/theme/tokens';
 import { useCart } from '@features/cart/hooks/useCart';
 import { merchandisingApi } from '@features/home/api/merchandisingApi';
+import { useI18n } from '@features/i18n/I18nProvider';
 import {
   defaultCarouselSlides,
   defaultHighlightItems,
   promoTiles,
-  shopBrands,
   storefrontCategories,
 } from '@features/home/data/homePage.data';
 import { PageSegmentStrip } from '@features/home/ui/PageSegmentStrip';
@@ -49,6 +49,7 @@ const promoTileThemes: Record<string, { accent: string; icon: string }> = {
 };
 
 const carouselAutoAdvanceMs = 4500;
+const allProductsPageSize = 10;
 
 const getPromoTilePath = (tile: {
   id?: string;
@@ -102,167 +103,6 @@ const getFeaturedHighlightPath = (item: {
   } else {
     params.set('search', item.label);
   }
-
-  return `${routePaths.catalog}?${params.toString()}`;
-};
-
-const shopMegaMenuColumns = [
-  [
-    {
-      categoryId: 'quick-meals',
-      items: ['Appetizers', 'Sides', 'Heat & Eat', 'Italian', 'Desserts'],
-      title: 'Quick Meals',
-    },
-    {
-      categoryId: 'seafood',
-      items: ['Fish', 'Smoked Seafood', 'Prawns & Shellfish', 'Breaded Seafood', 'Canned Seafood'],
-      title: 'Seafood',
-    },
-    { categoryId: 'bakery', items: ['Cakes & Cupcakes'], title: 'Bakery' },
-    { categoryId: 'dairy', items: ['Cheese'], title: 'Dairy' },
-  ],
-  [
-    {
-      categoryId: 'dairy',
-      items: [
-        'Ice Cream & Frozen Desserts',
-        'Butter & Ghee',
-        'Long Life Milk',
-        'Plant-Based',
-        'Yoghurt',
-      ],
-      title: 'Dairy',
-    },
-    {
-      categoryId: 'pantry',
-      items: [
-        'Breakfast Cereals',
-        'Cans, Jars & Packets',
-        'Chocolates & Sweets',
-        'Deli & Dips',
-        'Condiments & Dressings',
-        'Crackers & Biscuits',
-        'Flours & Mixes',
-        'Honey, Jams & Spreads',
-        'Oil & Vinegar',
-        'Sauces & Ingredients',
-        'Pasta & Noodles',
-      ],
-      title: 'Pantry',
-    },
-  ],
-  [
-    {
-      categoryId: 'pantry',
-      items: [
-        'Pulses & Seeds',
-        'Crisps & Snacks',
-        'Rice & Grains',
-        'Spices & Seasonings',
-        'Sugar & Baking',
-        'World Foods',
-      ],
-      title: 'Pantry',
-    },
-    {
-      categoryId: 'drinks',
-      items: [
-        'Carbonated Drinks',
-        'Chocolate & Malt Drinks',
-        'Coffee',
-        'Cordials',
-        'Juice',
-        'Non Alcoholic Drinks',
-        'Tea',
-      ],
-      title: 'Drinks',
-    },
-    {
-      categoryId: 'frozen',
-      items: ['Frozen Ready Meals', 'Frozen Fruit', 'Frozen Vegetables'],
-      title: 'Frozen',
-    },
-  ],
-  [
-    {
-      categoryId: 'frozen',
-      items: [
-        'Frozen Seafood',
-        'Frozen Chips, Potatoes & Rice',
-        'Frozen Bakery',
-        'Ice Cream & Frozen Desserts',
-        'Frozen Pizza',
-        'Frozen Appetizers',
-        'Vegetarian & Vegan Food',
-      ],
-      title: 'Frozen',
-    },
-    {
-      categoryId: 'home',
-      items: [
-        'Home Fragrance',
-        'Tissue Rolls & Paper Towels',
-        'Cleaning Supplies',
-        'Kitchenware',
-        'Laundry Care',
-      ],
-      title: 'Home',
-    },
-    { categoryId: 'kids', items: ['Bathing & Grooming'], title: 'Kids' },
-  ],
-  [
-    {
-      categoryId: 'kids',
-      items: [
-        'Teething & Dental',
-        'Baby Food',
-        'Bottles & Pacifiers',
-        'Nappies & Potty Training',
-        'Nursery Items',
-      ],
-      title: 'Kids',
-    },
-    { categoryId: 'pets', items: ['Cat Care'], title: 'Pets' },
-    {
-      categoryId: 'care',
-      items: [
-        'Suncare & Outdoor',
-        'Facial Care',
-        'Bath & Shower',
-        'Dental Care',
-        'Body Care',
-        'Feminine Care',
-        'Hair Care',
-        "Men's Grooming & Skin Care",
-      ],
-      title: 'Self Care',
-    },
-    { categoryId: 'gifts', items: ['Cakes & Cupcakes'], title: 'Gifting' },
-  ],
-];
-
-const shopBrandCatalogTargets: Record<string, { category: string; search: string; title: string }> =
-  {
-    Iceland: { category: 'frozen', search: 'iceland', title: 'Iceland' },
-    'M&S': { category: 'quick-meals', search: 'marks spencer', title: 'M&S' },
-    Morrisons: { category: 'fruits', search: 'morrisons', title: 'Morrisons' },
-    redmart: { category: 'pantry', search: 'redmart', title: 'redmart' },
-    "Sainsbury's": { category: 'pantry', search: 'sainsbury', title: "Sainsbury's" },
-    SuperValu: { category: 'quick-meals', search: 'supervalu', title: 'SuperValu' },
-  };
-
-const getShopCatalogPath = (brandLabel: string, categoryId = 'all', itemLabel?: string) => {
-  const brandTarget = shopBrandCatalogTargets[brandLabel] ?? {
-    category: categoryId,
-    search: brandLabel,
-    title: brandLabel,
-  };
-  const title = itemLabel ? `${brandLabel}: ${itemLabel}` : brandLabel;
-  const params = new URLSearchParams({
-    category: itemLabel ? categoryId : brandTarget.category,
-    search: itemLabel ?? brandTarget.search,
-    title,
-  });
 
   return `${routePaths.catalog}?${params.toString()}`;
 };
@@ -376,7 +216,7 @@ const LazyProductSection = ({
       <StorefrontSectionHeader description={description} title={title} />
       {isLoaded && !products.length ? (
         <EmptyState
-          description="This storefront section is connected to the live API. Items assigned here will be available soon."
+          description="New items are being selected for this section. Please check back soon."
           title={`${title} coming soon`}
         />
       ) : null}
@@ -453,6 +293,7 @@ type FeaturedHighlightTile = StorefrontHighlightItem & {
 };
 
 const MobileHomeLanding = ({ activeSlideIndex, onSlideChange, slides }: MobileHomeLandingProps) => {
+  const { t } = useI18n();
   const showCarouselControls = slides.length > 1;
   const goToPreviousSlide = () => {
     onSlideChange(activeSlideIndex === 0 ? slides.length - 1 : activeSlideIndex - 1);
@@ -591,7 +432,7 @@ const MobileHomeLanding = ({ activeSlideIndex, onSlideChange, slides }: MobileHo
                       textTransform: 'uppercase',
                     }}
                   >
-                    {slide.cta}
+                    {t(slide.cta)}
                     <ArrowForwardRoundedIcon sx={{ fontSize: 17, ml: 0.65 }} />
                   </Box>
                 </Stack>
@@ -739,7 +580,7 @@ const MobileHomeLanding = ({ activeSlideIndex, onSlideChange, slides }: MobileHo
 };
 
 export const HomePage = () => {
-  const navigate = useNavigate();
+  const { t } = useI18n();
   const { addToCart } = useCart();
   const allProductsQuery = useProducts();
   const heroCarouselQuery = useQuery({
@@ -867,16 +708,28 @@ export const HomePage = () => {
     : 'Pantry & Ready Meals';
   const merchandisingProductSectionDescription = activeMerchandisingHighlight
     ? `Products related to ${activeMerchandisingHighlight.label}.`
-    : 'Prepared meals, bakery, and pantry modules can reuse the exact same card component and only swap data.';
+    : 'Prepared meals, bakery picks, and pantry favourites for quick shopping days.';
   const visibleHeroSlides = homeHeroSlides.length ? homeHeroSlides : [defaultHomeHeroSlide];
   const visibleShowcaseSlides = showcaseSlides.length ? showcaseSlides : [defaultShowcaseSlide];
   const [activeHeroSlideIndex, setActiveHeroSlideIndex] = useState(0);
   const [activeShowcaseIndex, setActiveShowcaseIndex] = useState(0);
-  const [activeShopBrandId, setActiveShopBrandId] = useState<string | null>(null);
   const activeHeroSlide = visibleHeroSlides[activeHeroSlideIndex] ?? defaultHomeHeroSlide;
-  const activeShopBrand = shopBrands.find((brand) => brand.id === activeShopBrandId);
-  const activeShopBrandIndex = shopBrands.findIndex((brand) => brand.id === activeShopBrandId);
   const activeShowcase = visibleShowcaseSlides[activeShowcaseIndex] ?? defaultShowcaseSlide;
+  const [allProductsPage, setAllProductsPage] = useState(1);
+  const allProducts = allProductsQuery.data ?? [];
+  const allProductsPageCount = Math.max(1, Math.ceil(allProducts.length / allProductsPageSize));
+  const paginatedAllProducts = allProducts.slice(
+    (allProductsPage - 1) * allProductsPageSize,
+    allProductsPage * allProductsPageSize,
+  );
+
+  useEffect(() => {
+    setAllProductsPage((currentPage) => Math.min(currentPage, allProductsPageCount));
+  }, [allProductsPageCount]);
+
+  const goToAllProductsPage = (page: number) => {
+    setAllProductsPage(Math.min(Math.max(page, 1), allProductsPageCount));
+  };
 
   useEffect(() => {
     if (visibleHeroSlides.length <= 1) {
@@ -923,7 +776,7 @@ export const HomePage = () => {
       />
       <Stack spacing={{ md: 5.5, xs: 2.5 }}>
         <Grid container spacing={3} sx={{ display: { md: 'flex', xs: 'none' } }}>
-          <Grid size={{ lg: 9.5, xs: 12 }}>
+          <Grid size={{ lg: 12, xs: 12 }}>
             <Box
               sx={{
                 ...storefrontPanelSx,
@@ -1052,7 +905,7 @@ export const HomePage = () => {
                         }}
                         to={getCarouselSlidePath(activeHeroSlide)}
                       >
-                        {activeHeroSlide.cta}
+                        {t(activeHeroSlide.cta)}
                       </Button>
                     </Stack>
                     <Stack direction="row" spacing={1} sx={{ pt: 0.5 }}>
@@ -1146,231 +999,6 @@ export const HomePage = () => {
             </Box>
           </Grid>
 
-          <Grid size={{ lg: 2.5, xs: 12 }}>
-            <Box
-              onMouseLeave={() => setActiveShopBrandId(null)}
-              sx={{
-                ...storefrontMutedPanelSx,
-                background:
-                  'linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(241,245,252,0.98) 100%)',
-                height: '100%',
-                overflow: 'visible',
-                p: { md: 2.5, xs: 2.1 },
-                position: 'relative',
-                '&::before': {
-                  background:
-                    'radial-gradient(circle at top right, rgba(24,58,122,0.09), rgba(24,58,122,0) 42%), radial-gradient(circle at bottom left, rgba(147,200,62,0.08), rgba(147,200,62,0) 30%)',
-                  content: '""',
-                  inset: 0,
-                  position: 'absolute',
-                },
-              }}
-            >
-              {activeShopBrand ? (
-                <Box
-                  onMouseEnter={() => setActiveShopBrandId(activeShopBrand.id)}
-                  sx={{
-                    backgroundColor: storefrontColors.surface,
-                    borderRadius: 1,
-                    boxShadow: `0 18px 44px ${alpha(storefrontColors.navy, 0.16)}`,
-                    display: { lg: 'block', xs: 'none' },
-                    minHeight: 420,
-                    p: { lg: 4.5, md: 3.5 },
-                    position: 'absolute',
-                    right: 'calc(100% + 18px)',
-                    top: 42,
-                    width: 'min(72vw, 1120px)',
-                    zIndex: 20,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gap: { lg: 5.5, md: 3.5 },
-                      gridTemplateColumns: 'repeat(5, minmax(130px, 1fr))',
-                    }}
-                  >
-                    {shopMegaMenuColumns.map((column, columnIndex) => (
-                      <Stack key={columnIndex} spacing={1.45}>
-                        {column.map((section) => (
-                          <Box key={`${section.categoryId}-${section.title}`}>
-                            <Typography
-                              component={Link}
-                              onClick={() => setActiveShopBrandId(null)}
-                              sx={{
-                                color: storefrontColors.navy,
-                                display: 'inline-block',
-                                fontSize: '1.05rem',
-                                fontWeight: 900,
-                                lineHeight: 1.2,
-                                mb: 0.65,
-                                textDecoration: 'none',
-                                '&:hover': {
-                                  color: activeShopBrand.color,
-                                },
-                              }}
-                              to={getShopCatalogPath(
-                                activeShopBrand.label,
-                                section.categoryId,
-                                section.title,
-                              )}
-                              variant="h6"
-                            >
-                              {section.title}
-                            </Typography>
-                            <Stack spacing={0.42}>
-                              {section.items.map((item) => (
-                                <Typography
-                                  component={Link}
-                                  key={item}
-                                  onClick={() => setActiveShopBrandId(null)}
-                                  sx={{
-                                    color: '#555a64',
-                                    display: 'block',
-                                    fontSize: '0.98rem',
-                                    fontWeight: 650,
-                                    lineHeight: 1.25,
-                                    textDecoration: 'none',
-                                    transition: 'color 140ms ease',
-                                    '&:hover': {
-                                      color: storefrontColors.navy,
-                                    },
-                                  }}
-                                  to={getShopCatalogPath(
-                                    activeShopBrand.label,
-                                    section.categoryId,
-                                    item,
-                                  )}
-                                  variant="body2"
-                                >
-                                  {item}
-                                </Typography>
-                              ))}
-                            </Stack>
-                          </Box>
-                        ))}
-                      </Stack>
-                    ))}
-                  </Box>
-                  <Box
-                    sx={{
-                      borderColor: `transparent transparent transparent ${activeShopBrand.color}`,
-                      borderStyle: 'solid',
-                      borderWidth: '14px 0 14px 22px',
-                      filter: `drop-shadow(7px 0 8px ${alpha(storefrontColors.navy, 0.08)})`,
-                      position: 'absolute',
-                      right: -22,
-                      top: 90 + Math.max(activeShopBrandIndex, 0) * 58,
-                    }}
-                  />
-                </Box>
-              ) : null}
-              <Stack spacing={0.65} sx={{ mb: 1.5, position: 'relative', zIndex: 1 }}>
-                <Box
-                  sx={{
-                    alignItems: 'center',
-                    backgroundColor: alpha(storefrontColors.navy, 0.07),
-                    borderRadius: 999,
-                    color: storefrontColors.navy,
-                    display: 'inline-flex',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.08em',
-                    px: 1.1,
-                    py: 0.55,
-                    textTransform: 'uppercase',
-                    width: 'fit-content',
-                  }}
-                >
-                  Partner Brands
-                </Box>
-                <Typography
-                  sx={{
-                    color: storefrontColors.navy,
-                    fontWeight: 900,
-                    letterSpacing: '-0.05em',
-                    lineHeight: 0.95,
-                  }}
-                  variant="h3"
-                >
-                  Our Shops
-                </Typography>
-                <Typography
-                  color={storefrontColors.muted}
-                  sx={{ maxWidth: 220, lineHeight: 1.5 }}
-                  variant="body2"
-                >
-                  Explore trusted partner ranges in one place.
-                </Typography>
-              </Stack>
-              <Grid container spacing={0.8} sx={{ position: 'relative', zIndex: 1 }}>
-                {shopBrands.map((brand) => {
-                  const brandPath = getShopCatalogPath(brand.label);
-
-                  return (
-                    <Grid key={brand.id} size={12}>
-                      <Box
-                        component={Link}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          setActiveShopBrandId(null);
-                          navigate(brandPath);
-                        }}
-                        onFocus={() => setActiveShopBrandId(brand.id)}
-                        onMouseEnter={() => setActiveShopBrandId(brand.id)}
-                        sx={{
-                          alignItems: 'center',
-                          background:
-                            brand.color === '#ffffff'
-                              ? 'linear-gradient(180deg, #ffffff 0%, #f9fbff 100%)'
-                              : `linear-gradient(180deg, ${brand.color} 0%, ${brand.color} 100%)`,
-                          border: `1px solid ${brand.color === '#ffffff' ? alpha('#e43224', 0.12) : 'transparent'}`,
-                          borderRadius: 1,
-                          boxShadow:
-                            brand.color === '#ffffff'
-                              ? `0 12px 24px ${alpha('#9f1714', 0.08)}`
-                              : `0 16px 28px ${alpha(brand.color, 0.2)}`,
-                          color: brand.textColor ?? '#ffffff',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          minHeight: 50,
-                          p: 0.8,
-                          position: 'relative',
-                          textAlign: 'center',
-                          textDecoration: 'none',
-                          transition: 'transform 180ms ease, box-shadow 180ms ease',
-                          '&:hover': {
-                            boxShadow:
-                              brand.color === '#ffffff'
-                                ? `0 18px 30px ${alpha('#9f1714', 0.11)}`
-                                : `0 20px 34px ${alpha(brand.color, 0.28)}`,
-                            transform: 'translateY(-2px)',
-                          },
-                          '&:focus-visible': {
-                            outline: `3px solid ${alpha(brand.color, 0.24)}`,
-                            outlineOffset: 2,
-                          },
-                        }}
-                        to={brandPath}
-                      >
-                        <Typography
-                          sx={{
-                            color: brand.textColor ?? storefrontColors.navy,
-                            fontSize: { md: '0.92rem', xs: '0.86rem' },
-                            fontWeight: 900,
-                            letterSpacing: '-0.02em',
-                            lineHeight: 1.05,
-                          }}
-                        >
-                          {brand.label}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  );
-                })}
-              </Grid>
-            </Box>
-          </Grid>
         </Grid>
 
         <Box sx={{ ...storefrontMutedPanelSx, borderRadius: 1, px: { md: 3, xs: 2 }, py: 3 }}>
@@ -1436,7 +1064,7 @@ export const HomePage = () => {
         <PageSegmentStrip segments={afterStorefrontIconSegments} />
 
         <LazyProductSection
-          description="Promo-led pricing blocks inspired by the provided design, implemented as reusable card and section primitives."
+          description="Save on popular groceries, pantry essentials, and household favourites for the week."
           gridSize={{ lg: 2.4, md: 4, sm: 6, xs: 12 }}
           mobileHorizontal
           onAddToCart={(item) => addToCart(mapHomeProductToProduct(item))}
@@ -1574,7 +1202,7 @@ export const HomePage = () => {
         />
 
         <LazyProductSection
-          description="Seasonal, produce-led content blocks stay separate from the catalog API and can later be replaced with CMS or backend-fed content."
+          description="Fresh seasonal produce and timely grocery picks selected for your next basket."
           gridSize={{ lg: 2.4, md: 4, sm: 6, xs: 12 }}
           onAddToCart={(item) => addToCart(mapHomeProductToProduct(item))}
           products={assignedSeasonalProducts}
@@ -1676,7 +1304,7 @@ export const HomePage = () => {
                       }}
                       tabIndex={-1}
                     >
-                      {tile.cta}
+                      {t(tile.cta)}
                     </Button>
                   </Stack>
 
@@ -1835,12 +1463,65 @@ export const HomePage = () => {
               description="Browse the full live catalog, with the newest products shown first."
               title="All Products"
             />
-            {allProductsQuery.data?.length ? (
-              <ProductGrid
-                gridSize={{ lg: 2.4, md: 4, sm: 6, xs: 12 }}
-                onAddToCart={addToCart}
-                products={allProductsQuery.data}
-              />
+            {allProducts.length ? (
+              <>
+                <ProductGrid
+                  gridSize={{ lg: 2.4, md: 4, sm: 6, xs: 12 }}
+                  onAddToCart={addToCart}
+                  products={paginatedAllProducts}
+                />
+                {allProductsPageCount > 1 ? (
+                  <Stack
+                    direction={{ sm: 'row', xs: 'column' }}
+                    spacing={1.25}
+                    sx={{
+                      alignItems: { sm: 'center', xs: 'stretch' },
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <Typography sx={{ color: storefrontColors.muted, fontWeight: 800 }}>
+                      Showing {(allProductsPage - 1) * allProductsPageSize + 1}-
+                      {Math.min(allProductsPage * allProductsPageSize, allProducts.length)} of{' '}
+                      {allProducts.length} products
+                    </Typography>
+                    <Stack direction="row" spacing={0.75} sx={{ justifyContent: { xs: 'center' } }}>
+                      <Button
+                        disabled={allProductsPage === 1}
+                        onClick={() => goToAllProductsPage(allProductsPage - 1)}
+                        sx={{ borderRadius: 999, fontWeight: 900, textTransform: 'none' }}
+                        variant="outlined"
+                      >
+                        Previous
+                      </Button>
+                      {Array.from({ length: allProductsPageCount }, (_, index) => index + 1).map(
+                        (page) => (
+                          <Button
+                            key={page}
+                            onClick={() => goToAllProductsPage(page)}
+                            sx={{
+                              borderRadius: 999,
+                              fontWeight: 900,
+                              minWidth: 42,
+                              px: 1.5,
+                            }}
+                            variant={page === allProductsPage ? 'contained' : 'outlined'}
+                          >
+                            {page}
+                          </Button>
+                        ),
+                      )}
+                      <Button
+                        disabled={allProductsPage === allProductsPageCount}
+                        onClick={() => goToAllProductsPage(allProductsPage + 1)}
+                        sx={{ borderRadius: 999, fontWeight: 900, textTransform: 'none' }}
+                        variant="outlined"
+                      >
+                        Next
+                      </Button>
+                    </Stack>
+                  </Stack>
+                ) : null}
+              </>
             ) : (
               <EmptyState
                 description="The all-products shelf is connected to the live catalog. Products will appear here as soon as they are published."

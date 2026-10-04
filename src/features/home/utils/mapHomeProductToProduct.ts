@@ -15,4 +15,5 @@ export const mapHomeProductToProduct = (product: StoreProduct): Product => ({
   slug: product.slug,
   tags: product.tags,
   tenantId: product.tenantId,
+  unit: product.unit,
 });

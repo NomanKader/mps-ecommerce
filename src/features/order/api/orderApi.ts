@@ -22,6 +22,7 @@ export type CreateOrderPayload = {
   itemCount: number;
   items: Array<{ productId: string; quantity: number }>;
   paymentMethod: 'wallet' | 'cash_on_delivery' | 'mopayments';
+  promoCode?: string;
   productIds: string[];
   region?: string;
   township?: string;
@@ -30,7 +31,7 @@ export type CreateOrderPayload = {
 
 export type DeliveryQuotePayload = Pick<
   CreateOrderPayload,
-  'city' | 'region' | 'subtotalAmount' | 'township'
+  'city' | 'promoCode' | 'region' | 'subtotalAmount' | 'township'
 >;
 
 export type DeliveryQuote = {
@@ -39,10 +40,23 @@ export type DeliveryQuote = {
   eta: string;
   freeDeliveryApplied: boolean;
   freeOver: number;
+  promoCode?: string;
+  promoDiscountAmount: number;
+  promoDiscountLabel?: string;
   region: string;
   subtotalAmount: number;
   totalAmount: number;
+  totalBeforeDiscount: number;
   township: string;
+};
+
+export type ActivePromotion = {
+  campaign: string;
+  code: string;
+  discount: string;
+  endsAt: string;
+  id: string;
+  startsAt: string;
 };
 
 const mapOrder = ({
@@ -66,6 +80,13 @@ export const orderApi = {
       payload,
     );
     return response.data.data;
+  },
+  async getActivePromotions(options: ListOptions = {}): Promise<ActivePromotion[]> {
+    const response = await apiClient.get<
+      ApiResponse<Array<Omit<ActivePromotion, 'id'> & { _id: string }>>
+    >(endpoints.orders.promotions, { signal: options.signal });
+
+    return response.data.data.map(({ _id, ...promotion }) => ({ ...promotion, id: _id }));
   },
   async getOrders(options: ListOptions = {}): Promise<Order[]> {
     const response = await apiClient.get<ApiResponse<BackendOrder[]>>(endpoints.orders.list, {

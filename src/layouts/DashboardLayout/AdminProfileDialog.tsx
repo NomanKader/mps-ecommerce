@@ -58,8 +58,8 @@ type AdminUserForm = {
 const roleLabel = 'Tenant admin';
 
 const countryCodeOptions = [
-  { code: '+971', country: 'United Arab Emirates' },
   { code: '+95', country: 'Myanmar' },
+  { code: '+971', country: 'United Arab Emirates' },
   { code: '+1', country: 'United States' },
   { code: '+44', country: 'United Kingdom' },
   { code: '+65', country: 'Singapore' },
@@ -69,7 +69,7 @@ const countryCodeOptions = [
 ];
 
 const splitPhoneNumber = (phone: string | undefined) => {
-  const fallback = { phoneCountryCode: '+971', phoneLocalNumber: '800 287' };
+  const fallback = { phoneCountryCode: '+95', phoneLocalNumber: '9953055682' };
 
   if (!phone) {
     return fallback;
@@ -95,7 +95,7 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const initialPhone = splitPhoneNumber(user?.supportPhoneLabel);
   const [form, setForm] = useState<AdminUserForm>({
-    deliveryHeadline: user?.deliveryHeadline ?? 'Delivery all over UAE',
+    deliveryHeadline: user?.deliveryHeadline ?? 'Deliver in Yangon',
     email: user?.email ?? '',
     firstName: user?.firstName ?? '',
     isActive: user?.isActive ?? true,
@@ -542,7 +542,7 @@ export const AdminProfileDialog = ({ onClose, open }: AdminProfileDialogProps) =
                                 `${current.phoneCountryCode} ${event.target.value}`.trim(),
                             }))
                           }
-                          placeholder="800 287"
+                          placeholder="9953055682"
                           type="tel"
                           value={form.phoneLocalNumber}
                         />

@@ -8,6 +8,7 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
 import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
@@ -42,17 +43,19 @@ import {
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useEffect, useState, type ReactElement } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
+import logoImage from '@assets/images/logo.png';
 import type {
   CustomerAddress,
   CustomerAddressPayload,
 } from '@entities/address/types/address.types';
 import type { Order } from '@entities/order/types/order.types';
+import type { Product } from '@entities/product/types/product.types';
 import { paymentMethodLabel } from '@entities/order/lib/paymentMethodLabel';
 import { OrderStatusChip } from '@entities/order/ui/OrderStatusChip';
 import { useAddresses } from '@features/addresses/hooks/useAddresses';
@@ -61,7 +64,8 @@ import { useFavorites } from '@features/favorites/hooks/useFavorites';
 import { useSignOut } from '@features/auth/hooks/useSignOut';
 import type { UpdateProfilePayload } from '@features/auth/types/auth.types';
 import { useCart } from '@features/cart/hooks/useCart';
-import { myanmarLocationFallback } from '@features/locations/data/myanmarLocations';
+import { useI18n } from '@features/i18n/I18nProvider';
+import { yangonLocationFallback } from '@features/locations/data/myanmarLocations';
 import { useMyanmarLocations } from '@features/locations/hooks/useMyanmarLocations';
 import { orderApi } from '@features/order/api/orderApi';
 import { productApi } from '@features/product/api/productApi';
@@ -71,7 +75,6 @@ import { useWallet } from '@features/wallet/hooks/useWallet';
 import { routePaths } from '@routes/routePaths';
 import { toApiError } from '@shared/api/apiError';
 import { AppBackButton } from '@shared/components/ui/BackButton/AppBackButton';
-import { validateImageFileSelection } from '@shared/utils/imageFileValidation';
 import { useAppDispatch } from '@store/hooks';
 import type { RootState } from '@store/index';
 import { updateUser } from '@store/slices/auth.slice';
@@ -300,6 +303,14 @@ const accountPageConfigs = {
     path: routePaths.accountWallet,
     searchPlaceholder: 'Search wallet activity',
     title: 'My Wallet',
+  },
+  walletTerms: {
+    description: "Read the terms and conditions for using AV's Store Wallet.",
+    emptyAction: 'Back to wallet',
+    icon: <ReceiptLongOutlinedIcon />,
+    kind: 'info',
+    path: routePaths.accountWalletTerms,
+    title: 'Wallet Terms & Conditions',
   },
   wioBank: {
     description: 'View partner bank offers, card benefits, and customer savings.',
@@ -751,6 +762,7 @@ const EmptyListIllustration = ({ type = 'favourites' }: { type?: 'favourites' | 
 
 const FavouriteProducts = ({ search }: { search: string }) => {
   const { addToCart } = useCart();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const { favoriteIds, isLoading, toggleFavorite } = useFavorites();
   const [listProductId, setListProductId] = useState<string | null>(null);
@@ -886,7 +898,7 @@ const FavouriteProducts = ({ search }: { search: string }) => {
                     '&:hover': { backgroundColor: storefrontColors.navyDark },
                   }}
                 >
-                  Add to Cart
+                  {t('Add to Cart')}
                 </Button>
               </Stack>
               <Button
@@ -1287,14 +1299,25 @@ const WalletPanel = ({ children, title }: { children: ReactElement; title: strin
   </Box>
 );
 
-const WalletAccordionRow = ({ title }: { title: string }) => (
+const WalletAccordionRow = ({ title, to }: { title: string; to: string }) => (
   <Stack
+    aria-label={`Open ${title}`}
+    component={Link}
     direction="row"
+    to={to}
     sx={{
       border: `1px solid ${storefrontColors.border}`,
       borderRadius: 1,
+      color: 'inherit',
+      cursor: 'pointer',
       minHeight: 66,
       overflow: 'hidden',
+      textDecoration: 'none',
+      transition: 'border-color 160ms ease, box-shadow 160ms ease',
+      '&:hover': {
+        borderColor: alpha(storefrontColors.navy, 0.35),
+        boxShadow: `0 12px 24px ${alpha(storefrontColors.navyDark, 0.08)}`,
+      },
     }}
   >
     <Box sx={{ alignItems: 'center', display: 'flex', flex: 1, px: 2.2 }}>
@@ -1309,10 +1332,15 @@ const WalletAccordionRow = ({ title }: { title: string }) => (
         borderLeft: `1px solid ${storefrontColors.border}`,
         color: storefrontColors.navy,
         display: 'flex',
+        gap: 1,
         justifyContent: 'center',
+        px: 1.5,
         width: { md: 290, xs: 86 },
       }}
     >
+      <Typography sx={{ display: { md: 'block', xs: 'none' }, fontWeight: 900 }}>
+        View terms
+      </Typography>
       <PlayArrowRoundedIcon sx={{ fontSize: 34 }} />
     </Box>
   </Stack>
@@ -1323,9 +1351,7 @@ const WalletContent = () => {
   const user = useSelector((state: RootState) => state.auth.user);
   const { wallet } = useWallet(user);
   const [topUpAmount, setTopUpAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('KBZPay');
   const [promoCode, setPromoCode] = useState('');
-  const [receipt, setReceipt] = useState<File | null>(null);
 
   const walletSummaryQuery = useQuery({
     queryFn: ({ signal }) => walletApi.getSummary({ signal }),
@@ -1338,13 +1364,14 @@ const WalletContent = () => {
       toast.success(result.message);
       setTopUpAmount('');
       setPromoCode('');
-      setReceipt(null);
       await queryClient.invalidateQueries({ queryKey: ['wallet', 'summary'] });
+      if (result.data.paymentRedirectUrl) {
+        window.location.assign(result.data.paymentRedirectUrl);
+      }
     },
   });
 
   const serverWallet = walletSummaryQuery.data?.wallet;
-  const transferDetails = walletSummaryQuery.data?.paymentTransferDetails;
   const walletBalance = serverWallet?.balance ?? wallet.balance;
   const reservedBalance = serverWallet?.reservedBalance ?? wallet.reservedBalance;
   const availableBalance = Math.max(0, walletBalance - reservedBalance);
@@ -1354,11 +1381,6 @@ const WalletContent = () => {
   const transactions = serverWallet?.transactions ?? wallet.transactions;
 
   const submitTopUpRequest = () => {
-    if (!receipt) {
-      toast.error('Upload your payment receipt image.');
-      return;
-    }
-
     if (!Number.isFinite(topUpValue) || topUpValue < 100) {
       toast.error('Top-up amount must be at least 100 MMK.');
       return;
@@ -1366,9 +1388,7 @@ const WalletContent = () => {
 
     void submitTopUpMutation.mutateAsync({
       amount: topUpValue,
-      paymentMethod,
       promoCode: promoCode.trim() || undefined,
-      receipt,
     });
   };
 
@@ -1445,12 +1465,12 @@ const WalletContent = () => {
           }}
         >
           <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
-            Wallet top-up under review
+            Wallet top-up payment pending
           </Typography>
           <Typography sx={{ color: '#55565c', fontWeight: 700, mt: 0.4 }}>
-            {pendingTopUps.length} request{pendingTopUps.length > 1 ? 's are' : ' is'} waiting for
-            admin review. Your wallet will be topped up manually within 24 hours after receipt
-            confirmation.
+            {pendingTopUps.length} payment{pendingTopUps.length > 1 ? 's are' : ' is'} waiting
+            for gateway confirmation. Your wallet balance updates automatically after successful
+            payment.
           </Typography>
         </Box>
       ) : null}
@@ -1466,33 +1486,11 @@ const WalletContent = () => {
             }}
           >
             <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
-              Transfer payment first
+              Pay securely online
             </Typography>
-            <Box
-              sx={{
-                display: 'grid',
-                gap: 1.2,
-                gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' },
-                mt: 1.4,
-              }}
-            >
-              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>
-                Account name: {transferDetails?.accountName ?? "AV's Store"}
-              </Typography>
-              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>
-                Account number: {transferDetails?.accountNumber ?? '+95 8877594332'}
-              </Typography>
-              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>
-                Payment methods:{' '}
-                {transferDetails?.provider ?? 'Myanmar mobile wallet / bank transfer'}
-              </Typography>
-              <Typography sx={{ color: '#55565c', fontWeight: 700 }}>
-                Review time: within 24 hours
-              </Typography>
-            </Box>
             <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 1.4 }}>
-              {transferDetails?.instructions ??
-                'Transfer by KBZPay, WavePay, AYA Pay, CB Pay, bank transfer, or any Myanmar payment method. Upload the payment receipt after transfer.'}
+              Enter the amount you want to load and continue to the online payment gateway. No
+              receipt upload or manual review is required.
             </Typography>
           </Box>
 
@@ -1504,69 +1502,21 @@ const WalletContent = () => {
             }}
           >
             <TextField
-              label="Transferred amount"
+              label="Top-up amount"
               onChange={(event) => setTopUpAmount(event.target.value)}
               required
               type="number"
               value={topUpAmount}
             />
             <TextField
-              label="Payment method"
-              onChange={(event) => setPaymentMethod(event.target.value)}
-              select
-              value={paymentMethod}
-            >
-              <MenuItem value="KBZPay">KBZPay</MenuItem>
-              <MenuItem value="WavePay">WavePay</MenuItem>
-              <MenuItem value="AYA Pay">AYA Pay</MenuItem>
-              <MenuItem value="CB Pay">CB Pay</MenuItem>
-              <MenuItem value="Bank transfer">Bank transfer</MenuItem>
-              <MenuItem value="Other Myanmar payment">Other Myanmar payment</MenuItem>
-            </TextField>
-            <TextField
               label="Promo code"
               onChange={(event) => setPromoCode(event.target.value)}
               value={promoCode}
             />
-            <Button
-              component="label"
-              sx={{
-                alignItems: 'center',
-                border: `1px dashed ${storefrontColors.border}`,
-                color: storefrontColors.navy,
-                display: 'flex',
-                fontWeight: 900,
-                minHeight: 56,
-                textTransform: 'none',
-              }}
-            >
-              {receipt ? receipt.name : 'Upload receipt image'}
-              <input
-                accept="image/*"
-                hidden
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-
-                  if (!file) {
-                    setReceipt(null);
-                    return;
-                  }
-
-                  if (!validateImageFileSelection(file, 'payment receipt image')) {
-                    event.target.value = '';
-                    return;
-                  }
-
-                  setReceipt(file);
-                  event.target.value = '';
-                }}
-                type="file"
-              />
-            </Button>
           </Box>
 
           <Button
-            disabled={submitTopUpMutation.isPending || !receipt || topUpValue < 100}
+            disabled={submitTopUpMutation.isPending || topUpValue < 100}
             onClick={submitTopUpRequest}
             sx={{
               alignSelf: 'flex-start',
@@ -1581,7 +1531,7 @@ const WalletContent = () => {
               '&.Mui-disabled': { backgroundColor: '#c9cdd6', color: '#ffffff' },
             }}
           >
-            {submitTopUpMutation.isPending ? 'Submitting...' : 'Submit top-up request'}
+            {submitTopUpMutation.isPending ? 'Opening payment...' : 'Pay online and load wallet'}
           </Button>
         </Stack>
       </WalletPanel>
@@ -1605,7 +1555,7 @@ const WalletContent = () => {
                 <Box>
                   <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
                     {formatWalletAmount(request.amount)} via{' '}
-                    {request.paymentMethod ?? 'payment transfer'}
+                    {request.paymentGateway ?? request.paymentMethod ?? 'online payment'}
                   </Typography>
                   <Typography
                     sx={{ color: storefrontColors.muted, fontSize: '0.85rem', fontWeight: 700 }}
@@ -1686,10 +1636,145 @@ const WalletContent = () => {
           </Typography>
         )}
       </WalletPanel>
-      <WalletAccordionRow title="About AV's Store Wallet" />
+      <WalletAccordionRow title="About AV's Store Wallet" to={routePaths.accountWalletTerms} />
     </Stack>
   );
 };
+
+const walletTermsSections = [
+  {
+    title: "About AV's Store Wallet",
+    items: [
+      "AV's Store Wallet is a prepaid balance that customers can use for purchases on AV's Store.",
+      'Wallet balance may come from online top-ups, approved shop cash top-ups, refunds, adjustments, or promotional credits.',
+      'Wallet services are available only for AV’s Store customers and are intended for grocery purchases through AV’s Store.',
+    ],
+  },
+  {
+    title: 'Top-up and Balance',
+    items: [
+      'Online wallet top-ups are credited after successful payment gateway confirmation.',
+      'Cash top-ups made at the shop may be added by the admin team after the cash payment is received.',
+      'The available balance shown in My Wallet is the amount currently usable for orders after any reserved amount is deducted.',
+    ],
+  },
+  {
+    title: 'Using Wallet for Orders',
+    items: [
+      'Wallet balance can be used during checkout when wallet payment is available.',
+      'If the wallet balance is not enough for the full order amount, the customer may need to top up or choose another available payment method.',
+      'AV’s Store may reserve wallet balance for pending orders until payment and order status are confirmed.',
+    ],
+  },
+  {
+    title: 'Refunds, Promotions, and Adjustments',
+    items: [
+      'Eligible refunds may be returned to the wallet depending on the original payment method and order handling process.',
+      'Promotional wallet credits may have campaign-specific rules, validity, or usage limits.',
+      'AV’s Store may correct wallet balances if there is a duplicate transaction, technical issue, failed payment confirmation, or manual entry mistake.',
+    ],
+  },
+  {
+    title: 'Security and Responsibility',
+    items: [
+      'Customers should keep their account login details secure and contact AV’s Store support if they notice unusual wallet activity.',
+      'Wallet balance is linked to the customer account and cannot be transferred to another customer unless AV’s Store approves it.',
+      'AV’s Store may temporarily hold, reverse, or review wallet activity if fraud, misuse, payment failure, or system error is suspected.',
+    ],
+  },
+  {
+    title: 'Support',
+    items: [
+      'For wallet questions, customers can contact support@avsstoreonline.com or call +95-9953055682.',
+      'Please include your registered phone or email, order number if applicable, and the wallet transaction details when contacting support.',
+    ],
+  },
+];
+
+const WalletTermsContent = () => (
+  <Stack spacing={3} sx={{ maxWidth: 980, mt: 4.5 }}>
+    <Box
+      sx={{
+        backgroundColor: storefrontColors.navy,
+        borderRadius: '3px 3px 0 0',
+        color: '#ffffff',
+        px: 2.2,
+        py: 1.55,
+      }}
+    >
+      <Typography sx={{ fontSize: '1.25rem', fontWeight: 900 }}>
+        Wallet Terms & Conditions
+      </Typography>
+    </Box>
+
+    <Box
+      sx={{
+        backgroundColor: '#ffffff',
+        border: `1px solid ${storefrontColors.border}`,
+        borderRadius: 1,
+        p: { md: 3, xs: 2 },
+      }}
+    >
+      <Stack spacing={2.5}>
+        <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, lineHeight: 1.7 }}>
+          These terms explain how AV&apos;s Store Wallet works for top-ups, payments, refunds, and
+          customer support. The wallet is provided for convenient grocery shopping with AV&apos;s
+          Store.
+        </Typography>
+
+        {walletTermsSections.map((section) => (
+          <Box key={section.title}>
+            <Typography sx={{ color: storefrontColors.navy, fontSize: '1.08rem', fontWeight: 900 }}>
+              {section.title}
+            </Typography>
+            <Stack component="ul" spacing={1} sx={{ color: '#4f535b', m: 0, mt: 1, pl: 2.5 }}>
+              {section.items.map((item) => (
+                <Typography component="li" key={item} sx={{ fontWeight: 700, lineHeight: 1.65 }}>
+                  {item}
+                </Typography>
+              ))}
+            </Stack>
+          </Box>
+        ))}
+
+        <Box
+          sx={{
+            backgroundColor: '#f6f8fc',
+            border: `1px solid ${storefrontColors.border}`,
+            borderRadius: 1,
+            p: 2,
+          }}
+        >
+          <Typography sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
+            Last updated: October 5, 2026
+          </Typography>
+          <Typography sx={{ color: storefrontColors.muted, fontWeight: 700, mt: 0.5 }}>
+            AV&apos;s Store may update these wallet terms when wallet features, payment options, or
+            service policies change.
+          </Typography>
+        </Box>
+
+        <Button
+          component={Link}
+          to={routePaths.accountWallet}
+          sx={{
+            alignSelf: 'flex-start',
+            backgroundColor: storefrontColors.navy,
+            borderRadius: 999,
+            color: '#ffffff',
+            fontWeight: 900,
+            px: 3.5,
+            py: 1.1,
+            textTransform: 'none',
+            '&:hover': { backgroundColor: storefrontColors.navyDark },
+          }}
+        >
+          Back to wallet
+        </Button>
+      </Stack>
+    </Box>
+  </Stack>
+);
 
 const StatementContent = () => (
   <Box sx={{ mt: 4.5 }}>
@@ -1748,8 +1833,149 @@ const StatementContent = () => (
 
 const completedOrderStatuses = new Set(['delivered', 'fulfilled', 'cancelled']);
 
+const escapeInvoiceHtml = (value: unknown) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const invoiceFilename = (order: Order) =>
+  `invoice-${order.orderNumber.replace(/[^a-z0-9-]/gi, '-').toLowerCase()}.html`;
+
+const downloadOrderInvoice = (order: Order) => {
+  const subtotal = order.subtotalAmount ?? order.lineItems?.reduce((sum, item) => sum + item.lineTotal, 0);
+  const deliveryFee = order.deliveryFee ?? 0;
+  const promoDiscount = order.promoDiscountAmount ?? 0;
+  const lineItems = order.lineItems?.length
+    ? order.lineItems.map((item) => ({
+        lineTotal: formatCurrency(item.lineTotal, order.currency),
+        name: item.name,
+        quantity: String(item.quantity),
+        sku: item.sku,
+        unitPrice: formatCurrency(item.unitPrice, order.currency),
+      }))
+    : order.productDetails?.map((product) => ({
+        lineTotal: '',
+        name: product.name,
+        quantity: '-',
+        sku: product.sku,
+        unitPrice: '',
+      })) ?? [];
+  const itemRows = lineItems
+    .map(
+      (item) => `
+        <tr>
+          <td>
+            <strong>${escapeInvoiceHtml(item.name)}</strong>
+            ${item.sku ? `<span>SKU ${escapeInvoiceHtml(item.sku)}</span>` : ''}
+          </td>
+          <td>${escapeInvoiceHtml(item.quantity)}</td>
+          <td>${escapeInvoiceHtml(item.unitPrice)}</td>
+          <td>${escapeInvoiceHtml(item.lineTotal)}</td>
+        </tr>`,
+    )
+    .join('');
+  const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Invoice ${escapeInvoiceHtml(order.orderNumber)}</title>
+  <style>
+    body { color: #20242a; font-family: Arial, sans-serif; margin: 0; padding: 32px; }
+    .invoice { border: 1px solid #e4e7ef; margin: 0 auto; max-width: 860px; padding: 32px; }
+    .header { align-items: flex-start; display: flex; justify-content: space-between; gap: 24px; }
+    .brand { align-items: center; display: flex; gap: 16px; }
+    .brand img { height: 72px; object-fit: contain; width: 92px; }
+    h1, h2, p { margin: 0; }
+    h1 { color: #c41a1a; font-size: 28px; }
+    h2 { color: #1f2937; font-size: 16px; margin-bottom: 8px; }
+    .muted, span { color: #697180; display: block; font-size: 13px; margin-top: 4px; }
+    .grid { display: grid; gap: 20px; grid-template-columns: 1fr 1fr; margin-top: 32px; }
+    .box { background: #fafbfe; border: 1px solid #e4e7ef; border-radius: 8px; padding: 16px; }
+    table { border-collapse: collapse; margin-top: 28px; width: 100%; }
+    th { background: #c41a1a; color: #fff; font-size: 13px; text-align: left; }
+    th, td { border-bottom: 1px solid #e4e7ef; padding: 12px; vertical-align: top; }
+    td:nth-child(2), td:nth-child(3), td:nth-child(4), th:nth-child(2), th:nth-child(3), th:nth-child(4) { text-align: right; }
+    .totals { margin-left: auto; margin-top: 24px; max-width: 340px; }
+    .total-row { display: flex; justify-content: space-between; padding: 8px 0; }
+    .grand { border-top: 2px solid #c41a1a; color: #c41a1a; font-size: 18px; font-weight: 800; margin-top: 8px; padding-top: 12px; }
+    .footer { color: #697180; font-size: 12px; margin-top: 36px; text-align: center; }
+    @media print { body { padding: 0; } .invoice { border: 0; } }
+  </style>
+</head>
+<body>
+  <main class="invoice">
+    <section class="header">
+      <div class="brand">
+        <img alt="AV's Store" src="${logoImage}" />
+        <div>
+          <h1>AV's Store</h1>
+          <p class="muted">Yangon, Myanmar</p>
+          <p class="muted">Phone: +95-9953055682</p>
+          <p class="muted">Email: support@avsstoreonline.com</p>
+        </div>
+      </div>
+      <div>
+        <h1>Invoice</h1>
+        <p class="muted">Invoice #: ${escapeInvoiceHtml(order.orderNumber)}</p>
+        <p class="muted">Date: ${escapeInvoiceHtml(formatDate(order.createdAt))}</p>
+      </div>
+    </section>
+    <section class="grid">
+      <div class="box">
+        <h2>Bill To</h2>
+        <p>${escapeInvoiceHtml(order.customerName)}</p>
+        <p class="muted">${escapeInvoiceHtml(order.customerEmail ?? 'N/A')}</p>
+        <p class="muted">${escapeInvoiceHtml(order.customerPhone ?? 'N/A')}</p>
+      </div>
+      <div class="box">
+        <h2>Delivery</h2>
+        <p>${escapeInvoiceHtml(order.deliveryAddress ?? 'N/A')}</p>
+        <p class="muted">${escapeInvoiceHtml([order.region, order.township].filter(Boolean).join(' / ') || 'N/A')}</p>
+      </div>
+      <div class="box">
+        <h2>Order</h2>
+        <p>Status: ${escapeInvoiceHtml(order.status)}</p>
+        <p class="muted">Items: ${escapeInvoiceHtml(order.itemCount)}</p>
+      </div>
+      <div class="box">
+        <h2>Payment</h2>
+        <p>${escapeInvoiceHtml(paymentMethodLabel(order))}</p>
+        <p class="muted">Status: ${escapeInvoiceHtml(order.paymentStatus ?? 'Pending')}</p>
+      </div>
+    </section>
+    <table>
+      <thead>
+        <tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Total</th></tr>
+      </thead>
+      <tbody>${itemRows || '<tr><td colspan="4">Order items are not available.</td></tr>'}</tbody>
+    </table>
+    <section class="totals">
+      ${subtotal !== undefined ? `<div class="total-row"><span>Subtotal</span><strong>${escapeInvoiceHtml(formatCurrency(subtotal, order.currency))}</strong></div>` : ''}
+      ${deliveryFee ? `<div class="total-row"><span>Delivery fee</span><strong>${escapeInvoiceHtml(formatCurrency(deliveryFee, order.currency))}</strong></div>` : ''}
+      ${promoDiscount ? `<div class="total-row"><span>Promo discount</span><strong>-${escapeInvoiceHtml(formatCurrency(promoDiscount, order.currency))}</strong></div>` : ''}
+      <div class="total-row grand"><span>Total</span><strong>${escapeInvoiceHtml(formatCurrency(order.totalAmount, order.currency))}</strong></div>
+    </section>
+    <p class="footer">Thank you for shopping with AV's Store.</p>
+  </main>
+</body>
+</html>`;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = invoiceFilename(order);
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
 const OrdersContent = () => {
+  const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth.user);
+  const { addToCart } = useCart();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -1757,6 +1983,10 @@ const OrdersContent = () => {
     enabled: Boolean(user?.id),
     queryFn: ({ signal }) => orderApi.getOrders({ signal }),
     queryKey: ['orders', user?.id],
+  });
+  const productsQuery = useQuery({
+    queryFn: ({ signal }) => productApi.getProducts({ signal }),
+    queryKey: ['products'],
   });
   const loggedInEmail = user?.email.trim().toLowerCase() ?? '';
   const orders = (ordersQuery.data ?? [])
@@ -1777,6 +2007,53 @@ const OrdersContent = () => {
         ].some((value) => value?.toLowerCase().includes(normalizedSearch)),
       )
     : tabOrders;
+  const catalogProductById = new Map((productsQuery.data ?? []).map((product) => [product.id, product]));
+
+  const productFromLineItem = (
+    item: NonNullable<Order['lineItems']>[number],
+    currency: string,
+  ): Product => ({
+    categoryId: '',
+    currency,
+    description: item.name,
+    id: item.productId,
+    imageUrl: item.imageUrl ?? '',
+    inventory: item.quantity,
+    name: item.name,
+    price: item.unitPrice,
+    rating: 0,
+    sku: item.sku,
+    slug: item.sku.toLowerCase(),
+    tags: [],
+    tenantId: 'AV',
+  });
+
+  const handleReorder = (order: Order) => {
+    const productsToAdd: Product[] = [];
+
+    if (order.lineItems?.length) {
+      order.lineItems.forEach((item) => {
+        const product = catalogProductById.get(item.productId) ?? productFromLineItem(item, order.currency);
+        for (let index = 0; index < item.quantity; index += 1) {
+          productsToAdd.push(product);
+        }
+      });
+    } else if (order.productDetails?.length) {
+      order.productDetails.forEach((item) => {
+        const product = catalogProductById.get(item.productId);
+        if (product) productsToAdd.push(product);
+      });
+    }
+
+    if (!productsToAdd.length) {
+      toast.error('This order does not have enough item details to reorder.');
+      return;
+    }
+
+    productsToAdd.forEach(addToCart);
+    toast.success(`${productsToAdd.length} item${productsToAdd.length === 1 ? '' : 's'} added to cart.`);
+    void navigate(routePaths.cart);
+  };
 
   return (
     <Box sx={{ mt: 4.5 }}>
@@ -1991,6 +2268,29 @@ const OrdersContent = () => {
                         {paymentMethodLabel(order)}
                         {order.paymentStatus ? ` · ${order.paymentStatus}` : ''}
                       </Typography>
+                      <Box
+                        component="span"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleReorder(order);
+                        }}
+                        role="button"
+                        sx={{
+                          border: `1px solid ${alpha(storefrontColors.navy, 0.28)}`,
+                          borderRadius: 999,
+                          color: storefrontColors.navy,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          fontSize: '0.82rem',
+                          fontWeight: 900,
+                          mt: 0.5,
+                          px: 1.5,
+                          py: 0.55,
+                        }}
+                        tabIndex={0}
+                      >
+                        Purchase again
+                      </Box>
                     </Stack>
                   </Stack>
                 </Box>
@@ -2153,7 +2453,29 @@ const OrdersContent = () => {
         open={Boolean(selectedOrder)}
       >
         <DialogTitle sx={{ color: storefrontColors.navy, fontWeight: 900 }}>
-          Order details
+          <Stack
+            direction={{ sm: 'row', xs: 'column' }}
+            spacing={1.25}
+            sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}
+          >
+            <span>Order details</span>
+            {selectedOrder ? (
+              <Button
+                onClick={() => downloadOrderInvoice(selectedOrder)}
+                size="small"
+                startIcon={<FileDownloadOutlinedIcon />}
+                sx={{
+                  borderColor: alpha(storefrontColors.navy, 0.35),
+                  color: storefrontColors.navy,
+                  fontWeight: 900,
+                  textTransform: 'none',
+                }}
+                variant="outlined"
+              >
+                Download invoice
+              </Button>
+            ) : null}
+          </Stack>
         </DialogTitle>
         <DialogContent>
           {selectedOrder ? (
@@ -2368,6 +2690,24 @@ const OrdersContent = () => {
           ) : null}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          {selectedOrder ? (
+            <Button
+              onClick={() => handleReorder(selectedOrder)}
+              startIcon={<AddShoppingCartOutlinedIcon />}
+              sx={{ color: storefrontColors.navy, fontWeight: 800, textTransform: 'none' }}
+            >
+              Purchase again
+            </Button>
+          ) : null}
+          {selectedOrder ? (
+            <Button
+              onClick={() => downloadOrderInvoice(selectedOrder)}
+              startIcon={<FileDownloadOutlinedIcon />}
+              sx={{ color: storefrontColors.navy, fontWeight: 800, textTransform: 'none' }}
+            >
+              Download invoice
+            </Button>
+          ) : null}
           <Button
             onClick={() => setSelectedOrder(null)}
             sx={{ color: storefrontColors.navy, fontWeight: 800, textTransform: 'none' }}
@@ -2483,6 +2823,7 @@ const emptyAddressForm: CustomerAddressPayload = {
   addressLine2: '',
   city: '',
   deliveryInstructions: '',
+  email: '',
   isDefault: false,
   label: 'home',
   landmark: '',
@@ -2497,9 +2838,12 @@ const getUserFullName = (user: RootState['auth']['user']) =>
 
 const getAddressFormDefaults = (user: RootState['auth']['user']): CustomerAddressPayload => ({
   ...emptyAddressForm,
+  email: user?.email ?? '',
   phone: user?.phone ?? '',
   recipientName: getUserFullName(user),
 });
+
+const isYangonRegion = (region?: string) => region === 'Yangon' || region === 'Yangon Region';
 
 const AddressContent = () => {
   const { addresses, createAddress, deleteAddress, isLoading, isSaving, updateAddress } =
@@ -2509,9 +2853,9 @@ const AddressContent = () => {
   const [editingAddress, setEditingAddress] = useState<CustomerAddress | null>(null);
   const [form, setForm] = useState<CustomerAddressPayload>(() => getAddressFormDefaults(user));
   const hasAddresses = addresses.length > 0;
-  const myanmarLocations = locationsQuery.data?.length
+  const myanmarLocations = (locationsQuery.data?.length
     ? locationsQuery.data
-    : myanmarLocationFallback;
+    : yangonLocationFallback).filter((locationOption) => isYangonRegion(locationOption.region));
   const selectedLocation = myanmarLocations.find(
     (locationOption) => locationOption.region === form.region,
   );
@@ -2542,13 +2886,14 @@ const AddressContent = () => {
       addressLine2: address.addressLine2 ?? '',
       city: address.city,
       deliveryInstructions: address.deliveryInstructions ?? '',
+      email: address.email ?? user?.email ?? '',
       isDefault: address.isDefault,
       label: address.label,
       landmark: address.landmark ?? '',
       phone: address.phone,
       recipientName: address.recipientName,
-      region: address.region ?? '',
-      township: address.township ?? '',
+      region: isYangonRegion(address.region) ? address.region : '',
+      township: isYangonRegion(address.region) ? address.township ?? '' : '',
     });
   };
   const setField = <TKey extends keyof CustomerAddressPayload>(
@@ -2629,6 +2974,12 @@ const AddressContent = () => {
             onChange={(event) => setField('phone', event.target.value)}
             required
             value={form.phone}
+          />
+          <TextField
+            label="Email"
+            onChange={(event) => setField('email', event.target.value)}
+            type="email"
+            value={form.email ?? ''}
           />
           <TextField
             label="Address label"
@@ -2824,6 +3175,9 @@ const AddressContent = () => {
                   {address.recipientName}
                 </Typography>
                 <Typography sx={{ color: '#4b5563', fontWeight: 700 }}>{address.phone}</Typography>
+                {address.email ? (
+                  <Typography sx={{ color: '#4b5563', fontWeight: 700 }}>{address.email}</Typography>
+                ) : null}
                 <Typography sx={{ color: '#4b5563', mt: 0.8 }}>
                   {[
                     address.addressLine1,
@@ -3470,7 +3824,7 @@ const InfoContent = ({ activePage }: { activePage: AccountPageConfig }) => (
             Current status
           </Typography>
           <Typography sx={{ color: storefrontColors.muted, mt: 0.5 }}>
-            This section is ready for live account data and API integration.
+            We will show your latest activity here when it is available.
           </Typography>
         </Box>
         <Button
@@ -3508,6 +3862,10 @@ const AccountPageContent = ({ activePage }: { activePage: AccountPageConfig }) =
 
   if (activePage.path === routePaths.accountWallet) {
     return <WalletContent />;
+  }
+
+  if (activePage.path === routePaths.accountWalletTerms) {
+    return <WalletTermsContent />;
   }
 
   if (activePage.path === routePaths.accountStatement) {

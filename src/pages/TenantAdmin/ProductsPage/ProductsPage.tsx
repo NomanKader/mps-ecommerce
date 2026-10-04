@@ -55,6 +55,7 @@ type ProductForm = {
   price: string;
   sku: string;
   subcategory: string;
+  unit: string;
 };
 
 const emptyForm: ProductForm = {
@@ -67,6 +68,7 @@ const emptyForm: ProductForm = {
   price: '1000',
   sku: '',
   subcategory: '',
+  unit: 'pcs',
 };
 
 const toForm = (product: AdminProduct, categories: AdminCategory[]): ProductForm => ({
@@ -82,6 +84,7 @@ const toForm = (product: AdminProduct, categories: AdminCategory[]): ProductForm
   price: String(product.price),
   sku: product.sku,
   subcategory: product.subcategory ?? '',
+  unit: product.unit ?? '',
 });
 
 const stockFilterOptions = [
@@ -104,6 +107,7 @@ const requiredBulkColumns = ['SKU', 'Product name', 'Price', 'Stock'];
 const optionalBulkColumns = [
   'Category',
   'Subcategory',
+  'Unit',
   'Rating',
   'Tags',
   'Description',
@@ -212,6 +216,7 @@ const normalizeBulkRow = (row: Record<string, unknown>): AdminProductBulkItem =>
       String(readField(normalizedRow, ['subcategory', 'subCategory', 'subdepartment']) ?? '') ||
       undefined,
     tags: parseTags(readField(normalizedRow, ['tags', 'tag'])),
+    unit: String(readField(normalizedRow, ['unit', 'units', 'uom']) ?? '').trim() || undefined,
   };
 };
 
@@ -347,7 +352,14 @@ export const ProductsPage = () => {
       products.filter((product) => {
         const normalizedSearch = search.trim().toLowerCase();
         const matchesSearch = normalizedSearch
-          ? [product.name, product.sku, product.description, product.subcategory, ...product.tags]
+          ? [
+              product.name,
+              product.sku,
+              product.unit,
+              product.description,
+              product.subcategory,
+              ...product.tags,
+            ]
               .join(' ')
               .toLowerCase()
               .includes(normalizedSearch)
@@ -448,6 +460,14 @@ export const ProductsPage = () => {
       width: 210,
     },
     {
+      field: 'unit',
+      headerName: 'Unit',
+      renderCell: ({ row }) => (
+        <Chip label={row.unit || 'item'} size="small" variant="outlined" />
+      ),
+      width: 120,
+    },
+    {
       field: 'price',
       headerName: 'Price',
       renderCell: ({ value }) => (
@@ -524,18 +544,20 @@ export const ProductsPage = () => {
       const category = categories.find((item) => item.id === form.categoryId);
       const name = form.name.trim();
       const sku = form.sku.trim();
+      const unit = form.unit.trim();
       const price = Number(form.price);
       const stock = Number(form.inventory);
 
       if (
         !name ||
         !sku ||
+        !unit ||
         !Number.isFinite(price) ||
         price < 100 ||
         !Number.isInteger(stock) ||
         stock < 0
       ) {
-        throw new Error('Enter a product name, SKU, price of at least 100 MMK, and valid stock.');
+        throw new Error('Enter a product name, SKU, unit, price of at least 100 MMK, and valid stock.');
       }
 
       const existing = products.find((product) => product.id === editingId);
@@ -543,7 +565,7 @@ export const ProductsPage = () => {
         categoryId: form.categoryId || undefined,
         categoryName: category?.name,
         currency: existing?.currency ?? 'MMK',
-        description: existing?.description ?? `${name} managed from the admin dashboard.`,
+        description: existing?.description ?? `${name} is available from AV's Store.`,
         image: form.imageFile,
         name,
         price,
@@ -553,6 +575,7 @@ export const ProductsPage = () => {
         stock,
         subcategory: form.subcategory || undefined,
         tags: existing?.tags ?? [],
+        unit,
         removeImage: form.removeImage || undefined,
       };
 
@@ -1071,6 +1094,14 @@ export const ProductsPage = () => {
               value={form.sku}
             />
             <TextField
+              helperText="Examples: pcs, 250g, kg, viss, bottle, pack"
+              label="Unit"
+              onChange={(event) =>
+                setForm((current) => ({ ...current, unit: event.target.value }))
+              }
+              value={form.unit}
+            />
+            <TextField
               label="Category"
               onChange={(event) => {
                 const nextCategoryId = event.target.value;
@@ -1224,6 +1255,12 @@ export const ProductsPage = () => {
                     Stock
                   </Typography>
                   <Typography sx={{ fontWeight: 700 }}>{detailProduct.stock}</Typography>
+                </Grid>
+                <Grid size={{ sm: 6, xs: 12 }}>
+                  <Typography color="text.secondary" variant="caption">
+                    Unit
+                  </Typography>
+                  <Typography sx={{ fontWeight: 700 }}>{detailProduct.unit || 'item'}</Typography>
                 </Grid>
                 <Grid size={{ sm: 6, xs: 12 }}>
                   <Typography color="text.secondary" variant="caption">
