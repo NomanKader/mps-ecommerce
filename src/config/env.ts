@@ -1,10 +1,16 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
+import { resolvePublicUrls } from './public-urls';
 
 dotenv.config({ quiet: true });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  APP_ENV: z.enum(['development', 'production']).optional(),
+  DEVELOPMENT_PUBLIC_API_BASE_URL: z.preprocess(value => value === '' ? undefined : value, z.string().url().optional()),
+  DEVELOPMENT_PUBLIC_APP_BASE_URL: z.string().url().optional(),
+  PRODUCTION_PUBLIC_API_BASE_URL: z.string().url().optional(),
+  PRODUCTION_PUBLIC_APP_BASE_URL: z.string().url().optional(),
   PORT: z.coerce.number().default(5001),
   API_PREFIX: z.string().default('/api/v1'),
   MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
@@ -32,7 +38,20 @@ const envSchema = z.object({
   MOPAYMENTS_ENVIRONMENT: z.enum(['sandbox', 'live']).default('sandbox'),
   MOPAYMENTS_MERCHANT_ID: z.string().optional(),
   MOPAYMENTS_SECRET_KEY: z.string().optional(),
-  MOPAYMENTS_PREFERRED_GATEWAYS: z.string().optional()
+  MOPAYMENTS_PREFERRED_GATEWAYS: z.string().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_SECURE: z.preprocess((value) => {
+    if (value === undefined || value === '') return undefined;
+    if (typeof value === 'boolean') return value;
+    return String(value).toLowerCase() === 'true';
+  }, z.boolean().optional()),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().email().optional(),
+  SMTP_FROM_EMAIL: z.string().email().optional(),
+  SMTP_FROM_NAME: z.string().optional(),
+  ORDER_NOTIFICATION_EMAIL: z.string().email().default('orders@avsstoreonline.com')
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -45,4 +64,4 @@ if (!parsedEnv.success) {
   throw new Error(`Invalid environment configuration: ${formatted}`);
 }
 
-export const env = parsedEnv.data;
+export const env = { ...parsedEnv.data, ...resolvePublicUrls(parsedEnv.data) };

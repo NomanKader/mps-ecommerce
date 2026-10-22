@@ -1,3 +1,5 @@
+import { isObjectIdOrHexString } from 'mongoose';
+
 import { BaseService } from '@core/base/BaseService';
 import { getTenantModels } from '@core/database/tenant-database';
 import { HTTP_STATUS } from '@core/response/http-status';
@@ -29,6 +31,10 @@ export class FavoriteService extends BaseService {
   ): Promise<FavoriteToggleResponse> {
     if (!tenantId || !userId) {
       throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Authentication is required');
+    }
+
+    if (!isObjectIdOrHexString(productId)) {
+      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'This product is no longer available. Please choose a product from the catalog.');
     }
 
     const { ProductModel } = getTenantModels(tenantId);

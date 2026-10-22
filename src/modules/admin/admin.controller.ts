@@ -314,11 +314,32 @@ export class AdminController extends BaseController {
     );
   });
 
+  updateOrderPaymentStatus = asyncHandler(async (req: Request, res: Response) => {
+    this.ok(
+      res,
+      await this.adminService.updateOrderPaymentStatus(
+        req.tenant?.tenantId,
+        routeId(req),
+        req.body.paymentStatus
+      ),
+      'Payment status updated'
+    );
+  });
+
   listCustomers = asyncHandler(async (req: Request, res: Response) => {
     this.ok(
       res,
       await this.adminService.listCustomers(req.tenant?.tenantId, req.query),
       'Customers loaded'
+    );
+  });
+
+  createCustomer = asyncHandler(async (req: Request, res: Response) => {
+    this.ok(
+      res,
+      await this.adminService.createCustomer(req.tenant?.tenantId, req.body),
+      'Customer created',
+      HTTP_STATUS.CREATED
     );
   });
 

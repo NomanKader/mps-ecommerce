@@ -9,6 +9,7 @@ export const addressSchema = new Schema<Address>(
     userId: { type: String, required: true, index: true },
     label: { type: String, enum: ['home', 'work', 'other'], default: 'home' },
     recipientName: { type: String, required: true, trim: true },
+    email: { type: String, trim: true, lowercase: true },
     phone: { type: String, required: true, trim: true },
     addressLine1: { type: String, required: true, trim: true },
     addressLine2: { type: String, trim: true },

@@ -266,11 +266,11 @@ export const tenantAdminSettingsSchema = new Schema<TenantAdminSettings>(
       type: String,
       required: true,
       trim: true,
-      default: 'Delivery all over UAE'
+      default: 'Deliver in Yangon'
     },
     logoUrl: { type: String, trim: true },
-    supportPhoneCountryCode: { type: String, required: true, trim: true, default: '+971' },
-    supportPhoneNumber: { type: String, required: true, trim: true, default: '800 287' },
+    supportPhoneCountryCode: { type: String, required: true, trim: true, default: '+95' },
+    supportPhoneNumber: { type: String, required: true, trim: true, default: '9953055682' },
     topBarTagline: {
       type: String,
       required: true,

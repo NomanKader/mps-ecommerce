@@ -103,9 +103,7 @@ const stringifyTokenRequest = (
     signature
   });
 
-  return /^\d+$/.test(merchantId)
-    ? json.replace('"__MOPAYMENTS_MERCHANT_ID__"', merchantId)
-    : json;
+  return /^\d+$/.test(merchantId) ? json.replace('"__MOPAYMENTS_MERCHANT_ID__"', merchantId) : json;
 };
 
 export class MoPaymentsService {
@@ -239,15 +237,20 @@ export class MoPaymentsService {
     return sortAndJoin(params);
   }
 
-  async requestPaymentToken(request: Omit<MoPaymentsTokenRequest, 'merchantId'>): Promise<MoPaymentsTokenResponse> {
+  async requestPaymentToken(
+    request: Omit<MoPaymentsTokenRequest, 'merchantId'>
+  ): Promise<MoPaymentsTokenResponse> {
     const merchantId = this.getMerchantId();
     const payload: MoPaymentsTokenRequest = { ...request, merchantId };
     const signature = this.createSignature(payload);
-    const response = await fetch(`${requestApiBaseUrls[env.MOPAYMENTS_ENVIRONMENT]}/request_payment_token`, {
-      body: stringifyTokenRequest(merchantId, payload, signature),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST'
-    });
+    const response = await fetch(
+      `${requestApiBaseUrls[env.MOPAYMENTS_ENVIRONMENT]}/request_payment_token`,
+      {
+        body: stringifyTokenRequest(merchantId, payload, signature),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST'
+      }
+    );
 
     if (!response.ok) {
       const body = await response.text();
@@ -270,40 +273,64 @@ export class MoPaymentsService {
     };
   }
 
-  async checkPaymentStatus(token: string, merchantReferenceId: string): Promise<MoPaymentsStatusResponse> {
-    const response = await fetch(`${paymentApiBaseUrls[env.MOPAYMENTS_ENVIRONMENT]}/check_payment_status`, {
-      body: JSON.stringify({
-        token,
-        merchant_reference_id: merchantReferenceId
-      }),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST'
-    });
+  async checkPaymentStatus(
+    token: string,
+    merchantReferenceId: string
+  ): Promise<MoPaymentsStatusResponse> {
+    const response = await fetch(
+      `${paymentApiBaseUrls[env.MOPAYMENTS_ENVIRONMENT]}/check_payment_status`,
+      {
+        body: JSON.stringify({
+          token,
+          merchant_reference_id: merchantReferenceId
+        }),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST'
+      }
+    );
 
     if (!response.ok) {
-      throw new ApiError(HTTP_STATUS.BAD_REQUEST, `MoPayments status check failed (${response.status})`);
+      throw new ApiError(
+        HTTP_STATUS.BAD_REQUEST,
+        `MoPayments status check failed (${response.status})`
+      );
     }
 
     const result = (await response.json()) as {
       data?: {
-        gateway_type?: string;
+        gateway_type?: string | null;
         merchant_reference_id?: string;
         payment_status?: MoPaymentsStatus;
         token?: string;
-        transaction_amount?: number;
+        transaction_amount?: number | null;
       };
     };
 
-    if (!result.data?.payment_status || !result.data.token || !result.data.merchant_reference_id) {
+    const data = result.data;
+    const validStatuses: MoPaymentsStatus[] = [
+      'SUCCESS',
+      'FAIL',
+      'PROCESSING',
+      'EXPIRED',
+      'TIMEOUT'
+    ];
+
+    if (
+      !data?.payment_status ||
+      !validStatuses.includes(data.payment_status) ||
+      data.merchant_reference_id !== merchantReferenceId ||
+      (data.token !== undefined && data.token !== token)
+    ) {
       throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'MoPayments status response is invalid');
     }
 
     return {
-      gatewayType: result.data.gateway_type,
-      merchantReferenceId: result.data.merchant_reference_id,
-      paymentStatus: result.data.payment_status,
-      token: result.data.token,
-      transactionAmount: result.data.transaction_amount
+      gatewayType: data.gateway_type ?? undefined,
+      merchantReferenceId: data.merchant_reference_id,
+      paymentStatus: data.payment_status,
+      // The sandbox status response does not echo the request token.
+      token,
+      transactionAmount: data.transaction_amount ?? undefined
     };
   }
 }

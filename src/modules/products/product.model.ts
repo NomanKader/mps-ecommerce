@@ -8,6 +8,7 @@ export const productSchema = new Schema<Product>(
     tenantId: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true },
     sku: { type: String, required: true, trim: true, index: true },
+    unit: { type: String, trim: true },
     categoryId: { type: String, index: true },
     categoryName: { type: String, trim: true },
     subcategory: { type: String },

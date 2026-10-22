@@ -79,6 +79,7 @@ export const productBodySchema = z.object({
   body: z.object({
     name: z.string().min(2),
     sku: z.string().min(2),
+    unit: z.string().optional(),
     categoryId: z.string().optional(),
     categoryName: z.string().min(1).optional(),
     subcategory: z.string().optional(),
@@ -342,6 +343,13 @@ export const orderStatusSchema = z.object({
   })
 });
 
+export const orderPaymentStatusSchema = z.object({
+  params: z.object({ id: z.string().min(1) }),
+  body: z.object({
+    paymentStatus: z.enum(['paid', 'pending', 'failed', 'expired', 'timeout'])
+  })
+});
+
 export const orderQuerySchema = z.object({
   query: z.object({
     search: z.string().optional(),
@@ -370,5 +378,21 @@ export const customerQuerySchema = z.object({
   query: z.object({
     search: z.string().optional(),
     segment: z.enum(['VIP', 'Loyal', 'New', 'At Risk']).optional()
+  })
+});
+
+export const customerBodySchema = z.object({
+  body: z.object({
+    email: z.email(),
+    name: z.string().trim().min(2).max(120),
+    segment: z.enum(['VIP', 'Loyal', 'New', 'At Risk']).default('New')
+  })
+});
+
+export const customerWalletLoadBodySchema = z.object({
+  body: z.object({
+    adminNote: z.string().trim().max(300).optional(),
+    amount: z.coerce.number().min(100),
+    customerEmail: z.email()
   })
 });

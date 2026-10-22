@@ -21,8 +21,8 @@ export class WalletController extends BaseController {
   createTopUpRequest = asyncHandler(async (req: Request, res: Response) => {
     this.ok(
       res,
-      await this.walletService.createTopUpRequest(req.tenant?.tenantId, req.auth?.userId, req.body, req.file),
-      'Wallet top-up request submitted',
+      await this.walletService.createTopUpRequest(req.tenant?.tenantId, req.auth?.userId, req.body),
+      'Wallet top-up payment created',
       HTTP_STATUS.CREATED
     );
   });
@@ -48,6 +48,14 @@ export class WalletController extends BaseController {
       res,
       await this.walletService.rejectTopUp(req.tenant?.tenantId, req.auth?.userId, String(req.params.id), req.body),
       'Wallet top-up rejected'
+    );
+  });
+
+  adminLoadWallet = asyncHandler(async (req: Request, res: Response) => {
+    this.ok(
+      res,
+      await this.walletService.adminLoadWallet(req.tenant?.tenantId, req.auth?.userId, req.body),
+      'Customer wallet loaded'
     );
   });
 }

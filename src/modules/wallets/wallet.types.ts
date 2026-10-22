@@ -7,6 +7,7 @@ export interface WalletTransaction {
   direction: 'credit' | 'debit';
   kind: WalletTransactionKind;
   referenceId?: string;
+  performedBy?: string;
 }
 
 export interface CustomerWallet {
@@ -32,10 +33,19 @@ export interface WalletTopUpRequest {
   amount: number;
   promoCode?: string;
   paymentMethod?: string;
-  receiptImageName: string;
-  receiptImageMimeType: string;
-  receiptImageSize: number;
-  receiptImageKey: string;
+  paymentGateway?: string;
+  paymentGatewayReferenceId?: string;
+  paymentGatewayStatus?: string;
+  paymentMerchantReferenceId?: string;
+  paymentRedirectUrl?: string;
+  paymentSettlementAmount?: number;
+  paymentToken?: string;
+  paymentTokenExpiresAt?: Date;
+  paymentTransactionAmount?: number;
+  receiptImageName?: string;
+  receiptImageMimeType?: string;
+  receiptImageSize?: number;
+  receiptImageKey?: string;
   receiptImageUrl?: string | null;
   status: WalletTopUpStatus;
   reviewedBy?: string;

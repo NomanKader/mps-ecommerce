@@ -6,6 +6,12 @@ import { asyncHandler } from '@utils/asyncHandler';
 
 export class LocationController extends BaseController {
   listMyanmarLocations = asyncHandler(async (_req: Request, res: Response) => {
-    this.ok(res, myanmarLocations, 'Myanmar locations fetched');
+    this.ok(
+      res,
+      myanmarLocations
+        .filter((location) => location.region === 'Yangon Region' || location.region === 'Yangon')
+        .map((location) => ({ ...location, region: 'Yangon' })),
+      'Yangon locations fetched'
+    );
   });
 }

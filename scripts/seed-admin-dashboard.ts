@@ -269,6 +269,9 @@ const customerLastNames = [
 const townshipSeeds = ['Bahan', 'Sanchaung', 'Kamayut', 'Mayangone'];
 
 const run = async (): Promise<void> => {
+  if (!process.argv.includes('--demo-data')) {
+    throw new Error('This script creates demo customers and orders. Run with --demo-data only for a demo database.');
+  }
   await connectDatabase();
 
   const existingTenant = await TenantModel.findOne({
@@ -327,7 +330,7 @@ const run = async (): Promise<void> => {
       email: adminEmail,
       firstName: 'Tenant',
       lastName: 'Admin',
-      phone: '+9598877594332',
+      phone: '+959953055682',
       role: Role.TENANT_ADMIN,
       isActive: true,
       password: await hashPassword(adminPassword)
@@ -352,10 +355,10 @@ const run = async (): Promise<void> => {
     { tenantId },
     {
       tenantId,
-      deliveryHeadline: 'Delivery all over Myanmar',
+      deliveryHeadline: 'Deliver in Yangon',
       logoUrl: '',
       supportPhoneCountryCode: '+95',
-      supportPhoneNumber: '8877594332',
+      supportPhoneNumber: '9953055682',
       topBarTagline: 'Sustainable Grocery Shopping'
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }

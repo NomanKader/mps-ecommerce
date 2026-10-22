@@ -221,6 +221,9 @@ const bulkProductColumnAliases: Record<string, keyof ProductPayload | 'imageUrl'
   stock: 'stock',
   subcategory: 'subcategory',
   subcategoryname: 'subcategory',
+  unit: 'unit',
+  units: 'unit',
+  uom: 'unit',
   tags: 'tags'
 };
 
@@ -2404,22 +2407,52 @@ export class AdminService {
     return this.orderResponse(order);
   }
 
+  async updateOrderPaymentStatus(
+    tenantId: string | undefined,
+    id: string,
+    paymentStatus: Order['paymentStatus']
+  ): Promise<Order> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { OrderModel } = this.models(scopedTenant);
+    const order = await OrderModel.findOneAndUpdate(
+      { _id: id, tenantId: scopedTenant },
+      {
+        paymentStatus,
+        paymentGatewayStatus: paymentStatus === 'paid' ? 'MANUAL_PAID' : `MANUAL_${paymentStatus.toUpperCase()}`
+      },
+      { new: true }
+    ).lean<Order>();
+    if (!order) throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Order not found');
+    return this.orderResponse(order);
+  }
+
   async listCustomers(tenantId?: string, query: ListQuery = {}): Promise<AdminCustomer[]> {
     const scopedTenant = this.tenantId(tenantId);
     const { OrderModel, AdminCustomerModel } = this.models(scopedTenant);
     const orderCustomers = this.customerStatsFromOrders(
       await OrderModel.find({ tenantId: scopedTenant }).lean<Order[]>()
     );
-    let customers = orderCustomers;
+    const manualCustomers = await AdminCustomerModel.find({
+      tenantId: scopedTenant
+    })
+      .sort({ lastOrderAt: -1 })
+      .lean<AdminCustomer[]>();
+    const customersByEmail = new Map<string, AdminCustomer>();
+    const deletedEmails = new Set(
+      manualCustomers.filter((customer) => customer.isDeleted).map((customer) => customer.email.toLowerCase())
+    );
 
-    if (customers.length === 0) {
-      customers = await AdminCustomerModel.find({
-        tenantId: scopedTenant,
-        isDeleted: { $ne: true }
-      })
-        .sort({ lastOrderAt: -1 })
-        .lean<AdminCustomer[]>();
+    for (const customer of manualCustomers) {
+      if (customer.isDeleted) continue;
+      customersByEmail.set(customer.email.toLowerCase(), customer);
     }
+
+    for (const customer of orderCustomers) {
+      if (deletedEmails.has(customer.email.toLowerCase())) continue;
+      customersByEmail.set(customer.email.toLowerCase(), customer);
+    }
+
+    let customers = [...customersByEmail.values()];
 
     if (typeof query.search === 'string' && query.search) {
       const search = query.search.toLowerCase();
@@ -2435,6 +2468,37 @@ export class AdminService {
     return customers.sort(
       (a, b) => new Date(b.lastOrderAt).getTime() - new Date(a.lastOrderAt).getTime()
     );
+  }
+
+  async createCustomer(
+    tenantId: string | undefined,
+    payload: Pick<AdminCustomer, 'email' | 'name' | 'segment'>
+  ): Promise<AdminCustomer> {
+    const scopedTenant = this.tenantId(tenantId);
+    const { AdminCustomerModel } = this.models(scopedTenant);
+    const email = payload.email.trim().toLowerCase();
+    const now = new Date();
+    const customer = await AdminCustomerModel.findOneAndUpdate(
+      { tenantId: scopedTenant, email },
+      {
+        $set: {
+          name: payload.name.trim(),
+          segment: payload.segment ?? 'New',
+          isDeleted: false
+        },
+        $setOnInsert: {
+          tenantId: scopedTenant,
+          email,
+          orders: 0,
+          totalSpend: 0,
+          lastOrderAt: now
+        }
+      },
+      { new: true, runValidators: true, setDefaultsOnInsert: true, upsert: true }
+    ).lean<AdminCustomer>();
+
+    if (!customer) throw new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Customer was not saved');
+    return customer;
   }
 
   async listPromotions(tenantId?: string, query: ListQuery = {}): Promise<Promotion[]> {

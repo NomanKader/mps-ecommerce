@@ -59,7 +59,18 @@ app.use(
     crossOriginResourcePolicy: { policy: 'cross-origin' }
   })
 );
-app.use(cors(corsOptions));
+app.use((req, res, next) => {
+  // Gateway form posts are top-level navigations, not cross-origin API reads.
+  const paymentPaths = [
+    `${env.API_PREFIX}/payments/mopayments/return`,
+    `${env.API_PREFIX}/payments/mopayments/callback`
+  ];
+  if (req.method === 'POST' && paymentPaths.includes(req.path)) {
+    next();
+    return;
+  }
+  cors(corsOptions)(req, res, next);
+});
 app.options(/.*/, cors(corsOptions));
 app.use(apiRateLimit);
 app.use(compression());

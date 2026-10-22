@@ -20,11 +20,14 @@ import {
   categoryBodySchema,
   carouselBodySchema,
   carouselQuerySchema,
+  customerBodySchema,
+  customerWalletLoadBodySchema,
   customerQuerySchema,
   dashboardQuerySchema,
   deliveryFeeBodySchema,
   idParamSchema,
   orderQuerySchema,
+  orderPaymentStatusSchema,
   orderStatusSchema,
   pageSegmentBodySchema,
   pageSegmentQuerySchema,
@@ -296,12 +299,30 @@ router.patch(
   validateMiddleware(orderStatusSchema),
   controller.updateOrderStatus
 );
+router.patch(
+  '/orders/:id/payment-status',
+  dashboardAccess,
+  validateMiddleware(orderPaymentStatusSchema),
+  controller.updateOrderPaymentStatus
+);
 
 router.get(
   '/customers',
   dashboardAccess,
   validateMiddleware(customerQuerySchema),
   controller.listCustomers
+);
+router.post(
+  '/customers',
+  dashboardAccess,
+  validateMiddleware(customerBodySchema),
+  controller.createCustomer
+);
+router.post(
+  '/customers/wallet-load',
+  dashboardAccess,
+  validateMiddleware(customerWalletLoadBodySchema),
+  walletController.adminLoadWallet
 );
 
 router.get('/promotions', dashboardAccess, controller.listPromotions);

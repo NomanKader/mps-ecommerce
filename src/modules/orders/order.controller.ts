@@ -23,6 +23,11 @@ export class OrderController extends BaseController {
     this.ok(res, quote, 'Delivery fee calculated');
   });
 
+  activePromotions = asyncHandler(async (req: Request, res: Response) => {
+    const promotions = await this.orderService.listActivePromotions(req.tenant?.tenantId);
+    this.ok(res, promotions, 'Active promotions fetched');
+  });
+
   create = asyncHandler(async (req: Request, res: Response) => {
     const order = await this.orderService.createOrder(
       req.tenant?.tenantId,

@@ -3,6 +3,7 @@ export interface Product {
   tenantId: string;
   name: string;
   sku: string;
+  unit?: string;
   categoryId?: string;
   categoryName?: string;
   subcategory?: string;

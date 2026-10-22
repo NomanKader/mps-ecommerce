@@ -14,7 +14,8 @@ const walletTransactionSchema = new Schema(
       enum: ['top-up', 'admin-adjustment', 'wallet-payment'],
       required: true
     },
-    referenceId: { type: String, trim: true }
+    referenceId: { type: String, trim: true },
+    performedBy: { type: String, trim: true }
   },
   { _id: false, versionKey: false }
 );
@@ -42,10 +43,19 @@ export const walletTopUpRequestSchema = new Schema<WalletTopUpRequest>(
     amount: { type: Number, required: true, min: 100 },
     promoCode: { type: String, trim: true },
     paymentMethod: { type: String, trim: true },
-    receiptImageName: { type: String, required: true, trim: true },
-    receiptImageMimeType: { type: String, required: true, trim: true },
-    receiptImageSize: { type: Number, required: true, min: 1 },
-    receiptImageKey: { type: String, required: true, trim: true },
+    paymentGateway: { type: String, trim: true },
+    paymentGatewayReferenceId: { type: String, trim: true },
+    paymentGatewayStatus: { type: String, trim: true },
+    paymentMerchantReferenceId: { type: String, index: true },
+    paymentRedirectUrl: { type: String, trim: true },
+    paymentSettlementAmount: { type: Number, min: 0 },
+    paymentToken: { type: String, trim: true, index: true },
+    paymentTokenExpiresAt: { type: Date },
+    paymentTransactionAmount: { type: Number, min: 0 },
+    receiptImageName: { type: String, trim: true },
+    receiptImageMimeType: { type: String, trim: true },
+    receiptImageSize: { type: Number, min: 1 },
+    receiptImageKey: { type: String, trim: true },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', required: true, index: true },
     reviewedBy: { type: String, trim: true },
     reviewedAt: { type: Date },

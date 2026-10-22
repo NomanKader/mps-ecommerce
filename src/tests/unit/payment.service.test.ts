@@ -16,6 +16,73 @@ describe('PaymentService MoPayments callbacks', () => {
     jest.clearAllMocks();
   });
 
+  it.each([
+    ['FAIL', 'failed'],
+    ['TIMEOUT', 'timeout'],
+    ['EXPIRED', 'expired'],
+    ['PROCESSING', 'pending']
+  ])('stores verified %s as %s for admin orders', async (gatewayStatus, paymentStatus) => {
+    const service = new PaymentService({
+      verifyCallbackSignature: jest.fn().mockReturnValue(true),
+      checkPaymentStatus: jest.fn().mockResolvedValue({ paymentStatus: gatewayStatus })
+    } as never);
+    mockedOrderModel.findOne.mockReturnValue({
+      lean: jest.fn().mockResolvedValue({
+        orderNumber: 'ORD-TEST-001',
+        paymentToken: 'test-token',
+        status: 'pending'
+      })
+    });
+    mockedOrderModel.updateOne.mockResolvedValue({});
+
+    await service.handleMoPaymentsCallback('av', {
+      merchant_ref_id: 'ORD-TEST-001',
+      payment_id: 'payment-id',
+      status: 'FAIL',
+      signature: 'valid'
+    });
+
+    expect(mockedOrderModel.updateOne).toHaveBeenCalledWith(
+      { tenantId: 'av', orderNumber: 'ORD-TEST-001' },
+      expect.objectContaining({
+        paymentStatus,
+        paymentGatewayStatus: gatewayStatus,
+        status: 'pending'
+      })
+    );
+  });
+
+  it.each(['processing', 'shipped', 'delivered', 'fulfilled', 'cancelled'])(
+    'preserves %s fulfillment status on repeated payment success',
+    async (status) => {
+      const service = new PaymentService({
+        verifyCallbackSignature: jest.fn().mockReturnValue(true),
+        checkPaymentStatus: jest.fn().mockResolvedValue({ paymentStatus: 'SUCCESS' })
+      } as never);
+      mockedOrderModel.findOne.mockReturnValue({
+        lean: jest.fn().mockResolvedValue({
+          orderNumber: 'ORD-TEST-001',
+          paymentToken: 'test-token',
+          status,
+          paymentStatus: 'paid'
+        })
+      });
+      mockedOrderModel.updateOne.mockResolvedValue({});
+
+      await service.handleMoPaymentsCallback('av', {
+        merchant_ref_id: 'ORD-TEST-001',
+        payment_id: 'payment-id',
+        status: 'SUCCESS',
+        signature: 'valid'
+      });
+
+      expect(mockedOrderModel.updateOne).toHaveBeenCalledWith(
+        { tenantId: 'av', orderNumber: 'ORD-TEST-001' },
+        expect.objectContaining({ paymentStatus: 'paid', status })
+      );
+    }
+  );
+
   it('rejects invalid callback signatures before checking gateway status', async () => {
     const moPaymentsService = {
       checkPaymentStatus: jest.fn(),

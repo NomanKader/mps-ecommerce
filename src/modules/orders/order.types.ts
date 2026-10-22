@@ -2,6 +2,7 @@ export type OrderPaymentMethod = 'wallet' | 'cash_on_delivery' | 'mopayments';
 export type OrderPaymentStatus = 'paid' | 'pending' | 'failed' | 'expired' | 'timeout';
 
 export interface OrderLineItem {
+  message?: string;
   categoryId?: string;
   categoryName?: string;
   imageUrl?: string;
@@ -41,7 +42,12 @@ export interface Order {
   paymentSettlementAmount?: number;
   paymentToken?: string;
   paymentTokenExpiresAt?: Date;
+  paymentMerchantReferenceId?: string;
+  paymentRetryLockedAt?: Date;
   paymentTransactionAmount?: number;
+  promoCode?: string;
+  promoDiscountAmount?: number;
+  promoDiscountLabel?: string;
   subtotalAmount: number;
   deliveryFee: number;
   region?: string;

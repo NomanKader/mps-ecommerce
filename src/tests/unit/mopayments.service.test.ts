@@ -23,6 +23,73 @@ const request = {
 };
 
 describe('MoPaymentsService', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('accepts the real sandbox processing response without an echoed token', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: '001',
+          message: 'Payment Processing',
+          data: {
+            payment_id: '884797369744134144',
+            merchant_reference_id: 'ORD-TEST-001',
+            payment_status: 'PROCESSING',
+            gateway_type: null,
+            transaction_amount: null
+          }
+        })
+      )
+    );
+
+    await expect(
+      new MoPaymentsService().checkPaymentStatus('test-token', 'ORD-TEST-001')
+    ).resolves.toEqual({
+      gatewayType: undefined,
+      merchantReferenceId: 'ORD-TEST-001',
+      paymentStatus: 'PROCESSING',
+      token: 'test-token',
+      transactionAmount: undefined
+    });
+  });
+
+  it('accepts a successful status response without an echoed token', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            merchant_reference_id: 'ORD-TEST-001',
+            payment_status: 'SUCCESS',
+            gateway_type: 'MPU',
+            transaction_amount: 1000
+          }
+        })
+      )
+    );
+
+    await expect(
+      new MoPaymentsService().checkPaymentStatus('test-token', 'ORD-TEST-001')
+    ).resolves.toMatchObject({
+      paymentStatus: 'SUCCESS',
+      token: 'test-token',
+      transactionAmount: 1000
+    });
+  });
+
+  it.each([
+    { merchant_reference_id: 'OTHER-ORDER', payment_status: 'SUCCESS' },
+    { merchant_reference_id: 'ORD-TEST-001', payment_status: 'UNKNOWN' },
+    { merchant_reference_id: 'ORD-TEST-001', payment_status: 'SUCCESS', token: 'other-token' }
+  ])('rejects an invalid or mismatched status response: %j', async (data) => {
+    jest.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify({ data })));
+
+    await expect(
+      new MoPaymentsService().checkPaymentStatus('test-token', 'ORD-TEST-001')
+    ).rejects.toThrow('MoPayments status response is invalid');
+  });
+
   it('creates the verifying text using the documented nested sort order', () => {
     const service = new MoPaymentsService();
     const itemText = ['External SSD 256GB', '100', '1', '100'].sort().join('');
@@ -69,8 +136,7 @@ describe('MoPaymentsService', () => {
     const callback = {
       gateway_service_fee: '400.0000',
       gateway_type: 'KBZPAY',
-      merchant_ref_id:
-        '552cb4c1-8eea-4e97-a6f9-12d8e44ad66d-366db2d6-cf26-4e9c-b188-650413529955',
+      merchant_ref_id: '552cb4c1-8eea-4e97-a6f9-12d8e44ad66d-366db2d6-cf26-4e9c-b188-650413529955',
       payment_date: '1788336630852',
       payment_id: '882998092382707712',
       platform_service_fee: '0.0000',
@@ -100,8 +166,7 @@ describe('MoPaymentsService', () => {
     const service = new MoPaymentsService();
     const callback = {
       gateway_type: 'KBZPAY',
-      merchant_ref_id:
-        '552cb4c1-8eea-4e97-a6f9-12d8e44ad66d-366db2d6-cf26-4e9c-b188-650413529955',
+      merchant_ref_id: '552cb4c1-8eea-4e97-a6f9-12d8e44ad66d-366db2d6-cf26-4e9c-b188-650413529955',
       payment_id: '882998092382707712',
       signature: 'ignored-in-verifying-text',
       status: 'FAIL' as const
@@ -132,7 +197,10 @@ describe('MoPaymentsService', () => {
     expect(service.verifyCallbackSignature({ ...callback, signature }, secret)).toBe(true);
     expect(
       service.verifyCallbackSignature(
-        { ...callback, signature: '0000000000000000000000000000000000000000000000000000000000000000' },
+        {
+          ...callback,
+          signature: '0000000000000000000000000000000000000000000000000000000000000000'
+        },
         secret
       )
     ).toBe(false);

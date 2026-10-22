@@ -10,6 +10,7 @@ const router = Router();
 const controller = new OrderController();
 
 router.get('/', tenantMiddleware, authMiddleware, controller.list);
+router.get('/promotions/active', tenantMiddleware, authMiddleware, controller.activePromotions);
 router.post(
   '/delivery-quote',
   tenantMiddleware,
