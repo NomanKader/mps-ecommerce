@@ -20,7 +20,7 @@ export type CreateOrderPayload = {
   customerPhone?: string;
   deliveryAddress: string;
   itemCount: number;
-  items: Array<{ productId: string; quantity: number }>;
+  items: Array<{ productId: string; quantity: number; message?: string }>;
   paymentMethod: 'wallet' | 'cash_on_delivery' | 'mopayments';
   promoCode?: string;
   productIds: string[];

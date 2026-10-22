@@ -17,8 +17,6 @@ import {
   storefrontCategoryMenuItems,
 } from '@features/home/data/homePage.data';
 import type { FeatureHighlight, StoreProduct } from '@features/home/types/home.types';
-import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
-import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
 import { useProducts } from '@features/product/hooks/useProducts';
 import { routePaths } from '@routes/routePaths';
 import {
@@ -52,497 +50,6 @@ const categoryLabels: Record<string, string> = {
   seafood: 'Seafood',
   vegetables: 'Vegetables',
 };
-
-const quickMealProducts: StoreProduct[] = [
-  {
-    badges: [
-      { color: '#dfe8ff', label: 'Expiry : 12 May 2026' },
-      { color: '#8cc84a', label: 'Fresh' },
-      { color: '#b9263d', label: 'Local' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'Chicken fajita - 300g',
-    id: 'quick-sandwich-filling',
-    imageUrl:
-      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=700&q=80',
-    inventory: 28,
-    name: 'Sandwich Filling',
-    origin: "Dinner's Ready",
-    price: 10800,
-    rating: 4.4,
-    sku: 'QML-SAN-001',
-    slug: 'sandwich-filling',
-    tags: ['grab-and-go', 'fresh'],
-    tenantId: 'AV',
-    unit: '15.20 / tub',
-  },
-  {
-    badges: [
-      { color: '#dfe8ff', label: 'Heat & Eat' },
-      { color: '#b9263d', label: 'Local' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'with Fried Rice - 450g',
-    id: 'quick-beef-tapa',
-    imageUrl:
-      'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=700&q=80',
-    inventory: 21,
-    name: 'Beef Tapa',
-    origin: 'Abela & Co',
-    price: 14500,
-    rating: 4.6,
-    sku: 'QML-BEF-002',
-    slug: 'beef-tapa',
-    tags: ['heat-and-eat'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [{ color: '#b9263d', label: 'Local' }],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: '225g',
-    id: 'quick-beetroot-feta',
-    imageUrl:
-      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=700&q=80',
-    inventory: 32,
-    name: 'Beetroot Feta Salad',
-    origin: 'Del Monte',
-    price: 12500,
-    rating: 4.5,
-    sku: 'QML-SLD-003',
-    slug: 'beetroot-feta-salad',
-    tags: ['salad', 'fresh'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [{ color: '#b9263d', label: 'Local' }],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: '250g',
-    id: 'quick-caesar-wrap',
-    imageUrl:
-      'https://images.unsplash.com/photo-1509722747041-616f39b57569?auto=format&fit=crop&w=700&q=80',
-    inventory: 18,
-    name: 'Caesar Chicken Wrap',
-    origin: 'Deli-Licious',
-    price: 17300,
-    rating: 4.7,
-    sku: 'QML-WRP-004',
-    slug: 'caesar-chicken-wrap',
-    tags: ['grab-and-go'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [
-      { color: '#dfe8ff', label: 'Next Day Delivery' },
-      { color: '#dfe8ff', label: 'Express Unavailable' },
-      { color: '#b9263d', label: 'Local' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: '8 pcs',
-    id: 'quick-california-maki',
-    imageUrl:
-      'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=700&q=80',
-    inventory: 12,
-    name: 'California Maki Mix',
-    origin: 'Bluefin',
-    price: 19700,
-    rating: 4.3,
-    sku: 'QML-SUS-005',
-    slug: 'california-maki-mix',
-    tags: ['sushi'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [{ color: '#dfe8ff', label: 'Heat & Eat' }],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'with Jasmine Rice - 450g',
-    id: 'quick-chicken-katsu',
-    imageUrl:
-      'https://images.unsplash.com/photo-1617093727343-374698b1b08d?auto=format&fit=crop&w=700&q=80',
-    inventory: 16,
-    name: 'Chicken Katsu',
-    origin: 'Abela & Co',
-    price: 17200,
-    rating: 4.5,
-    sku: 'QML-CHK-006',
-    slug: 'chicken-katsu',
-    tags: ['asian'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [{ color: '#b9263d', label: 'Local' }],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: '290g',
-    id: 'quick-chicken-pasta-salad',
-    imageUrl:
-      'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=700&q=80',
-    inventory: 24,
-    name: 'Chicken Pasta Salad',
-    origin: 'Del Monte',
-    price: 12500,
-    rating: 4.2,
-    sku: 'QML-PSA-007',
-    slug: 'chicken-pasta-salad',
-    tags: ['salad'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [{ color: '#b9263d', label: 'Local' }],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: '240g',
-    id: 'quick-chicken-shawarma',
-    imageUrl:
-      'https://images.unsplash.com/photo-1633321702518-7feccafb94d5?auto=format&fit=crop&w=700&q=80',
-    inventory: 23,
-    name: 'Chicken Shawarma Wrap',
-    origin: 'Del Monte',
-    price: 13000,
-    rating: 4.4,
-    sku: 'QML-SHW-008',
-    slug: 'chicken-shawarma-wrap',
-    tags: ['wrap'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [
-      { color: '#8cc84a', label: 'Fresh' },
-      { color: '#b9263d', label: 'Local' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: '395g',
-    id: 'quick-coleslaw-salad',
-    imageUrl:
-      'https://images.unsplash.com/photo-1551248429-40975aa4de74?auto=format&fit=crop&w=700&q=80',
-    inventory: 30,
-    name: 'Coleslaw Salad',
-    origin: 'Deli-Licious',
-    price: 12800,
-    rating: 4.1,
-    sku: 'QML-COL-009',
-    slug: 'coleslaw-salad',
-    tags: ['salad'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [
-      { color: '#8cc84a', label: 'Fresh' },
-      { color: '#b9263d', label: 'Local' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: '252g',
-    id: 'quick-falafel-wrap',
-    imageUrl:
-      'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=700&q=80',
-    inventory: 25,
-    name: 'Falafel Wrap',
-    origin: 'Deli-Licious',
-    price: 15500,
-    rating: 4.6,
-    sku: 'QML-FAL-010',
-    slug: 'falafel-wrap',
-    tags: ['vegan', 'wrap'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [{ color: '#dfe8ff', label: 'Heat & Eat' }],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'with Mukimo - 500g',
-    id: 'quick-chicken-stew',
-    imageUrl:
-      'https://images.unsplash.com/photo-1604909052743-94e838986d24?auto=format&fit=crop&w=700&q=80',
-    inventory: 15,
-    name: 'Chicken Stew',
-    origin: 'Abela & Co',
-    price: 13000,
-    rating: 4.2,
-    sku: 'QML-STW-011',
-    slug: 'chicken-stew',
-    tags: ['heat-and-eat'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [{ color: '#dfe8ff', label: 'New' }],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'Smoked Turkey & Swiss - 270g',
-    id: 'quick-ciabatta-sandwich',
-    imageUrl:
-      'https://images.unsplash.com/photo-1553909489-cd47e0907980?auto=format&fit=crop&w=700&q=80',
-    inventory: 20,
-    name: 'Ciabatta Sandwich',
-    origin: 'Del Monte',
-    price: 13000,
-    rating: 4.3,
-    sku: 'QML-CIA-012',
-    slug: 'ciabatta-sandwich',
-    tags: ['sandwich'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-];
-
-const topOfferProducts: StoreProduct[] = [
-  {
-    badges: [
-      { color: '#b9263d', label: 'Promotion' },
-      { color: '#1fa44d', label: 'Organic' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: '500g - 3 Skewers',
-    id: 'offer-chicken-skewers',
-    imageUrl:
-      'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?auto=format&fit=crop&w=700&q=80',
-    inventory: 22,
-    name: 'Chicken Skewers',
-    origin: 'UAE',
-    price: 12000,
-    rating: 4.6,
-    sku: 'OFF-CHK-001',
-    slug: 'chicken-skewers',
-    tags: ['offer'],
-    tenantId: 'AV',
-    unit: '19.95 / pack',
-  },
-  {
-    badges: [{ color: '#b9263d', label: 'Promotion' }],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'Cajun - 450g (5 Pcs)',
-    id: 'offer-chicken-sausage-rolls',
-    imageUrl:
-      'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=700&q=80',
-    inventory: 18,
-    name: 'Chicken Sausage Rolls',
-    origin: 'UAE',
-    price: 17500,
-    rating: 4.2,
-    sku: 'OFF-ROL-002',
-    slug: 'chicken-sausage-rolls',
-    tags: ['offer'],
-    tenantId: 'AV',
-    unit: '24.70 / pack',
-  },
-  {
-    badges: [{ color: '#7e7b74', label: 'Buy Bulk' }],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'Vanilla - 80g x 12',
-    id: 'offer-milk-dessert',
-    imageUrl:
-      'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=700&q=80',
-    inventory: 34,
-    name: 'Milk Dessert',
-    origin: 'Yabon',
-    price: 93500,
-    rating: 4.4,
-    sku: 'OFF-MLK-003',
-    slug: 'milk-dessert',
-    tags: ['dessert'],
-    tenantId: 'AV',
-    unit: '95.40 / carton',
-  },
-  {
-    badges: [
-      { color: '#b9263d', label: 'Promotion' },
-      { color: '#1fa44d', label: 'Vegan' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'Chocolate (Pack of 2) - 130g x 2',
-    id: 'offer-oats-dessert',
-    imageUrl:
-      'https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=700&q=80',
-    inventory: 26,
-    name: 'Oats Dessert',
-    origin: 'The Bridge Bio',
-    price: 20800,
-    rating: 4.2,
-    sku: 'OFF-OAT-004',
-    slug: 'oats-dessert',
-    tags: ['dessert'],
-    tenantId: 'AV',
-    unit: '21.20 / carton',
-  },
-  {
-    badges: [
-      { color: '#b9263d', label: 'Promotion' },
-      { color: '#1fa44d', label: 'Organic' },
-      { color: '#1fa44d', label: 'Vegan' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'Vanilla - 260g x 6',
-    id: 'offer-oats-dessert-pack',
-    imageUrl:
-      'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=700&q=80',
-    inventory: 24,
-    name: 'Oats Dessert',
-    origin: 'The Bridge Bio',
-    price: 58200,
-    rating: 4.5,
-    sku: 'OFF-OAT-005',
-    slug: 'oats-dessert-pack',
-    tags: ['dessert'],
-    tenantId: 'AV',
-    unit: '59.40 / carton',
-  },
-];
-
-const newProducts: StoreProduct[] = [
-  {
-    badges: [
-      { color: '#62c5f0', label: 'Frozen' },
-      { color: '#224890', label: 'New' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'Squids And Shrimps - 250g',
-    id: 'new-fusilli',
-    imageUrl:
-      'https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=700&q=80',
-    inventory: 19,
-    name: 'Fusilli',
-    origin: "L 'Osteria Del Gusto",
-    price: 26500,
-    rating: 4.2,
-    sku: 'NEW-FUS-001',
-    slug: 'fusilli',
-    tags: ['new', 'frozen'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [
-      { color: '#62c5f0', label: 'Frozen' },
-      { color: '#224890', label: 'New' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'Swordfish - 250g',
-    id: 'new-pasta',
-    imageUrl:
-      'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=700&q=80',
-    inventory: 16,
-    name: 'Pasta',
-    origin: "L 'Osteria Del Gusto",
-    price: 27000,
-    rating: 4.1,
-    sku: 'NEW-PAS-002',
-    slug: 'pasta',
-    tags: ['new', 'frozen'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [
-      { color: '#62c5f0', label: 'Frozen' },
-      { color: '#224890', label: 'New' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'Seafood - 250g',
-    id: 'new-linguine',
-    imageUrl:
-      'https://images.unsplash.com/photo-1567608285969-48e4bbe0d399?auto=format&fit=crop&w=700&q=80',
-    inventory: 15,
-    name: 'Linguine',
-    origin: "L 'Osteria Del Gusto",
-    price: 22000,
-    rating: 4.2,
-    sku: 'NEW-LIN-003',
-    slug: 'linguine',
-    tags: ['new', 'frozen'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [
-      { color: '#62c5f0', label: 'Frozen' },
-      { color: '#224890', label: 'New' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'Mushrooms - 250g',
-    id: 'new-tagliatelle',
-    imageUrl:
-      'https://images.unsplash.com/photo-1473093226795-af9932fe5856?auto=format&fit=crop&w=700&q=80',
-    inventory: 22,
-    name: 'Tagliatelle',
-    origin: "L 'Osteria Del Gusto",
-    price: 24000,
-    rating: 4.3,
-    sku: 'NEW-TAG-004',
-    slug: 'tagliatelle',
-    tags: ['new', 'frozen'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [
-      { color: '#62c5f0', label: 'Frozen' },
-      { color: '#224890', label: 'New' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'Cheese, Pepper & Mussels - 250g',
-    id: 'new-rigatoni',
-    imageUrl:
-      'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=700&q=80',
-    inventory: 20,
-    name: 'Rigatoni',
-    origin: "L 'Osteria Del Gusto",
-    price: 25500,
-    rating: 4.4,
-    sku: 'NEW-RIG-005',
-    slug: 'rigatoni',
-    tags: ['new', 'frozen'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-  {
-    badges: [
-      { color: '#62c5f0', label: 'Frozen' },
-      { color: '#224890', label: 'New' },
-    ],
-    categoryId: 'quick-meals',
-    currency: 'MMK',
-    description: 'Mussels & Zucchini - 250g',
-    id: 'new-ravioli',
-    imageUrl:
-      'https://images.unsplash.com/photo-1556761223-4c4282c73f77?auto=format&fit=crop&w=700&q=80',
-    inventory: 17,
-    name: 'Ravioli',
-    origin: "L 'Osteria Del Gusto",
-    price: 29000,
-    rating: 4.5,
-    sku: 'NEW-RAV-006',
-    slug: 'ravioli',
-    tags: ['new', 'frozen'],
-    tenantId: 'AV',
-    unit: 'pack',
-  },
-];
 
 type CategoryShowcaseConfig = {
   accent: string;
@@ -1121,89 +628,20 @@ const getCategoryConfig = (categoryId: string): CategoryShowcaseConfig => {
   );
 };
 
-const createProduct = (
-  categoryId: string,
-  name: string,
-  index: number,
-  imageUrl: string,
-  badgeLabel: string,
-  sectionLabel: string,
-): StoreProduct => ({
-  badges: [
-    { color: '#dfe8ff', label: badgeLabel },
-    ...(index % 3 === 0 ? [{ color: '#b9263d', label: 'Local' }] : []),
-    ...(index % 4 === 0 ? [{ color: '#8cc84a', label: 'Fresh' }] : []),
-  ],
-  categoryId,
-  currency: 'MMK',
-  description: `${sectionLabel} selection - ${index % 2 === 0 ? 'family pack' : 'daily pack'}`,
-  id: `${categoryId}-showcase-${index}`,
-  imageUrl,
-  inventory: 12 + index * 3,
-  name,
-  origin: index % 2 === 0 ? 'AV Fresh Market' : 'Store Selection',
-  price: 6500 + index * 2400,
-  rating: 4.1 + (index % 6) / 10,
-  sku: `${categoryId.slice(0, 3).toUpperCase()}-${String(index).padStart(3, '0')}`,
-  slug: name.toLowerCase().replaceAll('&', 'and').replaceAll(' ', '-'),
-  tags: [categoryId, sectionLabel.toLowerCase()],
-  tenantId: 'AV',
-  unit: index % 2 === 0 ? 'pack' : `${250 + index * 25}g`,
-});
-
 const getCategoryProducts = (
   categoryId: string,
-  config: CategoryShowcaseConfig,
+  _config: CategoryShowcaseConfig,
   productPool: StoreProduct[],
 ) => {
-  if (categoryId === 'quick-meals') {
-    return {
-      browsing: quickMealProducts,
-      newProducts,
-      topOffers: topOfferProducts,
-    };
-  }
-
-  const existingProducts = productPool.filter((product) => product.categoryId === categoryId);
-  const generatedProducts = Array.from({ length: 18 }, (_, index) => {
-    const section = config.sections[index % Math.max(config.sections.length, 1)] ?? {
-      label: config.title,
-    };
-    const productName =
-      index < config.sections.length
-        ? section.label
-        : `${config.title} ${index % 2 === 0 ? 'Selection' : 'Value Pack'}`;
-    const imageUrl =
-      [config.heroImage, config.promoImage, ...config.posters, ...fallbackCategoryImages][
-        index % 7
-      ] ??
-      fallbackCategoryImages[0] ??
-      '';
-
-    return createProduct(
-      categoryId,
-      productName,
-      index + 1,
-      imageUrl,
-      index % 2 === 0 ? 'New' : 'Best Value',
-      section.label,
-    );
-  });
-  const mergedProducts = [...existingProducts, ...generatedProducts];
-
+  const products = productPool.filter((product) => product.categoryId === categoryId);
   return {
-    browsing: mergedProducts.slice(6, 18),
-    newProducts: mergedProducts.slice(3, 9),
-    topOffers: mergedProducts.slice(0, 5),
+    browsing: products,
+    newProducts: products.slice(0, 5),
+    topOffers: products.slice(0, 5),
   };
 };
 
-const categoryFilters = [
-  'Frozen (484)',
-  'Kids (12)',
-  'Meat (38)',
-  'Quick Meals (907)',
-];
+const categoryFilters = ['Frozen (484)', 'Kids (12)', 'Meat (38)', 'Quick Meals (907)'];
 
 const subCategoryFilters = [
   'Appetizers (125)',
@@ -1540,7 +978,9 @@ const CategoryFilterSidebar = ({
     }));
   };
 
-  const sectionFilters = sections.map((section) => `${section.label} (${subcategoryCounts?.[section.label] ?? 0})`);
+  const sectionFilters = sections.map(
+    (section) => `${section.label} (${subcategoryCounts?.[section.label] ?? 0})`,
+  );
   const totalCategoryCount = categoryCount ?? 907;
   const categorySpecificFilters = [
     `${categoryTitle} (${totalCategoryCount})`,
@@ -1646,13 +1086,6 @@ const merchandisingHeroImages: Record<string, string> = {
     'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1500&q=80',
 };
 
-const allShowcaseProducts = [
-  ...allStorefrontProducts,
-  ...quickMealProducts,
-  ...topOfferProducts,
-  ...newProducts,
-];
-
 const productMatchesMerchandising = (product: StoreProduct, search: string, title: string) => {
   const haystack = [
     product.name,
@@ -1684,11 +1117,16 @@ const productMatchesMerchandising = (product: StoreProduct, search: string, titl
   return haystack.includes(normalizedTitle);
 };
 
-const getMerchandisingProducts = (title: string, category: string, search: string) => {
+const getMerchandisingProducts = (
+  title: string,
+  category: string,
+  search: string,
+  productPool: StoreProduct[],
+) => {
   const categoryScopedProducts =
     category === 'all'
-      ? allShowcaseProducts
-      : allShowcaseProducts.filter((product) => product.categoryId === category);
+      ? productPool
+      : productPool.filter((product) => product.categoryId === category);
   const matchedProducts = categoryScopedProducts.filter((product) =>
     productMatchesMerchandising(product, search, title),
   );
@@ -1696,7 +1134,7 @@ const getMerchandisingProducts = (title: string, category: string, search: strin
   const fallbackProducts = getCategoryProducts(
     category === 'all' ? 'pantry' : category,
     baseConfig,
-    allStorefrontProducts,
+    productPool,
   );
   const mergedProducts = [
     ...matchedProducts,
@@ -1712,11 +1150,13 @@ const getMerchandisingProducts = (title: string, category: string, search: strin
 };
 
 const MerchandisingCollectionPage = ({
+  productPool,
   category,
   onAddToCart,
   search,
   title,
 }: {
+  productPool: StoreProduct[];
   category: string;
   onAddToCart: (product: StoreProduct) => void;
   search: string;
@@ -1724,7 +1164,7 @@ const MerchandisingCollectionPage = ({
 }) => {
   const activeCategory = category === 'all' ? 'quick-meals' : category;
   const config = getCategoryConfig(activeCategory);
-  const collectionProducts = getMerchandisingProducts(title, category, search);
+  const collectionProducts = getMerchandisingProducts(title, category, search, productPool);
   const shopMenuItems =
     category === 'all'
       ? storefrontCategories
@@ -2120,7 +1560,8 @@ const PageSegmentCatalogPage = ({
       .includes('organic'),
   ).length;
   const bestValueCount = allProducts.filter(
-    (product) => product.rating >= 4 || product.tags.some((tag) => tag.toLowerCase().includes('value')),
+    (product) =>
+      product.rating >= 4 || product.tags.some((tag) => tag.toLowerCase().includes('value')),
   ).length;
   const heroImage = heroSlide?.imageUrl ?? segment?.imageUrl ?? '';
   const heroTitle = heroSlide?.text || segment?.title || categoryTitle;
@@ -2421,15 +1862,15 @@ export const CatalogPage = () => {
     categories.find((item) => item.id === category)?.name ??
     categoryLabels[category] ??
     'Catalog';
-  const catalogProducts = useMemo(() => {
-    const productsById = new Map(
-      allShowcaseProducts.map((product) => [product.id, mapHomeProductToProduct(product)]),
-    );
-
-    data.forEach((product) => productsById.set(product.id, product));
-
-    return [...productsById.values()];
-  }, [data]);
+  const catalogProducts = data;
+  const liveStoreProducts: StoreProduct[] = data.map((product) => ({
+    ...product,
+    badges: [],
+    origin: 'Storefront',
+    categoryId:
+      categories.find((item) => item.id === product.categoryId)?.slug ?? product.categoryId,
+    unit: product.unit ?? 'item',
+  }));
 
   const searchTerms = useMemo(
     () =>
@@ -2515,6 +1956,7 @@ export const CatalogPage = () => {
   if (search && merchandisingPageTitles.has(pageTitle)) {
     return (
       <MerchandisingCollectionPage
+        productPool={liveStoreProducts}
         category={category}
         onAddToCart={addToCart}
         search={search}
@@ -2528,7 +1970,7 @@ export const CatalogPage = () => {
       <CategoryShowcasePage
         categoryId={category}
         onAddToCart={addToCart}
-        productPool={allStorefrontProducts}
+        productPool={liveStoreProducts}
       />
     );
   }

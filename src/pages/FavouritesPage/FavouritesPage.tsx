@@ -1844,7 +1844,25 @@ const escapeInvoiceHtml = (value: unknown) =>
 const invoiceFilename = (order: Order) =>
   `invoice-${order.orderNumber.replace(/[^a-z0-9-]/gi, '-').toLowerCase()}.html`;
 
-const downloadOrderInvoice = (order: Order) => {
+const downloadOrderInvoice = async (order: Order) => {
+  let embeddedLogo: string;
+  try {
+    const response = await fetch(logoImage, { cache: 'force-cache' });
+    if (!response.ok) throw new Error('Invoice logo could not be loaded');
+    const logoBlob = await response.blob();
+    embeddedLogo = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') resolve(reader.result);
+        else reject(new Error('Invoice logo could not be embedded'));
+      };
+      reader.onerror = () => reject(new Error('Invoice logo could not be read'));
+      reader.readAsDataURL(logoBlob);
+    });
+  } catch {
+    toast.error('Unable to load the invoice logo. Please try downloading again.');
+    return;
+  }
   const subtotal = order.subtotalAmount ?? order.lineItems?.reduce((sum, item) => sum + item.lineTotal, 0);
   const deliveryFee = order.deliveryFee ?? 0;
   const promoDiscount = order.promoDiscountAmount ?? 0;
@@ -1909,7 +1927,7 @@ const downloadOrderInvoice = (order: Order) => {
   <main class="invoice">
     <section class="header">
       <div class="brand">
-        <img alt="AV's Store" src="${logoImage}" />
+        <img alt="AV's Store" src="${escapeInvoiceHtml(embeddedLogo)}" />
         <div>
           <h1>AV's Store</h1>
           <p class="muted">Yangon, Myanmar</p>
@@ -2613,6 +2631,11 @@ const OrdersContent = () => {
                             {formatCurrency(item.unitPrice, selectedOrder.currency)}
                             {item.sku ? ` · SKU ${item.sku}` : ''}
                           </Typography>
+                          {item.message ? (
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                              Message: {item.message}
+                            </Typography>
+                          ) : null}
                         </Box>
                         <Typography
                           sx={{ color: storefrontColors.accent, flexShrink: 0, fontWeight: 900 }}

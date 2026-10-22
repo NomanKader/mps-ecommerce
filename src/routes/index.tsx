@@ -46,7 +46,6 @@ const accountRoutes = [
   { element: <AccountMenuPage />, path: routePaths.accountCollectionService },
   { element: <AccountMenuPage />, path: routePaths.accountDeleteAccount },
   { element: <AccountMenuPage />, path: routePaths.accountDeliveryMembership },
-  { element: <AccountMenuPage />, path: routePaths.accountFavourites },
   { element: <AccountMenuPage />, path: routePaths.accountOrders },
   { element: <AccountMenuPage />, path: routePaths.accountReferFriends },
   { element: <AccountMenuPage />, path: routePaths.accountRegulars },
@@ -130,6 +129,15 @@ export const router = createBrowserRouter([
         ],
       },
       {
+        element: <ProtectedRoute />,
+        children: [
+          {
+            element: <MainLayout />,
+            children: [{ element: <AccountMenuPage />, path: routePaths.accountFavourites }],
+          },
+        ],
+      },
+      {
         element: <ProtectedRoute allowedRoles={['customer']} />,
         children: [
           {
@@ -147,9 +155,7 @@ export const router = createBrowserRouter([
               { element: <DashboardPage />, path: routePaths.tenantAdmin.dashboard },
               {
                 element: <ProtectedRoute allowedRoles={['tenant_admin']} />,
-                children: [
-                  { element: <AdminUserPage />, path: routePaths.tenantAdmin.adminUser },
-                ],
+                children: [{ element: <AdminUserPage />, path: routePaths.tenantAdmin.adminUser }],
               },
               { element: <ProductsPage />, path: routePaths.tenantAdmin.products },
               { element: <CategoriesPage />, path: routePaths.tenantAdmin.categories },

@@ -29,6 +29,7 @@ import { AppDataTable } from '@shared/components/ui/DataTable/DataTable';
 import { PageSection } from '@shared/components/ui/SectionTitle/PageSection';
 import { formatCurrency } from '@utils/formatCurrency';
 import { formatDate } from '@utils/formatDate';
+import { CashTopUpDialog } from './CashTopUpDialog';
 
 type StatusFilter = AdminWalletTopUpStatus | 'all';
 
@@ -40,6 +41,7 @@ const statusColors: Record<AdminWalletTopUpStatus, 'default' | 'success' | 'warn
 
 export const WalletTopUpsPage = () => {
   const queryClient = useQueryClient();
+  const [cashTopUpOpen, setCashTopUpOpen] = useState(false);
   const [reviewTarget, setReviewTarget] = useState<AdminWalletTopUpRequest | null>(null);
   const [approvedAmount, setApprovedAmount] = useState('');
   const [adminNote, setAdminNote] = useState('');
@@ -149,9 +151,14 @@ export const WalletTopUpsPage = () => {
   return (
     <PageSection
       action={
-        <Chip color={pendingCount ? 'warning' : 'default'} label={`${pendingCount} pending`} />
+        <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1} sx={{ alignItems: 'center' }}>
+          <Chip color={pendingCount ? 'warning' : 'default'} label={`${pendingCount} pending`} />
+          <Button onClick={() => setCashTopUpOpen(true)} variant="contained">
+            Cash top-up
+          </Button>
+        </Stack>
       }
-      description="Monitor online wallet top-up payments and manually review legacy pending requests if needed."
+      description="Load customer wallets for cash paid at the shop, monitor online payments, and review pending requests."
       title="Wallet Top-ups"
     >
       <Stack spacing={2}>
@@ -188,6 +195,8 @@ export const WalletTopUpsPage = () => {
         ) : null}
         <AppDataTable columns={columns} loading={topUpsQuery.isLoading} rows={topUps} />
       </Stack>
+
+      {cashTopUpOpen ? <CashTopUpDialog onClose={() => setCashTopUpOpen(false)} /> : null}
 
       <Dialog fullWidth maxWidth="md" onClose={closeReview} open={Boolean(reviewTarget)}>
         <DialogTitle sx={{ pr: 7 }}>
@@ -291,7 +300,9 @@ export const WalletTopUpsPage = () => {
                     </Typography>
                   ) : null}
                   {reviewTarget.receiptImageUrl ? (
-                    <Alert severity="info">Legacy receipt image is still available for this request.</Alert>
+                    <Alert severity="info">
+                      Legacy receipt image is still available for this request.
+                    </Alert>
                   ) : null}
                 </Stack>
               </Box>

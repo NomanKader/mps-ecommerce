@@ -10,7 +10,10 @@ type PageSectionProps = {
 };
 
 export const PageSection = ({ action, children, description, title }: PageSectionProps) => (
-  <Box component="section" sx={{ display: 'grid', gap: 3, minWidth: 0 }}>
+  <Box
+    component="section"
+    sx={{ display: 'grid', gap: 3, gridTemplateColumns: 'minmax(0, 1fr)', minWidth: 0 }}
+  >
     <Stack
       direction={{ md: 'row', xs: 'column' }}
       spacing={2}
@@ -34,11 +37,7 @@ export const PageSection = ({ action, children, description, title }: PageSectio
           </Typography>
         ) : null}
       </Box>
-      {action ? (
-        <Box sx={{ flexShrink: 0, maxWidth: '100%', minWidth: 0 }}>
-          {action}
-        </Box>
-      ) : null}
+      {action ? <Box sx={{ flexShrink: 0, maxWidth: '100%', minWidth: 0 }}>{action}</Box> : null}
     </Stack>
     {children}
   </Box>

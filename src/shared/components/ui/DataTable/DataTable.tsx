@@ -3,11 +3,12 @@ import { Box } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 
 export const AppDataTable = ({ autoHeight = true, sx, ...props }: DataGridProps) => (
-  <Box sx={{ minWidth: 0, overflowX: 'auto', width: '100%' }}>
+  <Box sx={{ maxWidth: '100%', minWidth: 0, width: '100%' }}>
     <DataGrid
       autoHeight={autoHeight}
       disableRowSelectionOnClick
       pageSizeOptions={[5, 10, 20]}
+      scrollbarSize={12}
       sx={[
         {
           '& .MuiDataGrid-cell': {
@@ -25,7 +26,9 @@ export const AppDataTable = ({ autoHeight = true, sx, ...props }: DataGridProps)
           '& .MuiDataGrid-row:hover': {
             backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.035),
           },
-          '& .MuiDataGrid-virtualScroller': {
+          '& .MuiDataGrid-scrollbar--horizontal': {
+            scrollbarColor: (theme) => `${alpha(theme.palette.primary.main, 0.4)} transparent`,
+            scrollbarWidth: 'thin',
             '&::-webkit-scrollbar': {
               height: 10,
             },
@@ -39,7 +42,8 @@ export const AppDataTable = ({ autoHeight = true, sx, ...props }: DataGridProps)
           background: 'linear-gradient(145deg, rgba(255,255,255,0.68), rgba(255,248,240,0.46))',
           backdropFilter: 'blur(24px) saturate(140%)',
           boxShadow: '0 22px 60px rgba(83, 36, 23, 0.08)',
-          minWidth: { sm: 0, xs: 720 },
+          minWidth: 0,
+          width: '100%',
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

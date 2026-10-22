@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { toApiError } from '@shared/api/apiError';
 
+import { isProductId } from '@entities/product/lib/isProductId';
 import { favoritesApi } from '@features/favorites/api/favoritesApi';
 import { routePaths } from '@routes/routePaths';
 import type { RootState } from '@store/index';
@@ -24,6 +27,7 @@ export const useFavorites = () => {
   const favoriteIdSet = new Set(favoriteIds);
   const toggleMutation = useMutation({
     mutationFn: favoritesApi.toggleFavorite,
+    onError: (error) => toast.error(toApiError(error).message),
     onSuccess: (data) => {
       queryClient.setQueryData(favoritesQueryKey, { productIds: data.productIds });
     },
@@ -52,6 +56,11 @@ export const useFavorites = () => {
   };
 
   const toggleFavorite = (productId: string) => {
+    if (!isProductId(productId)) {
+      toast.error('This product is no longer available. Please choose a product from the catalog.');
+      return;
+    }
+
     if (!isAuthenticated) {
       requestLogin();
       return;

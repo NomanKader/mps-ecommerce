@@ -1,4 +1,5 @@
 export type OrderLineItem = {
+  message?: string;
   imageUrl?: string;
   lineTotal: number;
   name: string;

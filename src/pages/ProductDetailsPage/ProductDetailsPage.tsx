@@ -6,12 +6,22 @@ import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
 import ShoppingCartRoundedIcon from '@mui/icons-material/ShoppingCartRounded';
 import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded';
-import { Box, Button, Card, Fab, Grid, IconButton, Skeleton, Stack, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Card,
+  Fab,
+  Grid,
+  IconButton,
+  Skeleton,
+  Stack,
+  Typography,
+} from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { useLocation, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import { storefrontColors } from '@app/providers/theme/tokens';
 import type { Category } from '@entities/category/types/category.types';
@@ -21,7 +31,6 @@ import { categoryApi } from '@features/category/api/categoryApi';
 import { useFavorites } from '@features/favorites/hooks/useFavorites';
 import type { StoreProduct } from '@features/home/types/home.types';
 import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
-import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
 import { productApi } from '@features/product/api/productApi';
 import { useProducts } from '@features/product/hooks/useProducts';
 import { EmptyState } from '@shared/components/ui/EmptyState/EmptyState';
@@ -225,7 +234,6 @@ const ProductDetailsSkeleton = () => (
 );
 
 const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
-  const location = useLocation();
   const { addToCart } = useCart();
   const { isFavorite, isToggling, toggleFavorite } = useFavorites();
   const allProductsQuery = useProducts();
@@ -239,46 +247,25 @@ const ProductDetailsContent = ({ productId }: ProductDetailsContentProps) => {
     queryFn: ({ signal }) => categoryApi.getCategories({ signal }),
     queryKey: ['categories'],
   });
-  const fallbackProduct = useMemo(
-    () => {
-      const navigationProduct = (
-        location.state as { product?: StoreProduct | Product } | null
-      )?.product;
-
-      if (navigationProduct?.id === productId) {
-        return navigationProduct;
-      }
-
-      return allStorefrontProducts.find((item) => item.id === productId);
-    },
-    [location.state, productId],
-  );
-  const product = productQuery.data ?? fallbackProduct;
+  const product = productQuery.data;
   const categories = categoriesQuery.data ?? [];
   const detailContent = useMemo(
     () => (product ? getProductDetailContent(product) : null),
     [product],
   );
-  const relatedProducts = useMemo(
-    () => {
-      const products = fallbackProduct && isStoreProduct(fallbackProduct)
-        ? allStorefrontProducts.map(mapHomeProductToProduct)
-        : (allProductsQuery.data ?? []);
+  const relatedProducts = useMemo(() => {
+    const products = allProductsQuery.data ?? [];
 
-      return product
-        ? products
-            .filter((item) => item.id !== product.id && item.categoryId === product.categoryId)
-            .slice(0, 4)
-        : [];
-    },
-    [allProductsQuery.data, fallbackProduct, product],
-  );
+    return product
+      ? products
+          .filter((item) => item.id !== product.id && item.categoryId === product.categoryId)
+          .slice(0, 4)
+      : [];
+  }, [allProductsQuery.data, product]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const isLoadingProduct =
-    !fallbackProduct && (productQuery.isLoading || productQuery.isFetching);
-  const isLoadingSupportingData =
-    categoriesQuery.isLoading || (!fallbackProduct && allProductsQuery.isLoading);
+  const isLoadingProduct = productQuery.isLoading || productQuery.isFetching;
+  const isLoadingSupportingData = categoriesQuery.isLoading || allProductsQuery.isLoading;
 
   if (isLoadingProduct || isLoadingSupportingData) {
     return <ProductDetailsSkeleton />;

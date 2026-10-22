@@ -108,6 +108,7 @@ export const PaymentPage = () => {
       return orderApi.createOrder({
         ...draft,
         items: items.map((item) => ({
+          message: item.message || undefined,
           productId: item.product.id,
           quantity: item.quantity,
         })),

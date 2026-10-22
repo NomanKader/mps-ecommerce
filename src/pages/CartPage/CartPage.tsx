@@ -1,15 +1,20 @@
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
 import GiftIcon from '@mui/icons-material/CardGiftcardRounded';
 import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
-import { Box, Button, IconButton, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, IconButton, Stack, TextField, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 
 import type { CartItem } from '@entities/cart/types/cart.types';
+import { isProductId } from '@entities/product/lib/isProductId';
 import type { Product } from '@entities/product/types/product.types';
+import { useFavorites } from '@features/favorites/hooks/useFavorites';
 import { useCart } from '@features/cart/hooks/useCart';
 import { useI18n } from '@features/i18n/I18nProvider';
 import { useProducts } from '@features/product/hooks/useProducts';
@@ -107,13 +112,41 @@ const CartLineItem = ({
   onAdd,
   onDecrease,
   onRemove,
+  onSaveMessage,
 }: {
   item: CartItem;
   onAdd: (product: Product) => void;
   onDecrease: (productId: string) => void;
   onRemove: (productId: string) => void;
+  onSaveMessage: (productId: string, message: string) => void;
 }) => {
   const lineTotal = item.product.price * item.quantity;
+  const [message, setMessage] = useState(item.message ?? '');
+  const [isMessageOpen, setIsMessageOpen] = useState(false);
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
+  const { isFavorite, isToggling, toggleFavorite } = useFavorites();
+  const favorited = isFavorite(item.product.id);
+
+  const openMessage = () => {
+    setMessage(item.message ?? '');
+    setIsMessageOpen(true);
+    requestAnimationFrame(() => messageInputRef.current?.focus());
+  };
+
+  const shareProduct = async () => {
+    const url = new URL(getProductPath(item.product.id), window.location.origin).href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: item.product.name, text: item.product.description, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success('Product link copied');
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      toast.error('Unable to share this product');
+    }
+  };
 
   return (
     <Box
@@ -181,6 +214,7 @@ const CartLineItem = ({
           >
             <IconButton
               aria-label={`Share ${item.product.name}`}
+              onClick={() => void shareProduct()}
               size="small"
               sx={{ color: 'inherit' }}
             >
@@ -188,17 +222,21 @@ const CartLineItem = ({
             </IconButton>
             <IconButton
               aria-label={`Gift ${item.product.name}`}
+              onClick={openMessage}
               size="small"
               sx={{ color: 'inherit' }}
             >
               <GiftIcon />
             </IconButton>
             <IconButton
-              aria-label={`Save ${item.product.name}`}
+              aria-label={`${favorited ? 'Remove' : 'Add'} ${item.product.name} ${favorited ? 'from' : 'to'} favourites`}
+              aria-pressed={favorited}
+              disabled={isToggling}
+              onClick={() => toggleFavorite(item.product.id)}
               size="small"
               sx={{ color: 'inherit' }}
             >
-              <FavoriteBorderRoundedIcon />
+              {favorited ? <FavoriteRoundedIcon /> : <FavoriteBorderRoundedIcon />}
             </IconButton>
           </Stack>
           <Box
@@ -221,17 +259,6 @@ const CartLineItem = ({
           spacing={1.6}
           sx={{ alignItems: { sm: 'center', xs: 'flex-start' } }}
         >
-          <Button
-            sx={{
-              color: storefrontColors.navy,
-              fontSize: '0.95rem',
-              fontWeight: 800,
-              minWidth: 0,
-              textTransform: 'none',
-            }}
-          >
-            Save for later
-          </Button>
           <IconButton
             aria-label={`Remove ${item.product.name}`}
             onClick={() => onRemove(item.product.id)}
@@ -285,61 +312,102 @@ const CartLineItem = ({
           </Stack>
         </Stack>
 
-        <Stack spacing={2} sx={{ maxWidth: 720, pt: { md: 1.5, xs: 0 } }}>
-          <TextField
-            fullWidth
-            minRows={3}
-            multiline
-            placeholder="add a message"
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 1,
-                color: storefrontColors.navy,
-                fontWeight: 700,
-              },
-            }}
-          />
-          <Stack
-            direction="row"
-            spacing={1.2}
-            sx={{ justifyContent: { sm: 'center', xs: 'flex-start' } }}
-          >
-            <Button
-              sx={{
-                backgroundColor: '#f1f3f8',
-                borderRadius: 999,
-                color: storefrontColors.navy,
-                fontWeight: 900,
-                px: 3.4,
-                textTransform: 'none',
-                '&:hover': { backgroundColor: '#e7ebf4' },
+        {!isProductId(item.product.id) ? (
+          <Alert severity="warning">
+            This item is no longer available. Remove it and choose a product from the catalog.
+          </Alert>
+        ) : null}
+        {isMessageOpen ? (
+          <Stack spacing={2} sx={{ maxWidth: 720, pt: { md: 1.5, xs: 0 } }}>
+            <TextField
+              fullWidth
+              minRows={3}
+              inputRef={messageInputRef}
+              multiline
+              onChange={(event) => setMessage(event.target.value)}
+              placeholder="add a message"
+              slotProps={{
+                htmlInput: { 'aria-label': `Message for ${item.product.name}`, maxLength: 500 },
               }}
-            >
-              Cancel
-            </Button>
-            <Button
+              value={message}
               sx={{
-                backgroundColor: storefrontColors.navy,
-                borderRadius: 999,
-                color: '#ffffff',
-                fontWeight: 900,
-                px: 3.8,
-                textTransform: 'none',
-                '&:hover': { backgroundColor: storefrontColors.navyDark },
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 1,
+                  color: storefrontColors.navy,
+                  fontWeight: 700,
+                },
               }}
+            />
+            <Stack
+              direction="row"
+              spacing={1.2}
+              sx={{ justifyContent: { sm: 'center', xs: 'flex-start' } }}
             >
-              Save
+              <Button
+                onClick={() => {
+                  setMessage(item.message ?? '');
+                  setIsMessageOpen(false);
+                }}
+                sx={{
+                  backgroundColor: '#f1f3f8',
+                  borderRadius: 999,
+                  color: storefrontColors.navy,
+                  fontWeight: 900,
+                  px: 3.4,
+                  textTransform: 'none',
+                  '&:hover': { backgroundColor: '#e7ebf4' },
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  onSaveMessage(item.product.id, message);
+                  setIsMessageOpen(false);
+                  toast.success('Message saved');
+                }}
+                sx={{
+                  backgroundColor: storefrontColors.navy,
+                  borderRadius: 999,
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  px: 3.8,
+                  textTransform: 'none',
+                  '&:hover': { backgroundColor: storefrontColors.navyDark },
+                }}
+              >
+                Save
+              </Button>
+            </Stack>
+          </Stack>
+        ) : (
+          <Stack spacing={1}>
+            {item.message ? (
+              <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                Message: {item.message}
+              </Typography>
+            ) : null}
+            <Button onClick={openMessage} sx={{ alignSelf: 'flex-start', textTransform: 'none' }}>
+              {item.message ? 'Edit message' : 'Add a message'}
             </Button>
           </Stack>
-        </Stack>
+        )}
       </Stack>
     </Box>
   );
 };
 
 export const CartPage = () => {
-  const { addToCart, clearCart, decreaseQuantity, items, removeFromCart, totalItems, totalPrice } =
-    useCart();
+  const {
+    addToCart,
+    clearCart,
+    decreaseQuantity,
+    items,
+    removeFromCart,
+    saveMessage,
+    totalItems,
+    totalPrice,
+  } = useCart();
   const { data: suggestionProducts = [] } = useProducts();
   const currency = items[0]?.product.currency ?? 'MMK';
 
@@ -469,6 +537,7 @@ export const CartPage = () => {
             onAdd={addToCart}
             onDecrease={decreaseQuantity}
             onRemove={removeFromCart}
+            onSaveMessage={saveMessage}
           />
         ))}
       </Box>

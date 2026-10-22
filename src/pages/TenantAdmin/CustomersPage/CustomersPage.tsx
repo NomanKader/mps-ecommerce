@@ -3,6 +3,7 @@ import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import {
   Alert,
+  Box,
   Button,
   Chip,
   DialogActions,
@@ -161,11 +162,7 @@ export const CustomersPage = () => {
       field: 'actions',
       headerName: 'Wallet',
       renderCell: (params) => (
-        <Button
-          onClick={() => openWalletLoadDialog(params.row)}
-          size="small"
-          variant="outlined"
-        >
+        <Button onClick={() => openWalletLoadDialog(params.row)} size="small" variant="outlined">
           Load wallet
         </Button>
       ),
@@ -180,10 +177,8 @@ export const CustomersPage = () => {
       title="Customers"
     >
       <Stack
-        direction={{ lg: 'row', xs: 'column' }}
         spacing={2}
         sx={{
-          alignItems: { lg: 'center', xs: 'stretch' },
           bgcolor: 'background.paper',
           border: 1,
           borderColor: 'divider',
@@ -192,66 +187,83 @@ export const CustomersPage = () => {
           p: 2,
         }}
       >
-        <TextField
-          label="Search customers"
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Name, email, or segment"
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchRoundedIcon fontSize="small" />
-                </InputAdornment>
-              ),
-            },
+        <Box
+          sx={{
+            alignItems: 'start',
+            display: 'grid',
+            gap: 2,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+            '& .MuiTextField-root': { minWidth: 0, width: '100%' },
           }}
-          sx={{ minWidth: { lg: 320 } }}
-          value={search}
-        />
-        <TextField
-          label="Segment"
-          onChange={(event) => setSegmentFilter(event.target.value as SegmentFilter)}
-          select
-          sx={{ minWidth: { lg: 160 } }}
-          value={segmentFilter}
         >
-          {segmentOptions.map((option) => (
-            <MenuItem key={option.value} value={option.value}>
-              {option.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          disabled
-          helperText="Date filtering is not available from the backend yet."
-          label="Last order from"
-          slotProps={{ inputLabel: { shrink: true } }}
-          type="date"
-        />
-        <TextField
-          disabled
-          label="Last order to"
-          slotProps={{ inputLabel: { shrink: true } }}
-          type="date"
-        />
-        <Typography color="text.secondary" sx={{ ml: { lg: 'auto' } }} variant="body2">
-          Showing {customers.length}
-        </Typography>
-        <Button
-          disabled={customersQuery.isLoading || customers.length === 0}
-          onClick={downloadCustomersReport}
-          startIcon={<FileDownloadOutlinedIcon />}
-          variant="outlined"
+          <TextField
+            label="Search customers"
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Name, email, or segment"
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              },
+            }}
+            value={search}
+          />
+          <TextField
+            label="Segment"
+            onChange={(event) => setSegmentFilter(event.target.value as SegmentFilter)}
+            select
+            value={segmentFilter}
+          >
+            {segmentOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            disabled
+            helperText="Date filtering is not available from the backend yet."
+            label="Last order from"
+            slotProps={{ inputLabel: { shrink: true } }}
+            type="date"
+          />
+          <TextField
+            disabled
+            label="Last order to"
+            slotProps={{ inputLabel: { shrink: true } }}
+            type="date"
+          />
+        </Box>
+        <Stack
+          direction="row"
+          spacing={2}
+          useFlexGap
+          sx={{ alignItems: 'center', flexWrap: 'wrap' }}
         >
-          Download report
-        </Button>
-        <Button
-          onClick={() => setCreateCustomerOpen(true)}
-          startIcon={<PersonAddAlt1RoundedIcon />}
-          variant="contained"
-        >
-          Create customer
-        </Button>
+          <Typography color="text.secondary" sx={{ flexGrow: 1 }} variant="body2">
+            Showing {customers.length}
+          </Typography>
+          <Button
+            disabled={customersQuery.isLoading || customers.length === 0}
+            onClick={downloadCustomersReport}
+            startIcon={<FileDownloadOutlinedIcon />}
+            sx={{ flexShrink: 0, whiteSpace: 'nowrap', width: { xs: '100%', sm: 'auto' } }}
+            variant="outlined"
+          >
+            Download report
+          </Button>
+          <Button
+            onClick={() => setCreateCustomerOpen(true)}
+            startIcon={<PersonAddAlt1RoundedIcon />}
+            sx={{ flexShrink: 0, whiteSpace: 'nowrap', width: { xs: '100%', sm: 'auto' } }}
+            variant="contained"
+          >
+            Create customer
+          </Button>
+        </Stack>
       </Stack>
 
       <Grid container spacing={3}>
@@ -312,8 +324,9 @@ export const CustomersPage = () => {
                 value={createCustomerForm.segment}
               >
                 {segmentOptions
-                  .filter((option): option is { label: string; value: AdminCustomer['segment'] } =>
-                    option.value !== 'all',
+                  .filter(
+                    (option): option is { label: string; value: AdminCustomer['segment'] } =>
+                      option.value !== 'all',
                   )
                   .map((option) => (
                     <MenuItem key={option.value} value={option.value}>
@@ -381,10 +394,7 @@ export const CustomersPage = () => {
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button
-            disabled={walletLoadMutation.isPending}
-            onClick={() => setWalletLoadTarget(null)}
-          >
+          <Button disabled={walletLoadMutation.isPending} onClick={() => setWalletLoadTarget(null)}>
             Cancel
           </Button>
           <Button

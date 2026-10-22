@@ -17,8 +17,6 @@ import { storefrontColors } from '@app/providers/theme/tokens';
 import { categoryApi } from '@features/category/api/categoryApi';
 import { useCart } from '@features/cart/hooks/useCart';
 import { productApi } from '@features/product/api/productApi';
-import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
-import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
 import { routePaths } from '@routes/routePaths';
 import { formatCurrency } from '@utils/formatCurrency';
 
@@ -97,18 +95,7 @@ export const SearchPage = () => {
     queryKey: ['searchpage', 'products'],
   });
   const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
-  const products = useMemo(() => {
-    const productsById = new Map(
-      allStorefrontProducts.map((product) => [
-        product.id,
-        mapHomeProductToProduct(product),
-      ]),
-    );
-
-    (productsQuery.data ?? []).forEach((product) => productsById.set(product.id, product));
-
-    return [...productsById.values()];
-  }, [productsQuery.data]);
+  const products = useMemo(() => productsQuery.data ?? [], [productsQuery.data]);
   const matchedProducts = useMemo(() => {
     if (!normalizedSearch) {
       return products.slice(0, 8);

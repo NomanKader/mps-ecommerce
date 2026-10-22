@@ -587,11 +587,12 @@ export const OrdersManagementPage = () => {
         </Box>
       </Box>
 
-      <Stack sx={{ mt: 2 }}>
+      <Stack sx={{ minWidth: 0, mt: 2 }}>
         {ordersQuery.isError ? (
           <Alert severity="error">{toApiError(ordersQuery.error).message}</Alert>
         ) : null}
         <AppDataTable
+          autoHeight={false}
           columns={columns}
           loading={ordersQuery.isLoading}
           onPaginationModelChange={setPaginationModel}
@@ -600,6 +601,7 @@ export const OrdersManagementPage = () => {
           paginationModel={paginationModel}
           rowHeight={60}
           rows={visibleOrders}
+          sx={{ height: 'clamp(400px, 70vh, 720px)' }}
         />
       </Stack>
 
@@ -707,6 +709,11 @@ export const OrdersManagementPage = () => {
                               <Typography color="text.secondary" variant="caption">
                                 SKU {item.sku} · {item.quantity} × {formatCurrency(item.unitPrice)}
                               </Typography>
+                              {item.message ? (
+                                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                                  Message: {item.message}
+                                </Typography>
+                              ) : null}
                               <Stack
                                 direction="row"
                                 spacing={0.75}

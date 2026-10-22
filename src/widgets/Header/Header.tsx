@@ -45,8 +45,6 @@ import { storefrontIconButtonSx } from '@shared/styles/storefront';
 import type { RootState } from '@store/index';
 import type { CustomerAddress } from '@entities/address/types/address.types';
 import type { Product } from '@entities/product/types/product.types';
-import { mapHomeProductToProduct } from '@features/home/utils/mapHomeProductToProduct';
-import { allStorefrontProducts } from '@features/home/utils/storefrontProducts';
 import { useProducts } from '@features/product/hooks/useProducts';
 import { formatCurrency } from '@utils/formatCurrency';
 
@@ -309,15 +307,7 @@ export const Header = () => {
       })),
     }));
   }, [storefrontCategoriesQuery.data]);
-  const searchableProducts = useMemo(() => {
-    const productsById = new Map(
-      allStorefrontProducts.map((product) => [product.id, mapHomeProductToProduct(product)]),
-    );
-
-    (productsQuery.data ?? []).forEach((product) => productsById.set(product.id, product));
-
-    return [...productsById.values()];
-  }, [productsQuery.data]);
+  const searchableProducts = useMemo(() => productsQuery.data ?? [], [productsQuery.data]);
   const searchSuggestions = useMemo(() => {
     const terms = searchValue
       .trim()
@@ -975,6 +965,7 @@ export const Header = () => {
             <IconButton
               component={Link}
               sx={{ ...storefrontIconButtonSx, height: 56, width: 56 }}
+              aria-label="Favourites"
               to={routePaths.accountFavourites}
             >
               <FavoriteBorderRoundedIcon />

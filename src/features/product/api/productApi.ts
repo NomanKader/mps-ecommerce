@@ -1,3 +1,5 @@
+import { isProductId } from '@entities/product/lib/isProductId';
+import { ApiError } from '@shared/api/apiError';
 import type { Product } from '@entities/product/types/product.types';
 import { apiClient } from '@shared/api/axios';
 import { endpoints } from '@shared/api/endpoints';
@@ -37,6 +39,7 @@ const mapProduct = ({ _id, stock, imageUrl, slug, ...product }: BackendProduct):
 
 export const productApi = {
   async getProductById(productId: string, options: ListOptions = {}): Promise<Product | undefined> {
+    if (!isProductId(productId)) throw new ApiError('Product not found', 404);
     const response = await apiClient.get<ApiResponse<BackendProduct>>(
       endpoints.products.details(productId),
       { signal: options.signal },

@@ -83,6 +83,7 @@ export type AdminOrderStatus =
 export type AdminOrderPaymentStatus = 'paid' | 'pending' | 'failed' | 'expired' | 'timeout';
 
 export type AdminOrderLineItem = {
+  message?: string;
   categoryId?: string;
   categoryName?: string;
   imageUrl?: string;
